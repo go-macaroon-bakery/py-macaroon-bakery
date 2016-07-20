@@ -47,7 +47,7 @@ def _add_padding(s):
     return s + '=' * ((4 - (len(s) % 4)) % 4)
 
 
-class DischargeError(Exception):
+class DischargeError(requests.RequestException):
     '''Exception that is been raised by Bakery public methods when a discharge
        error happens.
     '''
