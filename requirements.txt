@@ -1,1 +1,4 @@
+# Copyright 2016 Canonical Ltd.
+# Licensed under the LGPLv3, see LICENCE file for details.
+
 requests>=2.2.1

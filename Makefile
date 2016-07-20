@@ -1,5 +1,5 @@
-# Copyright 2015 Canonical Ltd.
-# Licensed under the AGPLv3, see LICENCE file for details.
+# Copyright 2016 Canonical Ltd.
+# Licensed under the LGPLv3, see LICENCE file for details.
 include sysdeps.mk
 
 PYTHON = python
@@ -48,7 +48,7 @@ clean:
 	rm -rfv *.egg build/ dist/ macaroonbakery.egg-info MANIFEST
 	# Remove tests artifacts.
 	rm -fv .coverage
-	# Remove the sysdeps canary file.
+	# Remove the canary file.
 	rm -fv $(SYSDEPS_INSTALLED)
 	rm -f $(LINK_PACKAGES_CANARY)
 	# Remove Python compiled bytecode.

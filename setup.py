@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # Copyright 2016 Canonical Ltd.
-# Licensed under the AGPLv3, see LICENCE file for details.
+# Licensed under the LGPLv3, see LICENCE file for details.
 import platform
 
 from setuptools import (
@@ -29,17 +29,17 @@ distribution = platform.dist()
 if len(distribution) == 3 and distribution[2] == 'trusty':
     # Injected into urllib3 to fix insecure Python 2.
     requirements.extend([
-        'cryptography == 1.3.2',
-        'pyOpenSSL == 16.0.0',
-        'pyasn1 == 0.1.9',
-        'ndg_httpsclient == 0.3.3',
+        'cryptography==1.3.2',
+        'pyOpenSSL==16.0.0',
+        'pyasn1==0.1.9',
+        'ndg_httpsclient==0.3.3',
     ])
 
 
 setup(
     name=PROJECT_NAME,
     version=project.get_version(),
-    description='A python library port for bakery, higher level operation '
+    description='A Python library port for bakery, higher level operation '
                 'to work with macaroons',
     long_description=readme,
     author="Juju UI Team",

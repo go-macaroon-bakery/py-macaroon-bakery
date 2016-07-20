@@ -1,13 +1,12 @@
 # Copyright 2016 Canonical Ltd.
-# Licensed under the AGPLv3, see LICENCE file for details.
+# Licensed under the LGPLv3, see LICENCE file for details.
 import base64
 import json
-
 from unittest import TestCase
+
 from mock import (
     patch,
 )
-
 from httmock import (
     HTTMock,
     urlmatch,
@@ -123,6 +122,9 @@ def discharge_401(url, request):
 
 @urlmatch(path='.*/wait')
 def wait_after_401(url, request):
+    if request.url != 'http://example.com/wait':
+        return {'status_code': 500}
+
     return {
         'status_code': 200,
         'content': {
@@ -141,15 +143,15 @@ class TestBakery(TestCase):
             with HTTMock(discharge_200):
                 data = self.bakery.get(ID_PATH)
         self.assertEquals({'Value': 'some value'}, json.loads(data.content))
-        self.assertIsNotNone(self.bakery.macaroons,
+        self.assertIsNotNone(self.bakery._macaroons,
                              'macaroons should have been set')
-        decoded = base64.urlsafe_b64decode(self.bakery.macaroons)
+        decoded = base64.urlsafe_b64decode(self.bakery._macaroons)
         m = bakery.deserialize(json_macaroon)
         dm = m.prepare_for_request(
             bakery.deserialize(discharged_macaroon))
         json_dm = json.loads(base64.urlsafe_b64decode(dm.serialize_json()))
         self.assertEquals([json_macaroon, json_dm], json.loads(decoded))
-        self.assertIsNone(self.bakery.discharge_token)
+        self.assertIsNone(self.bakery._discharge_token)
 
     def test_macaroon_valid_from_start(self):
         with HTTMock(valid_200):
@@ -162,14 +164,15 @@ class TestBakery(TestCase):
             with HTTMock(discharge_401):
                 with HTTMock(wait_after_401):
                     data = self.bakery.get(ID_PATH)
+        mock_open.assert_called_once_with(u'http://example.com/visit', new=1)
         self.assertEquals({'Value': 'some value'}, json.loads(data.content))
-        self.assertIsNotNone(self.bakery.macaroons,
+        self.assertIsNotNone(self.bakery._macaroons,
                              'macaroons should have been set')
-        decoded = base64.urlsafe_b64decode(self.bakery.macaroons)
+        decoded = base64.urlsafe_b64decode(self.bakery._macaroons)
         m = bakery.deserialize(json_macaroon)
         dm = m.prepare_for_request(
             bakery.deserialize(discharged_macaroon))
         json_dm = json.loads(base64.urlsafe_b64decode(dm.serialize_json()))
         self.assertEquals([json_macaroon, json_dm], json.loads(decoded))
         self.assertEquals(bakery.to_base64(discharge_token),
-                          self.bakery.discharge_token)
+                          self.bakery._discharge_token)
