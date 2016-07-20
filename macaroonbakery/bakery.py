@@ -99,7 +99,7 @@ class Bakery(object):
                 raise DischargeError(
                     'code not found in unauthorized response {}'.format(
                         response.content))
-            if code != 'macaroon discharge   required':
+            if code != 'macaroon discharge required':
                 raise DischargeError(
                     'Unknown code found in unauthorized response {}'.format(
                         code))
