@@ -3,3 +3,4 @@
 
 requests>=2.16.5
 PyNaCl>=1.1.2
+pymacaroons==0.10.0

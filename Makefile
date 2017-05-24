@@ -15,8 +15,6 @@ DEVENVPIP = $(DEVENV)/bin/pip
 
 .DEFAULT_GOAL := setup
 
-LINK_PACKAGES_CANARY = .link-packages-canary
-
 $(DEVENVPIP):
 	@tox -e devenv
 
@@ -50,7 +48,6 @@ clean:
 	rm -fv .coverage
 	# Remove the canary file.
 	rm -fv $(SYSDEPS_INSTALLED)
-	rm -f $(LINK_PACKAGES_CANARY)
 	# Remove Python compiled bytecode.
 	find . -name '*.pyc' -delete
 	find . -name '__pycache__' -type d -delete
@@ -86,12 +83,7 @@ release: check
 	$(PYTHON) setup.py register sdist upload
 
 .PHONY: setup
-setup: $(SYSDEPS_INSTALLED) $(DEVENVPIP) $(LINK_PACKAGES_CANARY) setup.py
-
-# Link system packages to local packages.
-$(LINK_PACKAGES_CANARY): link-packages.sh
-	./link-packages.sh
-	touch $(LINK_PACKAGES_CANARY)
+setup: $(SYSDEPS_INSTALLED) $(DEVENVPIP) setup.py
 
 .PHONY: source
 source:
