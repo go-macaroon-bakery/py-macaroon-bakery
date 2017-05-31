@@ -1,0 +1,5 @@
+# Copyright 2017 Canonical Ltd.
+# Licensed under the LGPLv3, see LICENCE file for details.
+
+requests>=2.16.5
+PyNaCl>=1.1.2
