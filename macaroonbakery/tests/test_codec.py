@@ -9,7 +9,7 @@ from nacl.encoding import Base64Encoder
 from nacl.public import PrivateKey
 
 from macaroonbakery import bakery, codec, macaroon, utils
-from macaroonbakery.checkers import namespace
+from macaroonbakery.checkers.namespace import Namespace
 
 
 class TestCodec(TestCase):
@@ -59,7 +59,7 @@ class TestCodec(TestCase):
     def test_v3_round_trip(self):
         tp_info = bakery.ThirdPartyInfo(bakery.BAKERY_V3,
                                         self.tp_key.public_key)
-        ns = namespace.Namespace()
+        ns = Namespace()
         ns.register('testns', 'x')
         cid = codec.encode_caveat('is-authenticated-user',
                                   b'a random string',

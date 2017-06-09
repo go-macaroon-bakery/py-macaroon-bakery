@@ -3,7 +3,7 @@
 from unittest import TestCase
 
 from macaroonbakery.identity import Identity, SimpleIdentity
-from macaroonbakery.checkers.checkers import Caveat
+from macaroonbakery.checkers.caveat import Caveat
 from macaroonbakery.authorizer import AuthorizerFunc, ACLAuthorizer, EVERYONE
 from macaroonbakery.checker import Op
 

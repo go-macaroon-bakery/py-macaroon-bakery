@@ -10,7 +10,8 @@ from pymacaroons import MACAROON_V2, Verifier
 import six
 
 from macaroonbakery import bakery, checker, macaroon, store, utils
-from macaroonbakery.checkers import checkers
+from macaroonbakery.checkers.caveat import time_before_caveat
+
 from macaroonbakery.internal import id_pb2
 
 
@@ -86,7 +87,7 @@ class Oven:
             id_bytes = utils.raw_urlsafe_b64encode(id_bytes)
 
         m = macaroon.Macaroon(root_key, id_bytes, self.location, version, None)
-        m.add_caveat(checkers.time_before_caveat(expiry), self.key,
+        m.add_caveat(time_before_caveat(expiry), self.key,
                      self.locator)
         m.add_caveats(caveats, self.key, self.locator)
         return m

@@ -10,7 +10,7 @@ from nacl.public import Box, PublicKey
 
 import macaroonbakery
 from macaroonbakery import bakery
-from macaroonbakery.checkers import namespace
+from macaroonbakery.checkers.namespace import deserialize_namespace
 
 _PUBLIC_KEY_PREFIX_LEN = 4
 _KEY_LEN = 32
@@ -260,7 +260,7 @@ def _decode_secret_part_v2_v3(version, data):
         data = data[read:]
         ns_data = data[:namespace_length]
         data = data[namespace_length:]
-        ns = namespace.deserialize_namespace(ns_data)
+        ns = deserialize_namespace(ns_data)
     else:
         ns = macaroonbakery.macaroon.legacy_namespace()
     return root_key, data, ns

@@ -1,11 +1,11 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
-
 import collections
+
 import six
 
-# StdNamespace holds the URI of the standard checkers schema.
-STD_NAMESPACE = 'std'
+from macaroonbakery.checkers.utils import condition_with_prefix
+from macaroonbakery.checkers.caveat import error_caveat
 
 
 class Namespace:
@@ -16,6 +16,7 @@ class Namespace:
     prefix - this is usual when several different backwardly
     compatible schema versions are registered.
     '''
+
     def __init__(self, uri_to_prefix=None):
         self._uri_to_prefix = {}
         if uri_to_prefix is not None:
@@ -74,6 +75,39 @@ class Namespace:
         :return: string
         '''
         return self._uri_to_prefix.get(uri)
+
+    def resolve_caveat(self, cav):
+        ''' Resolves the given caveat(string) by using resolve to map from its
+        schema namespace to the appropriate prefix.
+        If there is no registered prefix for the namespace, it returns an error
+        caveat.
+        If cav.namespace is empty or cav.location is non-empty, it returns cav
+        unchanged.
+
+        It does not mutate ns and may be called concurrently with other
+        non-mutating Namespace methods.
+        :return: Caveat object
+        '''
+        # TODO: If a namespace isn't registered, try to resolve it by
+        # resolving it to the latest compatible version that is
+        # registered.
+        if cav.namespace == "" or cav.location != "":
+            return cav
+
+        prefix = self.resolve(cav.namespace)
+        if prefix is None:
+            err_cav = error_caveat(
+                'caveat {} in unregistered namespace {}'.format(
+                    cav.condition, cav.namespace))
+            if err_cav.namespace != cav.namespace:
+                prefix = self.resolve(err_cav.namespace)
+                if prefix is None:
+                    prefix = ''
+            cav = err_cav
+        if prefix != '':
+            cav.condition = condition_with_prefix(prefix, cav.condition)
+        cav.namespace = ""
+        return cav
 
 
 def is_valid_schema_uri(uri):

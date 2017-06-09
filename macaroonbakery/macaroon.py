@@ -9,7 +9,7 @@ import pymacaroons
 from pymacaroons.serializers import json_serializer
 
 from macaroonbakery import bakery, codec
-from macaroonbakery.checkers import namespace
+from macaroonbakery.checkers import checkers
 
 log = logging.getLogger(__name__)
 
@@ -17,8 +17,8 @@ log = logging.getLogger(__name__)
 def legacy_namespace():
     ''' Standard namespace for pre-version3 macaroons.
     '''
-    ns = namespace.Namespace(None)
-    ns.register(namespace.STD_NAMESPACE, '')
+    ns = checkers.Namespace(None)
+    ns.register(checkers.STD_NAMESPACE, '')
     return ns
 
 

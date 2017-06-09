@@ -6,7 +6,7 @@ from unittest import TestCase
 import nacl.utils
 
 from macaroonbakery import bakery, macaroon, codec
-from macaroonbakery.checkers import checkers
+from macaroonbakery.checkers.caveat import Caveat
 
 
 class TestMacaroon(TestCase):
@@ -25,7 +25,7 @@ class TestMacaroon(TestCase):
                               'some id',
                               'here',
                               bakery.LATEST_BAKERY_VERSION)
-        m.add_caveat(checkers.Caveat('test_condition'))
+        m.add_caveat(Caveat('test_condition'))
         caveats = m.first_party_caveats()
         self.assertEquals(len(caveats), 1)
         self.assertEquals(caveats[0].caveat_id, b'test_condition')
@@ -43,8 +43,8 @@ class TestMacaroon(TestCase):
                      bakery.ThirdPartyInfo(
                          bakery.BAKERY_V1,
                          tp_key.public_key))
-        m.add_caveat(checkers.Caveat(condition='test_condition',
-                                     location='test_location'),
+        m.add_caveat(Caveat(condition='test_condition',
+                            location='test_location'),
                      fp_key, loc)
 
         tp_cav = m.third_party_caveats()

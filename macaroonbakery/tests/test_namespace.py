@@ -3,7 +3,7 @@
 
 from unittest import TestCase
 
-from macaroonbakery.checkers import namespace
+from macaroonbakery.checkers.namespace import Namespace, deserialize_namespace
 
 
 class TestNamespace(TestCase):
@@ -23,17 +23,17 @@ class TestNamespace(TestCase):
             }, b'a:one a1:two')
         ]
         for test in tests:
-            ns = namespace.Namespace(test[1])
+            ns = Namespace(test[1])
             data = ns.serialize()
             self.assertEquals(data, test[2])
             self.assertEquals(str(ns), test[2].decode('utf-8'))
 
         # Check that it can be deserialize to the same thing:
-        ns1 = namespace.deserialize_namespace(data)
+        ns1 = deserialize_namespace(data)
         self.assertEquals(ns1, ns)
 
     def test_register(self):
-        ns = namespace.Namespace(None)
+        ns = Namespace(None)
         ns.register('testns', 't')
         prefix = ns.resolve('testns')
         self.assertEquals(prefix, 't')
@@ -48,11 +48,11 @@ class TestNamespace(TestCase):
         self.assertEquals(prefix, 'o')
 
     def test_register_bad_uri(self):
-        ns = namespace.Namespace(None)
+        ns = Namespace(None)
         with self.assertRaises(KeyError):
             ns.register('', 'x')
 
     def test_register_bad_prefix(self):
-        ns = namespace.Namespace(None)
+        ns = Namespace(None)
         with self.assertRaises(ValueError):
             ns.register('std', 'x:1')
