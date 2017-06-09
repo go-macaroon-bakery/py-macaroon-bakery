@@ -10,9 +10,19 @@ import bakery
 import codec
 import pymacaroons
 
+import namespace
+
 MACAROON_V1, MACAROON_V2 = 1, 2
 
 log = logging.getLogger(__name__)
+
+
+def legacy_namespace():
+    ''' Standard namespace for pre-version3 macaroons.
+    '''
+    ns = namespace.Namespace(None)
+    ns.register(namespace.STD_NAMESPACE, '')
+    return ns
 
 
 class Macaroon:
@@ -42,7 +52,7 @@ class Macaroon:
         self._macaroon = pymacaroons.Macaroon(location=location, key=root_key,
                                               identifier=id)
         # version holds the version of the macaroon.
-        self.version = version
+        self.version = macaroon_version(version)
         self.caveat_data = {}
 
     def add_caveat(self, cav, key=None, loc=None):
@@ -79,9 +89,9 @@ class Macaroon:
             cav.location = 'local'
             if cav.condition is not '':
                 raise ValueError(
-                    "cannot specify caveat condition in "
-                    "local third-party caveat")
-            cav.condition = "true"
+                    'cannot specify caveat condition in '
+                    'local third-party caveat')
+            cav.condition = 'true'
         else:
             if loc is None:
                 raise ValueError(
@@ -246,7 +256,7 @@ class ThirdPartyCaveatInfo:
     a third party caveat id.
     '''
     def __init__(self, condition, first_party_public_key, third_party_key_pair,
-                 root_key, caveat, version):
+                 root_key, caveat, version, ns):
         '''
         @param condition holds the third party condition to be discharged.
         This is the only field that most third party dischargers will
@@ -260,6 +270,9 @@ class ThirdPartyCaveatInfo:
         which all the other fields are derived.
         @param version holds the version that was used to encode
         the caveat id.
+        @params Namespace object that holds the namespace of the first party
+        that created the macaroon, as encoded by the party that added the
+        third party caveat.
         '''
         self.condition = condition,
         self.first_party_public_key = first_party_public_key,
@@ -267,13 +280,16 @@ class ThirdPartyCaveatInfo:
         self.root_key = root_key,
         self.caveat = caveat,
         self.version = version,
+        self.ns = ns
 
     def __eq__(self, other):
         return (
             self.condition == other.condition and
             self.first_party_public_key == other.first_party_public_key and
             self.third_party_key_pair == other.third_party_key_pair and
-            self.caveat == other.caveat
+            self.caveat == other.caveat and
+            self.version == other.version and
+            self.ns == other.ns
         )
 
 

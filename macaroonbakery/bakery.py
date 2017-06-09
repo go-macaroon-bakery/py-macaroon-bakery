@@ -22,7 +22,7 @@ BAKERY_V0 = 0
 BAKERY_V1 = 1
 BAKERY_V2 = 2
 BAKERY_V3 = 3
-LATEST_BAKERY_VERSION = BAKERY_V1
+LATEST_BAKERY_VERSION = BAKERY_V3
 NONCE_LEN = 24
 
 
@@ -32,7 +32,7 @@ _Info = namedtuple('Info', 'visit_url wait_url')
 
 
 class DischargeException(Exception):
-    """A discharge error occurred."""
+    '''A discharge error occurred.'''
 
 
 def discharge_all(macaroon, visit_page=None, jar=None, key=None):
@@ -88,7 +88,7 @@ def discharge(key, id, caveat=None, checker=None, locator=None):
     if caveat is None:
         caveat = id
     cav_info = _decode_caveat(key, caveat)
-    return Macaroon(location="", key=cav_info['RootKey'], identifier=id)
+    return Macaroon(location='', key=cav_info['RootKey'], identifier=id)
 
 
 class _Client:
