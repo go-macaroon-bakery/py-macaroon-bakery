@@ -2,13 +2,14 @@
 # Licensed under the LGPLv3, see LICENCE file for details.
 
 import base64
-
+from collections import namedtuple
 import json
 import requests
 import utils
 
 import nacl.utils
 from nacl.public import Box
+
 from pymacaroons import Macaroon
 
 ERR_INTERACTION_REQUIRED = 'interaction required'
@@ -17,15 +18,25 @@ TIME_OUT = 30
 DEFAULT_PROTOCOL_VERSION = {'Bakery-Protocol-Version': '1'}
 MAX_DISCHARGE_RETRIES = 3
 
+BAKERY_V0 = 0
+BAKERY_V1 = 1
+BAKERY_V2 = 2
+BAKERY_V3 = 3
+LATEST_BAKERY_VERSION = BAKERY_V1
+NONCE_LEN = 24
+
+
+# A named tuple composed of the visit_url and wait_url coming from the error
+# response in discharge
+_Info = namedtuple('Info', 'visit_url wait_url')
+
 
 class DischargeException(Exception):
     """A discharge error occurred."""
 
 
-def discharge_all(macaroon, visit_page=utils.visit_page_with_browser,
-                  jar=requests.cookies.RequestsCookieJar(), key=None):
-    ''' Gathers discharge macaroons for all the third party
-    caveats in macaroon (and any subsequent caveats required by those).
+def discharge_all(macaroon, visit_page=None, jar=None, key=None):
+    '''Gathers discharge macaroons for all the third party caveats in macaroon.
 
     All the discharge macaroons will be bound to the primary macaroon.
     The key parameter may optionally hold the key of the client, in which case
@@ -42,6 +53,10 @@ def discharge_all(macaroon, visit_page=utils.visit_page_with_browser,
     discharge macaroons.
     '''
     discharges = [macaroon]
+    if visit_page is None:
+        visit_page = utils.visit_page_with_browser
+    if jar is None:
+        jar = requests.cookies.RequestsCookieJar()
     client = _Client(visit_page, jar)
     try:
         client.discharge_caveats(macaroon, discharges, macaroon, key)
@@ -51,7 +66,7 @@ def discharge_all(macaroon, visit_page=utils.visit_page_with_browser,
 
 
 def discharge(key, id, caveat=None, checker=None, locator=None):
-    ''' Creates a macaroon to discharge a third party caveat.
+    '''Creates a macaroon to discharge a third party caveat.
 
     @param key nacl key holds the key to use to decrypt the third party
     caveat information and to encrypt any additional
@@ -83,8 +98,7 @@ class _Client:
 
     def discharge_caveats(self, macaroon, discharges,
                           primary_macaroon, key):
-        '''Gathers discharge macaroons for all the third party caveats
-           for the macaroon passed in.
+        '''Gathers discharge macaroons for all the third party caveats.
 
         @param macaroon the macaroon to discharge.
         @param discharges the list of discharged macaroons.
@@ -109,7 +123,7 @@ class _Client:
 
     def _get_discharge(self, third_party_location,
                        third_party_caveat_condition):
-        ''' Get the discharge macaroon from the third party location.
+        '''Get the discharge macaroon from the third party location.
 
         @param third_party_location where to get a discharge from.
         @param third_party_caveat_condition encoded 64 string associated to the
@@ -126,22 +140,22 @@ class _Client:
                                  data=payload,
                                  # timeout=TIME_OUT, TODO: add a time out
                                  cookies=self._jar)
-        if response.status_code == 200:
+        status_code = response.status_code
+        if status_code == 200:
             return _extract_macaroon_from_response(response)
-        elif response.status_code == 401 and \
-                response.headers.get('WWW-Authenticate', '') == 'Macaroon':
+        if (status_code == 401 and
+                response.headers.get('WWW-Authenticate') == 'Macaroon'):
             error = response.json()
             if error.get('Code', '') != ERR_INTERACTION_REQUIRED:
                 return DischargeException('unable to get code from discharge')
-            visit_url, wait_url = _extract_urls(response)
-            self._visit_page(visit_url)
+            info = _extract_urls(response)
+            self._visit_page(info.visit_url)
             # Wait on the wait url and then get a macaroon if validated.
-            return _acquire_macaroon_from_wait(wait_url)
+            return _acquire_macaroon_from_wait(info.wait_url)
 
 
 def _decode_caveat(key, caveat):
-    ''' Attempts to decode caveat by decrypting the encrypted part
-    using key.
+    '''Attempts to decode caveat by decrypting the encrypted part using key.
 
     @param key a nacl key.
     @param caveat bytes to be decoded.
@@ -174,7 +188,7 @@ def _decode_caveat(key, caveat):
 
 
 def _extract_macaroon_from_response(response):
-    ''' Extract the macaroon from a direct successful discharge.
+    '''Extract the macaroon from a direct successful discharge.
 
     @param response from direct successful discharge.
     @return a macaroon object.
@@ -185,8 +199,9 @@ def _extract_macaroon_from_response(response):
 
 
 def _acquire_macaroon_from_wait(wait_url):
-    ''' Return the macaroon acquired from the wait endpoint, which
-    will block until the user interaction has completed.
+    ''' Return the macaroon acquired from the wait endpoint.
+
+    Note that will block until the user interaction has completed.
 
     @param wait_url the get url to call to get a macaroon.
     @return a macaroon object
@@ -199,13 +214,24 @@ def _acquire_macaroon_from_wait(wait_url):
 
 
 def _extract_urls(response):
-    ''' Return the visit and wait URL from response.
+    '''Return _Info of the visit and wait URL from response.
 
     @param response the response from the discharge endpoint.
-    @return a tuple of the visit and wait URL.
+    @return a _Info object of the visit and wait URL.
     @raises DischargeError for ant error during the process response.
     '''
     response_json = response.json()
     visit_url = response_json['Info']['VisitURL']
     wait_url = response_json['Info']['WaitURL']
-    return visit_url, wait_url
+    return _Info(visit_url=visit_url, wait_url=wait_url)
+
+
+class ThirdPartyInfo:
+    def __init__(self, version, public_key):
+        '''
+        @param version holds latest the bakery protocol version supported
+        by the discharger.
+        @param public_key holds the public nacl key of the third party.
+        '''
+        self.version = version
+        self.public_key = public_key

@@ -17,9 +17,10 @@ MAX_DISCHARGE_RETRIES = 3
 
 
 class BakeryAuth:
-    ''' BakeryAuth holds the context for making HTTP requests
-        that automatically acquire and discharge macaroons around the requests
-        framework.
+    ''' BakeryAuth holds the context for making HTTP requests with macaroons.
+
+        This will automatically acquire and discharge macaroons around the
+        requests framework.
         Usage:
             from macaroonbakery import httpbakery
             jar = requests.cookies.RequestsCookieJar()
@@ -58,14 +59,14 @@ class BakeryAuth:
 
 
 def _prepare_discharge_hook(req, key, jar, visit_page):
-    ''' Return the hook function that will be called when the response is
-    received. This allows us to intercept the response and do any necessary
+    ''' Return the hook function (called when the response is received.)
+
+    This allows us to intercept the response and do any necessary
     macaroon discharge before returning.
     '''
     class Retry:
-        ''' Define a local class so that we can use its class variable as
-        mutable state accessed by the closures below.
-        '''
+        # Define a local class so that we can use its class variable as
+        # mutable state accessed by the closures below.
         count = 0
 
     def hook(response, *args, **kwargs):

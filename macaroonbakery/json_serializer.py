@@ -5,16 +5,16 @@ import base64
 import json
 import utils
 
-from pymacaroons.utils import convert_to_bytes
 from pymacaroons.macaroon import Macaroon
 from pymacaroons.caveat import Caveat
 
 
 class JsonSerializer(object):
-    ''' Serializer used to produce JSON macaroon format v1.
+    '''Serializer used to produce JSON macaroon format v1.
     '''
     def serialize(self, macaroon):
-        ''' serialize the macaroon in JSON format v1.
+        '''Serialize the macaroon in JSON format v1.
+
         @param macaroon the macaroon to serialize.
         @return JSON macaroon.
         '''
@@ -26,12 +26,12 @@ class JsonSerializer(object):
             serialized['location'] = macaroon.location
         if macaroon.caveats:
             serialized['caveats'] = [
-                caveat_to_dict(caveat) for caveat in macaroon.caveats
+                caveat_v1_to_dict(caveat) for caveat in macaroon.caveats
             ]
         return json.dumps(serialized)
 
     def deserialize(self, serialized):
-        ''' Deserialize a JSON macaroon v1.
+        '''Deserialize a JSON macaroon v1.
 
         @param serialized the macaroon in JSON format v1.
         @return the macaroon object.
@@ -43,7 +43,8 @@ class JsonSerializer(object):
             caveat = Caveat(
                 caveat_id=c['cid'],
                 verification_key_id=(
-                    raw_b64decode(c['vid']) if c.get('vid') else None
+                    utils.raw_urlsafe_b64decode(c['vid']) if c.get('vid')
+                    else None
                 ),
                 location=(
                     c['cl'] if c.get('cl') else None
@@ -59,21 +60,9 @@ class JsonSerializer(object):
         )
 
 
-def raw_b64decode(s):
-    ''' Base64 decode with added padding and convertion to bytes.
-
-    @param s string decode
-    @return bytes decoded
-    '''
-    return base64.urlsafe_b64decode(utils.add_base64_padding(
-        convert_to_bytes(s)))
-
-
-def caveat_to_dict(c):
-    ''' Caveat to dictionnary for the JSON macaroon V1 format.
-
-    @param c the caveat object.
-    @return JSON caveat in V1 macaroon format.
+def caveat_v1_to_dict(c):
+    ''' Return a caveat as a dictionary for export as the JSON
+    macaroon v1 format
     '''
     serialized = {}
     if len(c.caveat_id) > 0:
