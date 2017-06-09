@@ -3,7 +3,7 @@
 
 from unittest import TestCase
 
-from macaroonbakery import namespace
+from macaroonbakery.checkers import namespace
 
 
 class TestNamespace(TestCase):

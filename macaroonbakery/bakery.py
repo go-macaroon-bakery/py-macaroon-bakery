@@ -111,7 +111,7 @@ class _Client:
         caveats = macaroon.third_party_caveats()
         for caveat in caveats:
             location = caveat.location
-            b_cav_id = caveat.caveat_id.encode('utf-8')
+            b_cav_id = caveat.caveat_id
             if key is not None and location == 'local':
                 # if tuple is only 2 element otherwise TODO add caveat
                 dm = discharge(key, id=b_cav_id)

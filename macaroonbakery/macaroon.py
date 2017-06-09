@@ -6,13 +6,11 @@ import copy
 import logging
 import os
 
-import bakery
-import codec
 import pymacaroons
+from pymacaroons.serializers import json_serializer
 
-import namespace
-
-MACAROON_V1, MACAROON_V2 = 1, 2
+from macaroonbakery import bakery, codec
+from macaroonbakery.checkers import namespace
 
 log = logging.getLogger(__name__)
 
@@ -49,14 +47,21 @@ class Macaroon:
             ))
             version = bakery.LATEST_BAKERY_VERSION
         # m holds the underlying macaroon.
-        self._macaroon = pymacaroons.Macaroon(location=location, key=root_key,
-                                              identifier=id)
+        self._macaroon = pymacaroons.Macaroon(
+            location=location, key=root_key, identifier=id,
+            version=macaroon_version(version))
         # version holds the version of the macaroon.
-        self.version = macaroon_version(version)
+        self.version = version
         self.caveat_data = {}
+        self.ns = ns
+
+    def macaroon(self):
+        ''' Return the underlying macaroon.
+        '''
+        return self._macaroon
 
     def add_caveat(self, cav, key=None, loc=None):
-        '''Return a new macaroon with the given caveat added.
+        '''Add a caveat to the macaroon.
 
         It encrypts it using the given key pair
         and by looking up the location using the given locator.
@@ -73,13 +78,10 @@ class Macaroon:
         third party caveats. It is expected to have a third_party_info method
         that will be called with a location string and should return a
         ThirdPartyInfo instance holding the requested information.
-        @return a new macaroon object with the given caveat.
         '''
         if cav.location is None:
-            macaroon = self._macaroon.add_first_party_caveat(cav.condition)
-            new_macaroon = copy.copy(self)
-            new_macaroon._macaroon = macaroon
-            return new_macaroon
+            self._macaroon.add_first_party_caveat(cav.condition)
+            return
         if key is None:
             raise ValueError(
                 'no private key to encrypt third party caveat')
@@ -113,51 +115,39 @@ class Macaroon:
             id = self._new_caveat_id(self.caveat_id_prefix)
             self.caveat_data[id] = caveat_info
 
-        m = self._macaroon.add_third_party_caveat(cav.location, root_key, id)
-        new_macaroon = copy.copy(self)
-        new_macaroon._macaroon = m
-        return new_macaroon
+        self._macaroon.add_third_party_caveat(cav.location, root_key, id)
 
     def add_caveats(self, cavs, key, loc):
-        '''Return a new macaroon with all caveats added.
+        '''Add an array of caveats to the macaroon.
 
         This method does not mutate the current object.
         @param cavs arrary of caveats.
         @param key the nacl public key to encrypt third party caveat.
         @param loc locator to find the location object that has a method
         third_party_info.
-        @return a new macaroon object with the given caveats.
         '''
-        macaroon = self
+        if cavs is None:
+            return
         for cav in cavs:
-            macaroon = macaroon.add_caveat(cav, key, loc)
-        return macaroon
+            self.add_caveat(cav, key, loc)
 
-    def serialize(self):
-        '''Return a dictionary holding the macaroon data in V1 JSON format.
+    def serialize_json(self):
+        '''Return a dictionary holding the macaroon data in JSON format.
 
         Note that this differs from the underlying macaroon serialize method as
         it does not return a string. This makes it easier to incorporate the
         macaroon into other JSON objects.
 
-        @return a dictionary holding the macaroon data
-        in V1 JSON format
+        @return a dictionary holding the macaroon data in JSON format
         '''
-        if self.version == bakery.BAKERY_V1:
-            # latest libmacaroons do not support the old format
-            json_macaroon = self._macaroon.serialize('json')
-            val = {
-                'identifier': _field_v2(json_macaroon, 'i'),
-                'signature': _field_v2(json_macaroon, 's'),
-            }
-            location = json_macaroon.get('l')
-            if location is not None:
-                val['location'] = location
-            cavs = json_macaroon.get('c')
-            if cavs is not None:
-                val['caveats'] = map(cavs, _cav_v2_to_v1)
-            return val
-        raise NotImplementedError('only bakery v1 supported')
+        serialized = {
+            'm': self._macaroon.serialize(
+                json_serializer.JsonSerializer()),
+            'v': self.version,
+        }
+        if self.ns:
+            serialized['ns'] = self.ns.serialize()
+        return serialized
 
     def _new_caveat_id(self, base):
         '''Return a third party caveat id
@@ -193,8 +183,8 @@ def macaroon_version(bakery_version):
     @return macaroon_version the derived macaroon version
     '''
     if bakery_version in [bakery.BAKERY_V0, bakery.BAKERY_V1]:
-        return MACAROON_V1
-    return MACAROON_V2
+        return pymacaroons.MACAROON_V1
+    return pymacaroons.MACAROON_V2
 
 
 def parse_local_location(loc):
@@ -291,21 +281,3 @@ class ThirdPartyCaveatInfo:
             self.version == other.version and
             self.ns == other.ns
         )
-
-
-def _field_v2(dict, field):
-    val = dict.get(field)
-    if val is None:
-        return base64.b64decode(dict.get(field + '64'))
-    return val
-
-
-def _cav_v2_to_v1(cav):
-    val = {
-        'cid': _field_v2(cav, 'i'),
-        'vid': _field_v2(cav, 'v')
-    }
-    location = cav.get('l')
-    if location is not None:
-        val['cl'] = location
-    return val
