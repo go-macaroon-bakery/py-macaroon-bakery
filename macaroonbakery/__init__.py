@@ -13,5 +13,5 @@ VERSION = (0, 0, 1)
 
 
 def get_version():
-    """Return the macaroon bakery version as a string."""
+    '''Return the macaroon bakery version as a string.'''
     return '.'.join(map(str, VERSION))

@@ -103,7 +103,7 @@ def _prepare_discharge_hook(req, key, jar, visit_page):
         discharges = discharge_all(macaroon, visit_page, jar, key)
         encoded_discharges = map(utils.serialize_macaroon_string, discharges)
 
-        macaroons = "[" + ",".join(encoded_discharges) + "]"
+        macaroons = '[' + ','.join(encoded_discharges) + ']'
         all_macaroons = base64.urlsafe_b64encode(
             macaroons.encode('utf-8')).decode('ascii')
 
