@@ -3,7 +3,7 @@
 
 import base64
 import json
-import utils
+from . import utils
 
 from pymacaroons.macaroon import Macaroon
 from pymacaroons.caveat import Caveat
