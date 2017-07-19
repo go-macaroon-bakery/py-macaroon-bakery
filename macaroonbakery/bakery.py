@@ -5,7 +5,7 @@ import base64
 from collections import namedtuple
 import json
 import requests
-from . import utils
+from macaroonbakery import utils
 
 import nacl.utils
 from nacl.public import Box
