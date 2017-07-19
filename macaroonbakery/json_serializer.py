@@ -3,7 +3,6 @@
 
 import base64
 import json
-from . import utils
 
 from pymacaroons.macaroon import Macaroon
 from pymacaroons.caveat import Caveat
@@ -36,6 +35,7 @@ class JsonSerializer(object):
         @param serialized the macaroon in JSON format v1.
         @return the macaroon object.
         '''
+        from macaroonbakery import utils
         caveats = []
         deserialized = json.loads(serialized)
 
