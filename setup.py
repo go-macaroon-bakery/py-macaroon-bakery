@@ -19,7 +19,8 @@ with open('README.rst') as readme_file:
 requirements = [
     'requests>=2.16.5',
     'PyNaCl>=1.1.2',
-    'pymacaroons>=0.10.0'
+    'pymacaroons>=0.10.0',
+    'six>=1.10.0',
 ]
 
 test_requirements = [
