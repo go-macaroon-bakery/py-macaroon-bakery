@@ -9,7 +9,7 @@ except ImportError:
 else:
     urllib3.contrib.pyopenssl.inject_into_urllib3()
 
-VERSION = (0, 0, 2)
+VERSION = (0, 0, 3)
 
 
 def get_version():
