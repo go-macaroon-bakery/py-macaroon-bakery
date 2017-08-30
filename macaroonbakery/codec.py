@@ -3,14 +3,14 @@
 
 import base64
 import json
-import namespace
 
-from nacl.public import Box, PublicKey
-from nacl.encoding import Base64Encoder
 import six
+from nacl.encoding import Base64Encoder
+from nacl.public import Box, PublicKey
 
-import bakery
-import macaroon
+import macaroonbakery
+from macaroonbakery import bakery
+from macaroonbakery.checkers import namespace
 
 _PUBLIC_KEY_PREFIX_LEN = 4
 _KEY_LEN = 32
@@ -198,14 +198,14 @@ def _decode_caveat_v1(key, caveat):
     c = box.decrypt(secret, nonce)
     record = json.loads(c.decode('utf-8'))
     fp_key = PublicKey(base64.b64decode(wrapper.get('FirstPartyPublicKey')))
-    return macaroon.ThirdPartyCaveatInfo(
+    return macaroonbakery.macaroon.ThirdPartyCaveatInfo(
         record.get('Condition'),
         fp_key,
         key,
         base64.b64decode(record.get('RootKey')),
         caveat,
         bakery.BAKERY_V1,
-        macaroon.legacy_namespace()
+        macaroonbakery.macaroon.legacy_namespace()
     )
 
 
@@ -231,7 +231,7 @@ def _decode_caveat_v2_v3(version, key, caveat):
     box = Box(key, fp_public_key)
     data = box.decrypt(caveat, nonce)
     root_key, condition, ns = _decode_secret_part_v2_v3(version, data)
-    return macaroon.ThirdPartyCaveatInfo(
+    return macaroonbakery.macaroon.ThirdPartyCaveatInfo(
         condition.decode('utf-8'),
         fp_public_key,
         key,
@@ -262,7 +262,7 @@ def _decode_secret_part_v2_v3(version, data):
         data = data[namespace_length:]
         ns = namespace.deserialize_namespace(ns_data)
     else:
-        ns = macaroon.legacy_namespace()
+        ns = macaroonbakery.macaroon.legacy_namespace()
     return root_key, data, ns
 
 

@@ -6,8 +6,7 @@ import json
 import webbrowser
 
 from pymacaroons import Macaroon
-
-from macaroonbakery import json_serializer
+from pymacaroons.serializers import json_serializer
 
 
 def deserialize(json_macaroon):
@@ -50,6 +49,18 @@ def remove_base64_padding(b):
     '''
 
     return b.rstrip(b'=')
+
+
+def raw_b64decode(s):
+    '''Base64 decode with added padding with urlsafe or not.
+
+    @param s string decode
+    @return bytes decoded
+    '''
+    if '_' or '-' in s:
+        return raw_urlsafe_b64decode(s)
+    else:
+        return base64.b64decode(add_base64_padding(s))
 
 
 def raw_urlsafe_b64decode(s):

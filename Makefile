@@ -76,7 +76,7 @@ help:
 
 .PHONY: lint
 lint: setup
-	@$(DEVENV)/bin/flake8 --ignore E731 --show-source macaroonbakery
+	@$(DEVENV)/bin/flake8 --show-source macaroonbakery --exclude macaroonbakery/internal/id_pb2.py
 
 .PHONY: release
 release: check

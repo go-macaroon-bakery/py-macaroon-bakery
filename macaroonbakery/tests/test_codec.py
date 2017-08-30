@@ -1,15 +1,15 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
+import base64
 from unittest import TestCase
 
-import base64
-import six
-
 import nacl.utils
-from nacl.public import PrivateKey
+import six
 from nacl.encoding import Base64Encoder
+from nacl.public import PrivateKey
 
-from macaroonbakery import bakery, codec, macaroon, namespace, utils
+from macaroonbakery import bakery, codec, macaroon, utils
+from macaroonbakery.checkers import namespace
 
 
 class TestCodec(TestCase):
