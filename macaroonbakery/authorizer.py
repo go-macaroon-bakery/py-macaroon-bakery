@@ -17,7 +17,7 @@ class Authorizer(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def authorize(self, id, ops):
+    def authorize(self, ctx, id, ops):
         ''' Checks whether the given identity (which will be None when there is
         no authenticated user) is allowed to perform the given operations.
         It should raise an exception only when the authorization cannot be
@@ -28,6 +28,7 @@ class Authorizer(object):
         third party caveats that apply.
         If allowed is shorter then ops, the additional elements are assumed to
         be False.
+        ctx(AuthContext) is the context of the authorization request.
         :return: a list of boolean and a list of caveats
         '''
         raise NotImplementedError('authorize method must be defined in '
@@ -47,14 +48,14 @@ class AuthorizerFunc(Authorizer):
         '''
         self._f = f
 
-    def authorize(self, identity, ops):
+    def authorize(self, ctx, identity, ops):
         '''Implements Authorizer.authorize by calling f with the given identity
         for each operation.
         '''
         allowed = []
         caveats = []
         for op in ops:
-            ok, fcaveats = self._f(identity, op)
+            ok, fcaveats = self._f(ctx, identity, op)
             allowed.append(ok)
             if fcaveats is not None:
                 caveats.extend(fcaveats)
@@ -70,8 +71,8 @@ class ACLAuthorizer(Authorizer):
     '''
     def __init__(self, get_acl, allow_public=False):
         '''
-        :param get_acl get_acl will be called with an Op and should return the
-        ACL that applies (an array of string ids).
+        :param get_acl get_acl will be called with an auth context and an Op.
+        It should return the ACL that applies (an array of string ids).
         If an entity cannot be found or the action is not recognised,
         get_acl should return an empty list but no error.
         :param allow_public: boolean, If True and an ACL contains "everyone",
@@ -80,7 +81,7 @@ class ACLAuthorizer(Authorizer):
         self._allow_public = allow_public
         self._get_acl = get_acl
 
-    def authorize(self, identity, ops):
+    def authorize(self, ctx, identity, ops):
         '''Implements Authorizer.authorize by calling identity.allow to
         determine whether the identity is a member of the ACLs associated with
         the given operations.
@@ -91,9 +92,9 @@ class ACLAuthorizer(Authorizer):
         allowed = [False] * len(ops)
         has_allow = isinstance(identity, ACLIdentity)
         for i, op in enumerate(ops):
-            acl = self._get_acl(op)
+            acl = self._get_acl(ctx, op)
             if has_allow:
-                allowed[i] = identity.allow(acl)
+                allowed[i] = identity.allow(ctx, acl)
             else:
                 allowed[i] = self._allow_public and EVERYONE in acl
         return allowed, None
