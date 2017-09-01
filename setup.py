@@ -22,7 +22,8 @@ requirements = [
     'pymacaroons>=0.11.0',
     'six>=1.10.0',
     'protobuf==3.3.0',
-    'rfc3339==5.2'
+    'pyRFC3339==1.0',
+    'pytz==2017.2'
 ]
 
 test_requirements = [
