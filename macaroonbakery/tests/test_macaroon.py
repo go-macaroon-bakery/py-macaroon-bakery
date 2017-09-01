@@ -3,8 +3,6 @@
 
 from unittest import TestCase
 
-import six
-
 import nacl.utils
 
 from macaroonbakery import bakery, macaroon, codec
