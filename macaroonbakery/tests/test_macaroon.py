@@ -1,14 +1,14 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
-
 from unittest import TestCase
 
 import nacl.utils
 
 from macaroonbakery import LATEST_BAKERY_VERSION, BAKERY_V1, macaroon, codec
-from macaroonbakery.bakery import ThirdPartyInfo
-from macaroonbakery.macaroon import ThirdPartyLocator
-from macaroonbakery.third_party import legacy_namespace, ThirdPartyCaveatInfo
+from macaroonbakery.macaroon import ThirdPartyStore
+from macaroonbakery.third_party import (
+    legacy_namespace, ThirdPartyCaveatInfo, ThirdPartyInfo
+)
 from macaroonbakery import checkers
 
 
@@ -21,7 +21,7 @@ class TestMacaroon(TestCase):
         self.assertIsNotNone(m)
         self.assertEquals(m._macaroon.identifier, b'some id')
         self.assertEquals(m._macaroon.location, 'here')
-        self.assertEquals(m.version(), LATEST_BAKERY_VERSION)
+        self.assertEquals(m.version, LATEST_BAKERY_VERSION)
 
     def test_add_first_party_caveat(self):
         m = macaroon.Macaroon('rootkey',
@@ -38,7 +38,7 @@ class TestMacaroon(TestCase):
                               'some id',
                               'here',
                               LATEST_BAKERY_VERSION)
-        loc = ThirdPartyLocator()
+        loc = ThirdPartyStore()
         fp_key = nacl.public.PrivateKey.generate()
         tp_key = nacl.public.PrivateKey.generate()
 

@@ -31,15 +31,16 @@ class Oven:
     It is up to the caller to decide on semantics for other operations.
     '''
 
-    def __init__(self, key=None, location=None, locator=None, ns=None,
+    def __init__(self, key=None, location=None, locator=None, namespace=None,
                  root_keystore_for_ops=None, ops_store=None):
         '''
-        @param ns holds the namespace to use when adding first party caveats.
+        @param namespace holds the namespace to use when adding first party
+        caveats.
         @param root_keystore_for_ops a function that will give the macaroon
         storage to be used for root keys associated with macaroons created
         with macaroon.
-        @param OpsStore object is used to persistently store the association of
-        multi-op entities with their associated operations when macaroon is
+        @param ops_store object is used to persistently store the association
+        of multi-op entities with their associated operations when macaroon is
         called with multiple operations.
         When this is in use, operation entities with the prefix "multi-" are
         reserved - a "multi-"-prefixed entity represents a set of operations
@@ -55,7 +56,9 @@ class Oven:
         self.key = key
         self.location = location
         self.locator = locator
-        self.ns = ns
+        if namespace is None:
+            namespace = checkers.Checker().namespace()
+        self.namespace = namespace
         self.ops_store = ops_store
         self.root_keystore_for_ops = root_keystore_for_ops
         if root_keystore_for_ops is None:
@@ -89,7 +92,7 @@ class Oven:
             id_bytes = utils.raw_urlsafe_b64encode(id_bytes)
 
         m = macaroon.Macaroon(root_key, id_bytes, self.location, version,
-                              self.ns)
+                              self.namespace)
         m.add_caveat(checkers.time_before_caveat(expiry), self.key,
                      self.locator)
         m.add_caveats(caveats, self.key, self.locator)
@@ -109,7 +112,7 @@ class Oven:
         return id_pb2.MacaroonId(
             nonce=nonce,
             storageId=storage_id,
-            ops=[id_pb2.Op(entity=entity, actions=["*"])])
+            ops=[id_pb2.Op(entity=entity, actions=['*'])])
 
     def ops_entity(self, *ops):
         ''' Returns a new multi-op entity name string that represents
@@ -140,12 +143,12 @@ class Oven:
         :return:
         '''
         if len(macaroons) == 0:
-            raise ValueError("no macaroons provided")
+            raise ValueError('no macaroons provided')
 
         storage_id, ops = _decode_macaroon_id(macaroons[0].identifier_bytes)
         root_key = self.root_keystore_for_ops(ops).get(storage_id)
         if root_key is None:
-            raise ValueError("macaroon not found in storage")
+            raise ValueError('macaroon not found in storage')
         v = Verifier()
         conditions = []
 
@@ -158,7 +161,7 @@ class Oven:
         v.verify(macaroons[0], root_key, macaroons[1:])
         if (self.ops_store is not None
             and len(ops) == 1
-                and ops[0].entity.startswith("multi-")):
+                and ops[0].entity.startswith('multi-')):
             # It's a multi-op entity, so retrieve the actual operations
             # it's associated with.
             ops = self.ops_store.get_ops(ops[0].entity)
@@ -197,8 +200,8 @@ def _decode_macaroon_id(id):
         storage_id = id[1 + 16:]
     if first == BAKERY_V3:
         id1 = id_pb2.MacaroonId.FromString(id[1:])
-        if len(id1.ops) == 0 and len(id1.ops[0].actions) == 0:
-            raise ValueError("no operations found in macaroon")
+        if len(id1.ops) == 0 or len(id1.ops[0].actions) == 0:
+            raise ValueError('no operations found in macaroon')
 
         ops = []
         for op in id1.ops:
@@ -230,7 +233,7 @@ def canonical_ops(*ops):
     @return: checker.Ops
     '''
 
-    new_ops = sorted(set(*ops), key=lambda x: (x.entity, x.action))
+    new_ops = sorted(set(ops), key=lambda x: (x.entity, x.action))
     return new_ops
 
 

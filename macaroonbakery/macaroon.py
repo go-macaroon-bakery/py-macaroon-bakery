@@ -1,18 +1,20 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
-
-import base64
+import abc
 import logging
 import os
 
 import pymacaroons
 from pymacaroons.serializers import json_serializer
-
+from nacl.public import PublicKey
+from nacl.encoding import Base64Encoder
 
 from macaroonbakery import (
     BAKERY_V0, BAKERY_V1, BAKERY_V3, LATEST_BAKERY_VERSION
 )
-from macaroonbakery import codec
+from macaroonbakery import codec, checkers
+from macaroonbakery.third_party import ThirdPartyInfo
+
 
 log = logging.getLogger(__name__)
 
@@ -23,7 +25,7 @@ class Macaroon(object):
     which should be passed to the third party when discharging a caveat.
     '''
     def __init__(self, root_key, id, location=None,
-                 version=LATEST_BAKERY_VERSION, ns=None):
+                 version=LATEST_BAKERY_VERSION, namespace=None):
         '''Creates a new macaroon with the given root key, id and location.
 
         If the version is more than the latest known version,
@@ -33,7 +35,7 @@ class Macaroon(object):
         @param id bytes or string
         @param location bytes or string
         @param version the bakery version.
-        @param ns
+        @param namespace is that of the service creating it
         '''
         if version > LATEST_BAKERY_VERSION:
             log.info('use last known version:{} instead of: {}'.format(
@@ -47,20 +49,26 @@ class Macaroon(object):
         # version holds the version of the macaroon.
         self._version = version
         self._caveat_data = {}
-        self._ns = ns
+        if namespace is None:
+            namespace = checkers.Namespace()
+        self._namespace = namespace
         self._caveat_id_prefix = bytearray()
 
+    @property
     def macaroon(self):
         ''' Return the underlying macaroon.
         '''
         return self._macaroon
 
+    @property
     def version(self):
         return self._version
 
+    @property
     def namespace(self):
-        return self._ns
+        return self._namespace
 
+    @property
     def caveat_data(self):
         return self._caveat_data
 
@@ -84,20 +92,20 @@ class Macaroon(object):
         ThirdPartyInfo instance holding the requested information.
         '''
         if cav.location is None:
-            self._macaroon.add_first_party_caveat(cav.condition)
+            self._macaroon.add_first_party_caveat(
+                self.namespace.resolve_caveat(cav).condition)
             return
         if key is None:
             raise ValueError(
                 'no private key to encrypt third party caveat')
-        local_info, ok = parse_local_location(cav.location)
-        if ok:
+        local_info = _parse_local_location(cav.location)
+        if local_info is not None:
             info = local_info
-            cav.location = 'local'
             if cav.condition is not '':
                 raise ValueError(
                     'cannot specify caveat condition in '
                     'local third-party caveat')
-            cav.condition = 'true'
+            cav = checkers.Caveat(location='local', condition='true')
         else:
             if loc is None:
                 raise ValueError(
@@ -108,13 +116,16 @@ class Macaroon(object):
                     'cannot find public key for location {}'.format(
                         cav.location)
                 )
-            root_key = os.urandom(24)
+
+        root_key = os.urandom(24)
+
         # Use the least supported version to encode the caveat.
         if self._version < info.version:
-            info.version = self._version
+            info = ThirdPartyInfo(version=self._version,
+                                  public_key=info.public_key)
 
         caveat_info = codec.encode_caveat(cav.condition, root_key, info,
-                                          key, self._ns)
+                                          key, self._namespace)
         if info.version < BAKERY_V3:
             # We're encoding for an earlier client or third party which does
             # not understand bundled caveat info, so use the encoded
@@ -154,8 +165,8 @@ class Macaroon(object):
                 json_serializer.JsonSerializer()),
             'v': self._version,
         }
-        if self._ns is not None:
-            serialized['ns'] = self._ns.serialize()
+        if self._namespace is not None:
+            serialized['ns'] = self._namespace.serialize()
         return serialized
 
     def _new_caveat_id(self, base):
@@ -169,7 +180,7 @@ class Macaroon(object):
         '''
         id = bytearray()
         if len(base) > 0:
-            id.append(base)
+            id.extend(base)
         else:
             # Add a version byte to the caveat id. Technically
             # this is unnecessary as the caveat-decoding logic
@@ -193,11 +204,15 @@ class Macaroon(object):
             # a macaroon that cannot be discharged.
             temp = id[:]
             codec.encode_uvarint(i, temp)
+            found = False
             for cav in caveats:
-                if cav.verification_id is not None and cav.caveat_id == temp:
-                    i += 1
+                if (cav.verification_key_id is not None
+                        and cav.caveat_id == temp):
+                    found = True
                     break
-            return bytes(temp)
+            if not found:
+                return bytes(temp)
+            i += 1
 
     def first_party_caveats(self):
         '''Return the first party caveats from this macaroon.
@@ -226,7 +241,40 @@ def macaroon_version(bakery_version):
     return pymacaroons.MACAROON_V2
 
 
-def parse_local_location(loc):
+class ThirdPartyLocator(object):
+    '''Used to find information on third party discharge services.
+    '''
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def third_party_info(self, loc):
+        '''Return information on the third party at the given location.
+
+        It returns None if no match is found.
+        @param loc string
+        @return: string
+        '''
+        raise NotImplementedError('third_party_info method must be defined in '
+                                  'subclass')
+
+
+class ThirdPartyStore(ThirdPartyLocator):
+    ''' Implements a simple in memory ThirdPartyLocator.
+    '''
+    def __init__(self):
+        self._store = {}
+
+    def third_party_info(self, loc):
+        return self._store.get(loc.rstrip('/'))
+
+    def add_info(self, loc, info):
+        '''Associates the given information with the given location.
+        It will ignore any trailing slash.
+        '''
+        self._store[loc.rstrip('/')] = info
+
+
+def _parse_local_location(loc):
     '''Parse a local caveat location as generated by LocalThirdPartyCaveat.
 
     This is of the form:
@@ -236,12 +284,12 @@ def parse_local_location(loc):
     where <version> is the bakery version of the client that we're
     adding the local caveat for.
 
-    It returns false if the location does not represent a local
+    It returns None if the location does not represent a local
     caveat location.
-    @return a tuple of location and if the location is local.
+    @return a ThirdPartyInfo.
     '''
     if not(loc.startswith('local ')):
-        return (), False
+        return None
     v = BAKERY_V1
     fields = loc.split()
     fields = fields[1:]  # Skip 'local'
@@ -249,32 +297,10 @@ def parse_local_location(loc):
         try:
             v = int(fields[0])
         except ValueError:
-            return (), False
+            return None
         fields = fields[1:]
     if len(fields) == 1:
-        return (base64.b64decode(fields[0]), v), True
-    return (), False
-
-
-class ThirdPartyLocator(object):
-    '''Used to find information on third party discharge services.
-    '''
-    def __init__(self):
-        self._store = {}
-
-    def third_party_info(self, loc):
-        '''Return information on the third party at the given location.
-
-        It returns None if no match is found.
-
-        @param loc string
-        @return: string
-        '''
-        return self._store.get(loc)
-
-    def add_info(self, loc, info):
-        '''Associates the given information with the given location.
-
-        It will ignore any trailing slash.
-        '''
-        self._store[loc.rstrip('\\')] = info
+        key = PublicKey(fields[0], encoder=Base64Encoder)
+        return ThirdPartyInfo(public_key=key,
+                              version=v)
+    return None

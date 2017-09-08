@@ -1,6 +1,5 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
-
 import base64
 import json
 import os
@@ -99,7 +98,7 @@ class TestAgents(TestCase):
             agent.load_agent_file(self.no_username_agent_filename)
 
 
-agent_file = """
+agent_file = '''
 {
   "key": {
     "public": "YAhRSsth3a36mRYqQGQaLiS4QJax0p356nd+B8x7UQE=",
@@ -113,10 +112,10 @@ agent_file = """
     "username": "user-2"
   }]
 }
-"""
+'''
 
 
-bad_key_agent_file = """
+bad_key_agent_file = '''
 {
   "key": {
     "public": "YAhRSsth3a36mRYqQGQaLiS4QJax0p356nd+B8x7UQE=",
@@ -130,10 +129,10 @@ bad_key_agent_file = """
     "username": "user-2"
   }]
 }
-"""
+'''
 
 
-no_username_agent_file = """
+no_username_agent_file = '''
 {
   "key": {
     "public": "YAhRSsth3a36mRYqQGQaLiS4QJax0p356nd+B8x7UQE=",
@@ -146,4 +145,4 @@ no_username_agent_file = """
     "username": "user-2"
   }]
 }
-"""
+'''

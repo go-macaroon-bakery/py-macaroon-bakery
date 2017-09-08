@@ -1,3 +1,7 @@
+# Copyright 2017 Canonical Ltd.
+# Licensed under the LGPLv3, see LICENCE file for details.
+
+
 class DischargeRequiredError(Exception):
     ''' Raised by checker when authorization has failed and a discharged
     macaroon might fix it.
@@ -56,5 +60,11 @@ class AuthInitError(Exception):
 
 class IdentityError(Exception):
     ''' Raised from IdentityClient.declared_identity when an error occurs.
+    '''
+    pass
+
+
+class ThirdPartyCaveatCheckFailed(Exception):
+    ''' Raised from ThirdPartyCaveatChecker.check_third_party when check fails.
     '''
     pass

@@ -1,7 +1,11 @@
+# Copyright 2017 Canonical Ltd.
+# Licensed under the LGPLv3, see LICENCE file for details.
 import abc
 from collections import namedtuple
 
-from macaroonbakery import checkers
+from nacl.encoding import Base64Encoder
+
+from macaroonbakery import checkers, BAKERY_V2
 from macaroonbakery.codec import decode_caveat
 from macaroonbakery.macaroon import Macaroon, ThirdPartyLocator
 from macaroonbakery.error import CaveatNotRecognizedError
@@ -23,7 +27,7 @@ def discharge_all(ctx, m, get_discharge, local_key=None):
     the caveat(Caveat) to be discharged and encrypted_caveat (bytes)will be
     passed the external caveat payload found in m, if any.
     '''
-    primary = m.macaroon()
+    primary = m.macaroon
     discharges = [primary]
 
     # cav holds the macaroon caveat that needs discharge.
@@ -33,10 +37,10 @@ def discharge_all(ctx, m, get_discharge, local_key=None):
     need = []
 
     def add_caveats(m):
-        for cav in m.macaroon().caveats:
+        for cav in m.macaroon.caveats:
             if cav.location is None or cav.location == '':
                 continue
-            encrypted_caveat = m.caveat_data().get(cav.caveat_id, b'')
+            encrypted_caveat = m.caveat_data.get(cav.caveat_id, None)
             need.append(
                 _NeedCaveat(cav=cav,
                             encrypted_caveat=encrypted_caveat))
@@ -46,16 +50,16 @@ def discharge_all(ctx, m, get_discharge, local_key=None):
         need = need[1:]
         if local_key is not None and cav.cav.location == 'local':
             # TODO use a small caveat id.
-            dm, err = discharge(ctx=ctx, key=local_key,
-                                checker=_LocalDischargeChecker(),
-                                caveat=cav.encrypted_caveat,
-                                id=cav.cav.Id,
-                                locator=_EmptyLocator())
+            dm = discharge(ctx=ctx, key=local_key,
+                           checker=_LocalDischargeChecker(),
+                           caveat=cav.encrypted_caveat,
+                           id=cav.cav.caveat_id_bytes,
+                           locator=_EmptyLocator())
         else:
             dm = get_discharge(ctx, cav.cav, cav.encrypted_caveat)
         # It doesn't matter that we're invalidating dm here because we're
         # about to throw it away.
-        discharge_m = dm.macaroon()
+        discharge_m = dm.macaroon
         m = primary.prepare_for_request(discharge_m)
         discharges.append(m)
         add_caveats(dm)
@@ -71,13 +75,14 @@ class ThirdPartyCaveatChecker(object):
     def check_third_party_caveat(self, ctx, info):
         ''' If the caveat is valid, it returns optionally a slice of
         extra caveats that will be added to the discharge macaroon.
-        If the caveat kind was not recognised, the checker should return an
-        error with a ErrCaveatNotRecognized cause.
+        If the caveat kind was not recognised, the checker should
+        raise a CaveatNotRecognized exception; if the check failed,
+        it should raise a ThirdPartyCaveatCheckFailed exception.
         :param ctx (AuthContext)
         :param info (ThirdPartyCaveatInfo) holds the information decoded from
         a third party caveat id
-        :return: If the caveat is valid, it returns a None error and optionally
-         a slice of extra caveats that will be added to the discharge macaroon
+        :return: An array of extra caveats to be added to the discharge
+        macaroon.
         '''
         raise NotImplementedError('check_third_party_caveat method must be '
                                   'defined in subclass')
@@ -85,9 +90,9 @@ class ThirdPartyCaveatChecker(object):
 
 class _LocalDischargeChecker(ThirdPartyCaveatChecker):
     def check_third_party_caveat(self, ctx, info):
-        if info.condition.decode('utf-8') != 'true':
+        if info.condition != 'true':
             raise CaveatNotRecognizedError()
-        return None
+        return []
 
 
 def discharge(ctx, id, caveat, key, checker, locator):
@@ -129,7 +134,7 @@ def discharge(ctx, id, caveat, key, checker, locator):
     cond, arg = checkers.parse_caveat(cav_info.condition)
 
     if cond == checkers.COND_NEED_DECLARED:
-        cav_info.condition = arg.encode('utf-8')
+        cav_info = cav_info._replace(condition=arg.encode('utf-8'))
         caveats = _check_need_declared(ctx, cav_info, checker)
     else:
         caveats = checker.check_third_party_caveat(ctx, cav_info)
@@ -140,7 +145,7 @@ def discharge(ctx, id, caveat, key, checker, locator):
     # for normal authorization with the third party.
     m = Macaroon(cav_info.root_key, id, '', cav_info.version,
                  cav_info.ns)
-    m.caveat_id_prefix = caveat_id_prefix
+    m._caveat_id_prefix = caveat_id_prefix
     if caveats is not None:
         for cav in caveats:
             m.add_caveat(cav, key, locator)
@@ -160,11 +165,11 @@ def _check_need_declared(ctx, cav_info, checker):
                              'attribute')
     if len(need_declared) == 0:
         raise ValueError('need-declared caveat with no required attributes')
-    cav_info.condition = arg[i+1:].encode('utf-8')
-    caveats, err = checker.check_third_party_caveat(ctx, cav_info)
+    cav_info = cav_info._replace(condition=arg[i + 1:].encode('utf-8'))
+    caveats = checker.check_third_party_caveat(ctx, cav_info)
     declared = {}
     for cav in caveats:
-        if cav.location != '':
+        if cav.location is not None and cav.location != '':
             continue
         # Note that we ignore the error. We allow the service to
         # generate caveats that we don't understand here.
@@ -181,7 +186,7 @@ def _check_need_declared(ctx, cav_info, checker):
     # Add empty declarations for everything mentioned in need-declared
     # that was not actually declared.
     for d in need_declared:
-        if not declared[d]:
+        if not declared.get(d, False):
             caveats.append(checkers.declared_caveat(d, ''))
     return caveats
 
@@ -189,3 +194,16 @@ def _check_need_declared(ctx, cav_info, checker):
 class _EmptyLocator(ThirdPartyLocator):
     def third_party_info(self, loc):
         return None
+
+
+def local_third_party_caveat(key, version):
+    ''' Returns a third-party caveat that, when added to a macaroon with
+    add_caveat, results in a caveat with the location "local", encrypted with
+    the given public key.
+    This can be automatically discharged by discharge_all passing a local key.
+    '''
+    encoded_key = key.encode(Base64Encoder).decode('utf-8')
+    loc = 'local {}'.format(encoded_key)
+    if version >= BAKERY_V2:
+        loc = 'local {} {}'.format(version, encoded_key)
+    return checkers.Caveat(location=loc, condition='')

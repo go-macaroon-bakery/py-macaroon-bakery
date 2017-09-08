@@ -58,7 +58,7 @@ class SimpleIdentity(ACLIdentity):
     def domain(self):
         ''' A simple identity has no domain.
         '''
-        return ""
+        return ''
 
     def id(self):
         '''Return the user name as the id.
@@ -123,4 +123,4 @@ class NoIdentities(IdentityClient):
         return None, None
 
     def declared_identity(self, ctx, declared):
-        raise IdentityError("no identity declared or possible")
+        raise IdentityError('no identity declared or possible')

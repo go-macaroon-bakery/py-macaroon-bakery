@@ -64,29 +64,29 @@ class TestCheckers(TestCase):
                     year=3000, month=1, day=1)).condition, None),
             ], None),
             ('declared, no entries', [
-                (checkers.declared_caveat("a", "aval").condition,
+                (checkers.declared_caveat('a', 'aval').condition,
                  'caveat "declared a aval" not satisfied: got a=null, '
                  'expected "aval"'),
                 (checkers.COND_DECLARED, 'caveat "declared" not satisfied: '
                                          'declared caveat has no value'),
             ], None),
             ('declared, some entries', [
-                (checkers.declared_caveat("a", "aval").condition, None),
-                (checkers.declared_caveat("b", "bval").condition, None),
-                (checkers.declared_caveat("spc", " a b").condition, None),
-                (checkers.declared_caveat("a", "bval").condition,
+                (checkers.declared_caveat('a', 'aval').condition, None),
+                (checkers.declared_caveat('b', 'bval').condition, None),
+                (checkers.declared_caveat('spc', ' a b').condition, None),
+                (checkers.declared_caveat('a', 'bval').condition,
                  'caveat "declared a bval" not satisfied: '
                  'got a="aval", expected "bval"'),
-                (checkers.declared_caveat("a", " aval").condition,
+                (checkers.declared_caveat('a', ' aval').condition,
                  'caveat "declared a  aval" not satisfied: '
                  'got a="aval", expected " aval"'),
-                (checkers.declared_caveat("spc", "a b").condition,
+                (checkers.declared_caveat('spc', 'a b').condition,
                  'caveat "declared spc a b" not satisfied: '
                  'got spc=" a b", expected "a b"'),
-                (checkers.declared_caveat("", "a b").condition,
+                (checkers.declared_caveat('', 'a b').condition,
                  'caveat "error invalid caveat \'declared\' key """ '
                  'not satisfied: bad caveat'),
-                (checkers.declared_caveat("a b", "a b").condition,
+                (checkers.declared_caveat('a b', 'a b').condition,
                  'caveat "error invalid caveat \'declared\' key "a b"" '
                  'not satisfied: bad caveat'),
             ], lambda x: checkers.context_with_declared(x, {

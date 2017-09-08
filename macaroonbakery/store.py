@@ -1,6 +1,5 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
-
 import os
 
 
@@ -22,7 +21,7 @@ class MemoryOpsStore:
         ops = self._store.get(key)
         if ops is None:
             raise KeyError(
-                "cannot get operations for {}".format(key))
+                'cannot get operations for {}'.format(key))
         return ops
 
 

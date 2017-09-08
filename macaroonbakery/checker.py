@@ -3,15 +3,18 @@
 from collections import namedtuple
 from threading import Lock
 
+from macaroonbakery import checkers
+from macaroonbakery.error import (
+    AuthInitError
+)
+
 import pyrfc3339
 
 from macaroonbakery.authorizer import ClosedAuthorizer
 from macaroonbakery.identity import NoIdentities
-from macaroonbakery import checkers
-from macaroonbakery.error import (
-    DischargeRequiredError, PermissionDenied, IdentityError, VerificationError,
-    AuthInitError
-)
+from macaroonbakery.error import DischargeRequiredError, PermissionDenied, \
+    VerificationError
+from macaroonbakery.identity import IdentityError
 
 
 class Op(namedtuple('Op', 'entity, action')):
@@ -66,7 +69,6 @@ class Checker(object):
                  macaroon_opstore=None):
         '''
         :param checker: a first party checker implementing a
-        FirstPartyCaveatChecker.
         :param authorizer (Authorizer): used to check whether an authenticated
         user is allowed to perform operations.
         The identity parameter passed to authorizer.allow will always have been
@@ -106,7 +108,6 @@ class AuthChecker(object):
     use allow(ctx); to require authentication but no additional operations,
     use allow(ctx, LOGIN_OP).
     '''
-
     def __init__(self, parent, macaroons):
         '''
 
@@ -128,7 +129,7 @@ class AuthChecker(object):
                 self._init_once(ctx)
                 self._executed = True
         if self._init_errors is not None and len(self._init_errors) > 0:
-            raise AuthInitError(self._init_errors)
+            raise AuthInitError(self._init_errors[0])
 
     def _init_once(self, ctx):
         self._auth_indexes = {}
@@ -166,7 +167,8 @@ class AuthChecker(object):
             # other operations if the conditions succeed for those.
             declared, err = self._check_conditions(ctx, LOGIN_OP, conditions)
             if err is not None:
-                self._init_errors.append('cannot authorize login macaroon')
+                self._init_errors.append('cannot authorize login macaroon: ' +
+                                         err)
                 continue
             if self._identity is not None:
                 # We've already found a login macaroon so ignore this one

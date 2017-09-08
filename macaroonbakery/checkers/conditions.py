@@ -14,4 +14,4 @@ COND_ALLOW = 'allow'
 COND_DENY = 'deny'
 
 
-COND_NEED_DECLARED = "need-declared"
+COND_NEED_DECLARED = 'need-declared'

@@ -7,7 +7,7 @@ from macaroonbakery.identity import ACLIdentity
 
 # EVERYONE is recognized by ACLAuthorizer as the name of a
 # group that has everyone in it.
-EVERYONE = "everyone"
+EVERYONE = 'everyone'
 
 
 class Authorizer(object):
@@ -97,7 +97,6 @@ class ACLAuthorizer(Authorizer):
                 allowed[i] = identity.allow(ctx, acl)
             else:
                 allowed[i] = self._allow_public and EVERYONE in acl
-
         return allowed, []
 
 

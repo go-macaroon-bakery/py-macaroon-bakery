@@ -9,7 +9,8 @@ from macaroonbakery.checkers.caveat import (
     time_before_caveat, Caveat
 )
 from macaroonbakery.checkers.declared import (
-    context_with_declared, infer_declared, infer_declared_from_conditions
+    context_with_declared, infer_declared, infer_declared_from_conditions,
+    need_declared_caveat
 )
 from macaroonbakery.checkers.operation import context_with_operations
 from macaroonbakery.checkers.namespace import Namespace, deserialize_namespace
@@ -24,5 +25,5 @@ __all__ = [
     'Caveat', 'context_with_declared', 'infer_declared',
     'infer_declared_from_conditions', 'context_with_operations',
     'Namespace', 'deserialize_namespace', 'context_with_clock', 'Checker',
-    'CheckerInfo', 'AuthContext', 'ContextKey'
+    'CheckerInfo', 'AuthContext', 'ContextKey', 'need_declared_caveat'
 ]
