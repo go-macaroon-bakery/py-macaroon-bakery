@@ -246,7 +246,7 @@ class TestCheckers(TestCase):
 
     def test_register_none_func_raise_exception(self):
         checker = checkers.Checker()
-        with self.assertRaises(ValueError) as ctx:
+        with self.assertRaises(checkers.RegisterError) as ctx:
             checker.register('x', checkers.STD_NAMESPACE, None)
         self.assertEqual(ctx.exception.args[0],
                          'no check function registered for namespace std when '
@@ -254,7 +254,7 @@ class TestCheckers(TestCase):
 
     def test_register_no_registered_ns_exception(self):
         checker = checkers.Checker()
-        with self.assertRaises(ValueError) as ctx:
+        with self.assertRaises(checkers.RegisterError) as ctx:
             checker.register('x', 'testns', lambda x: None)
         self.assertEqual(ctx.exception.args[0],
                          'no prefix registered for namespace testns when '
@@ -263,7 +263,7 @@ class TestCheckers(TestCase):
     def test_register_empty_prefix_condition_with_colon(self):
         checker = checkers.Checker()
         checker.namespace().register('testns', '')
-        with self.assertRaises(ValueError) as ctx:
+        with self.assertRaises(checkers.RegisterError) as ctx:
             checker.register('x:y', 'testns', lambda x: None)
         self.assertEqual(ctx.exception.args[0],
                          'caveat condition x:y in namespace testns contains a '
@@ -273,7 +273,7 @@ class TestCheckers(TestCase):
         checker = checkers.Checker()
         checker.namespace().register('testns', '')
         checker.register('x', 'testns', lambda x: None)
-        with self.assertRaises(ValueError) as ctx:
+        with self.assertRaises(checkers.RegisterError) as ctx:
             checker.register('x', 'testns', lambda x: None)
         self.assertEqual(ctx.exception.args[0],
                          'checker for x (namespace testns) already registered'
@@ -284,7 +284,7 @@ class TestCheckers(TestCase):
         checker.namespace().register('testns', '')
         checker.namespace().register('otherns', '')
         checker.register('x', 'testns', lambda x: None)
-        with self.assertRaises(ValueError) as ctx:
+        with self.assertRaises(checkers.RegisterError) as ctx:
             checker.register('x', 'otherns', lambda x: None)
         self.assertEqual(ctx.exception.args[0],
                          'checker for x (namespace otherns) already registered'

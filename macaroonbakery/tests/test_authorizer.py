@@ -28,7 +28,7 @@ class TestAuthorizer(TestCase):
         allowed, caveats = macaroonbakery.AuthorizerFunc(f).authorize(
             checkers.AuthContext(),
             macaroonbakery.SimpleIdentity('bob'),
-            *ops
+            ops
         )
         self.assertEqual(allowed, [False, True, True, True])
         self.assertEqual(caveats, [
@@ -79,7 +79,7 @@ class TestAuthorizer(TestCase):
              [True])
         ]
         for test in tests:
-            allowed, caveats = test[1].authorize(ctx, test[2], *test[3])
+            allowed, caveats = test[1].authorize(ctx, test[2], test[3])
             self.assertEqual(len(caveats), 0)
             self.assertEqual(allowed, test[4])
 

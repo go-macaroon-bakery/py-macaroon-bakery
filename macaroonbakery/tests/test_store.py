@@ -8,10 +8,6 @@ import macaroonbakery
 class TestOven(TestCase):
     def test_mem_store(self):
         st = macaroonbakery.MemoryKeyStore()
-        key = st.get(b'x')
-        self.assertIsNone(key)
-        key = st.get(b'0')
-        self.assertIsNone(key)
 
         key, id = st.root_key()
         self.assertEqual(len(key), 24)

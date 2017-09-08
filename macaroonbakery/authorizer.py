@@ -17,7 +17,7 @@ class Authorizer(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def authorize(self, ctx, id, *ops):
+    def authorize(self, ctx, id, ops):
         ''' Checks whether the given identity (which will be None when there is
         no authenticated user) is allowed to perform the given operations.
         It should raise an exception only when the authorization cannot be
@@ -48,7 +48,7 @@ class AuthorizerFunc(Authorizer):
         '''
         self._f = f
 
-    def authorize(self, ctx, identity, *ops):
+    def authorize(self, ctx, identity, ops):
         '''Implements Authorizer.authorize by calling f with the given identity
         for each operation.
         '''
@@ -81,7 +81,7 @@ class ACLAuthorizer(Authorizer):
         self._allow_public = allow_public
         self._get_acl = get_acl
 
-    def authorize(self, ctx, identity, *ops):
+    def authorize(self, ctx, identity, ops):
         '''Implements Authorizer.authorize by calling identity.allow to
         determine whether the identity is a member of the ACLs associated with
         the given operations.
@@ -103,5 +103,5 @@ class ACLAuthorizer(Authorizer):
 class ClosedAuthorizer(Authorizer):
     ''' An Authorizer implementation that will never authorize anything.
     '''
-    def authorize(self, ctx, id, *ops):
+    def authorize(self, ctx, id, ops):
         return [False] * len(ops), []

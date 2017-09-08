@@ -61,9 +61,10 @@ class Checker(object):
         self._identity_client = identity_client
         self._macaroon_opstore = macaroon_opstore
 
-    def auth(self, *mss):
+    def auth(self, mss):
         ''' Returns a new AuthChecker instance using the given macaroons to
         inform authorization decisions.
+        @param mss: a list of macaroon lists.
         '''
         return AuthChecker(parent=self,
                            macaroons=mss)
@@ -175,7 +176,7 @@ class AuthChecker(object):
             self._identity, self._identity_caveats = identity, cavs
         return None
 
-    def allow(self, ctx, *ops):
+    def allow(self, ctx, ops):
         ''' Checks that the authorizer's request is authorized to
         perform all the given operations. Note that allow does not check
         first party caveats - if there is more than one macaroon that may
@@ -198,10 +199,10 @@ class AuthChecker(object):
         :param: ops an array of Op
         :return: an AuthInfo object.
         '''
-        auth_info, _ = self.allow_any(ctx, *ops)
+        auth_info, _ = self.allow_any(ctx, ops)
         return auth_info
 
-    def allow_any(self, ctx, *ops):
+    def allow_any(self, ctx, ops):
         ''' like allow except that it will authorize as many of the
         operations as possible without requiring any to be authorized. If all
         the operations succeeded, the array will be nil.
@@ -220,7 +221,7 @@ class AuthChecker(object):
         :param: ops an array of Op
         :return: an AuthInfo object and the auth used as an array of int.
         '''
-        authed, used = self._allow_any(ctx, *ops)
+        authed, used = self._allow_any(ctx, ops)
         return self._new_auth_info(used), authed
 
     def _new_auth_info(self, used):
@@ -230,7 +231,7 @@ class AuthChecker(object):
                 info.macaroons.append(self._macaroons[i])
         return info
 
-    def _allow_any(self, ctx, *ops):
+    def _allow_any(self, ctx, ops):
         self._init(ctx)
         used = [False]*len(self._macaroons)
         authed = [False]*len(ops)
@@ -277,7 +278,7 @@ class AuthChecker(object):
         # Try to authorize the operations
         # even if we haven't got an authenticated user.
         oks, caveats = self.parent._authorizer.authorize(
-            ctx, self._identity, *need)
+            ctx, self._identity, need)
         still_need = []
         for i, _ in enumerate(need):
             if i < len(oks) and oks[i]:
@@ -304,7 +305,7 @@ class AuthChecker(object):
         raise macaroonbakery.DischargeRequiredError(
             msg='some operations have extra caveats', ops=ops, cavs=caveats)
 
-    def allow_capability(self, ctx, *ops):
+    def allow_capability(self, ctx, ops):
         '''Checks that the user is allowed to perform all the
         given operations. If not, a discharge error will be raised.
         If allow_capability succeeds, it returns a list of first party caveat
@@ -325,7 +326,7 @@ class AuthChecker(object):
         if nops == 0:
             raise ValueError('no non-login operations required in capability')
 
-        _, used = self._allow_any(ctx, *ops)
+        _, used = self._allow_any(ctx, ops)
         squasher = _CaveatSquasher()
         for i, is_used in enumerate(used):
             if not is_used:

@@ -28,34 +28,35 @@ class TestDischargeAll(unittest.TestCase):
         v.satisfy_general(always_ok)
         v.verify(m.macaroon, root_key, None)
 
-    @unittest.skip('waiting for fix on pymacaroons')
     def test_discharge_all_many_discharges(self):
         root_key = b'root key'
         m0 = macaroonbakery.Macaroon(
             root_key=root_key, id=b'id0', location='loc0',
             version=macaroonbakery.LATEST_BAKERY_VERSION)
 
-        class M(object):
+        class State(object):
             total_required = 40
             id = 1
 
         def add_caveats(m):
             for i in range(0, 1):
-                if M.total_required == 0:
+                if State.total_required == 0:
                     break
-                cid = 'id{}'.format(M.id)
+                cid = 'id{}'.format(State.id)
                 m.macaroon.add_third_party_caveat(
-                    'root key {}'.format(cid).encode('utf-8'),
-                    cid.encode('utf-8'), 'somewhere')
-                M.id += 1
-                M.total_required -= 1
+                    location='somewhere',
+                    key='root key {}'.format(cid).encode('utf-8'),
+                    key_id=cid.encode('utf-8'))
+                State.id += 1
+                State.total_required -= 1
 
         add_caveats(m0)
 
         def get_discharge(_, cav, payload):
-            self.assertEqual(payload, b'')
+            self.assertEqual(payload, None)
             m = macaroonbakery.Macaroon(
-                root_key='root key {}'.format(cav.caveat_id).encode('utf-8'),
+                root_key='root key {}'.format(
+                    cav.caveat_id.decode('utf-8')).encode('utf-8'),
                 id=cav.caveat_id, location='',
                 version=macaroonbakery.LATEST_BAKERY_VERSION)
 
@@ -69,9 +70,8 @@ class TestDischargeAll(unittest.TestCase):
 
         v = Verifier()
         v.satisfy_general(always_ok)
-        v.verify(ms[0], root_key, [ms[1]])
+        v.verify(ms[0], root_key, ms[1:])
 
-    @unittest.skip('waiting for fix on pymacaroons')
     def test_discharge_all_many_discharges_with_real_third_party_caveats(self):
         # This is the same flow as TestDischargeAllManyDischarges except that
         # we're using actual third party caveats as added by
@@ -134,7 +134,7 @@ class TestDischargeAll(unittest.TestCase):
 
         v = Verifier()
         v.satisfy_general(always_ok)
-        v.verify(ms[0], root_key, [ms[1]])
+        v.verify(ms[0], root_key, ms[1:])
 
     def test_discharge_all_local_discharge(self):
         oc = common.new_bakery('ts', None)
@@ -144,10 +144,11 @@ class TestDischargeAll(unittest.TestCase):
                                  macaroonbakery.local_third_party_caveat(
                                      client_key.public_key,
                                      macaroonbakery.LATEST_BAKERY_VERSION)
-                             ], macaroonbakery.LOGIN_OP)
+                             ], [macaroonbakery.LOGIN_OP])
         ms = macaroonbakery.discharge_all(
             common.test_context, m, no_discharge(self), client_key)
-        oc.checker.auth(ms).allow(common.test_context, macaroonbakery.LOGIN_OP)
+        oc.checker.auth([ms]).allow(common.test_context,
+                                    [macaroonbakery.LOGIN_OP])
 
     def test_discharge_all_local_discharge_version1(self):
         oc = common.new_bakery('ts', None)
@@ -155,10 +156,11 @@ class TestDischargeAll(unittest.TestCase):
         m = oc.oven.macaroon(macaroonbakery.BAKERY_V1, common.ages, [
             macaroonbakery.local_third_party_caveat(
                 client_key.public_key, macaroonbakery.BAKERY_V1)
-        ], macaroonbakery.LOGIN_OP)
+        ], [macaroonbakery.LOGIN_OP])
         ms = macaroonbakery.discharge_all(
             common.test_context, m, no_discharge(self), client_key)
-        oc.checker.auth(ms).allow(common.test_context, macaroonbakery.LOGIN_OP)
+        oc.checker.auth([ms]).allow(common.test_context,
+                                    [macaroonbakery.LOGIN_OP])
 
 
 def no_discharge(test):

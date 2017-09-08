@@ -1,10 +1,15 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
 import base64
+import json
 import requests
+from six.moves.http_cookies import SimpleCookie
 from six.moves.http_cookiejar import Cookie
 from six.moves.urllib.parse import urljoin
 from six.moves.urllib.parse import urlparse
+
+from pymacaroons import Macaroon
+from pymacaroons.serializers.json_serializer import JsonSerializer
 
 from macaroonbakery.bakery import discharge_all
 from macaroonbakery import utils
@@ -154,3 +159,23 @@ def _visit_page_for_agent(cookies, key):
                             auth=BakeryAuth(cookies=cookies, key=key))
         resp.raise_for_status()
     return visit_page_for_agent
+
+
+def extract_macaroons(headers):
+    ''' Returns an array of any macaroons found in the given slice of cookies.
+    @param headers: dict of headers
+    @return: An array of array of mpy macaroons
+    '''
+    cookie_string = "\n".join(headers.get_all('Cookie', failobj=[]))
+    cs = SimpleCookie()
+    cs.load(cookie_string)
+    mss = []
+    for c in cs:
+        if not c.startswith('macaroon-'):
+            continue
+        data = base64.b64decode(cs[c].value)
+        data_as_objs = json.loads(data.decode('utf-8'))
+        ms = [Macaroon.deserialize(json.dumps(x), serializer=JsonSerializer())
+              for x in data_as_objs]
+        mss.append(ms)
+    return mss

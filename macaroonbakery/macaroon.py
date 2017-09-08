@@ -6,10 +6,9 @@ import json
 import logging
 import os
 
+import nacl.public
 import pymacaroons
 from pymacaroons.serializers import json_serializer
-from nacl.public import PublicKey
-from nacl.encoding import Base64Encoder
 
 import macaroonbakery
 import macaroonbakery.checkers as checkers
@@ -86,7 +85,7 @@ class Macaroon(object):
         key.
 
         @param cav the checkers.Caveat to be added.
-        @param key the nacl public key to encrypt third party caveat.
+        @param key the public key to encrypt third party caveat.
         @param loc locator to find information on third parties when adding
         third party caveats. It is expected to have a third_party_info method
         that will be called with a location string and should return a
@@ -112,11 +111,6 @@ class Macaroon(object):
                 raise ValueError(
                     'no locator when adding third party caveat')
             info = loc.third_party_info(cav.location)
-            if info is None:
-                raise ValueError(
-                    'cannot find public key for location {}'.format(
-                        cav.location)
-                )
 
         root_key = os.urandom(24)
 
@@ -143,7 +137,7 @@ class Macaroon(object):
 
         This method does not mutate the current object.
         @param cavs arrary of caveats.
-        @param key the nacl public key to encrypt third party caveat.
+        @param key the PublicKey to encrypt third party caveat.
         @param loc locator to find the location object that has a method
         third_party_info.
         '''
@@ -156,11 +150,18 @@ class Macaroon(object):
         '''Return a string holding the macaroon data in JSON format.
         @return a string holding the macaroon data in JSON format
         '''
+        return json.dumps(self.to_dict())
+
+    def to_dict(self):
+        '''Return a dict representation of the macaroon data in JSON format.
+        @return a dict
+        '''
         if self.version < macaroonbakery.BAKERY_V3:
             if len(self._caveat_data) > 0:
                 raise ValueError('cannot serialize pre-version3 macaroon with '
                                  'external caveat data')
-            return self._macaroon.serialize(json_serializer.JsonSerializer())
+            return json.loads(self._macaroon.serialize(
+                json_serializer.JsonSerializer()))
         serialized = {
             'm': json.loads(self._macaroon.serialize(
                 json_serializer.JsonSerializer())),
@@ -175,7 +176,7 @@ class Macaroon(object):
             caveat_data[key] = value
         if len(caveat_data) > 0:
             serialized['cdata'] = caveat_data
-        return json.dumps(serialized)
+        return serialized
 
     @classmethod
     def deserialize_json(cls, serialized_json):
@@ -309,10 +310,9 @@ class ThirdPartyLocator(object):
     @abc.abstractmethod
     def third_party_info(self, loc):
         '''Return information on the third party at the given location.
-
-        It returns None if no match is found.
         @param loc string
-        @return: string
+        @return: a ThirdPartyInfo
+        @raise: ThirdPartyInfoNotFound
         '''
         raise NotImplementedError('third_party_info method must be defined in '
                                   'subclass')
@@ -325,11 +325,17 @@ class ThirdPartyStore(ThirdPartyLocator):
         self._store = {}
 
     def third_party_info(self, loc):
-        return self._store.get(loc.rstrip('/'))
+        info = self._store.get(loc.rstrip('/'))
+        if info is None:
+            raise macaroonbakery.ThirdPartyInfoNotFound(
+                'cannot retrieve the info for location {}'.format(loc))
+        return info
 
     def add_info(self, loc, info):
         '''Associates the given information with the given location.
         It will ignore any trailing slash.
+        @param loc the location as string
+        @param info (ThirdPartyInfo) to store for this location.
         '''
         self._store[loc.rstrip('/')] = info
 
@@ -360,7 +366,10 @@ def _parse_local_location(loc):
             return None
         fields = fields[1:]
     if len(fields) == 1:
-        key = PublicKey(fields[0], encoder=Base64Encoder)
+        key = macaroonbakery.PublicKey(
+            nacl.public.PublicKey(fields[0],
+                                  encoder=nacl.encoding.Base64Encoder)
+        )
         return macaroonbakery.ThirdPartyInfo(public_key=key,
                                              version=v)
     return None

@@ -2,8 +2,6 @@
 # Licensed under the LGPLv3, see LICENCE file for details.
 import collections
 
-import six
-
 from macaroonbakery.checkers.utils import condition_with_prefix
 from macaroonbakery.checkers.caveat import error_caveat
 
@@ -46,7 +44,7 @@ class Namespace:
         data = []
         for uri in od:
             data.append(uri + ':' + od[uri])
-        return six.b(' '.join(data))
+        return ' '.join(data).encode('utf-8')
 
     def register(self, uri, prefix):
         '''Registers the given URI and associates it with the given prefix.
