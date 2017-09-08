@@ -1,7 +1,7 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
 
-from macaroonbakery.auth_context import ContextKey
+from macaroonbakery.checkers.auth_context import ContextKey
 
 OP_KEY = ContextKey('op-key')
 

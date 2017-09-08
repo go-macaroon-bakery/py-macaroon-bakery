@@ -3,8 +3,8 @@
 
 from macaroonbakery.checkers.namespace import Namespace
 from macaroonbakery.checkers.caveat import parse_caveat
-from macaroonbakery.checkers import COND_DECLARED, STD_NAMESPACE
-from macaroonbakery.auth_context import ContextKey
+from macaroonbakery.checkers.conditions import COND_DECLARED, STD_NAMESPACE
+from macaroonbakery.checkers.auth_context import ContextKey
 
 DECLARED_KEY = ContextKey('declared-key')
 

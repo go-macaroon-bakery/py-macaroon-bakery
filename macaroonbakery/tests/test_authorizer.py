@@ -3,9 +3,8 @@
 from unittest import TestCase
 
 from macaroonbakery.identity import Identity, SimpleIdentity, ACLIdentity
-from macaroonbakery.checkers.caveat import Caveat
+from macaroonbakery import checkers
 from macaroonbakery.authorizer import AuthorizerFunc, ACLAuthorizer, EVERYONE
-from macaroonbakery.auth_context import AuthContext
 from macaroonbakery.checker import Op
 
 
@@ -18,29 +17,32 @@ class TestAuthorizer(TestCase):
             elif op.entity == 'b':
                 return True, None
             elif op.entity == 'c':
-                return True, [Caveat(location='somewhere', condition='c')]
+                return True, [checkers.Caveat(location='somewhere',
+                                              condition='c')]
             elif op.entity == 'd':
-                return True, [Caveat(location='somewhere', condition='d')]
+                return True, [checkers.Caveat(location='somewhere',
+                                              condition='d')]
             else:
                 self.fail('unexpected entity: ' + op.Entity)
 
         ops = [Op('a', 'x'), Op('b', 'x'), Op('c', 'x'), Op('d', 'x')]
-        allowed, caveats = AuthorizerFunc(f).authorize(AuthContext(),
-                                                       SimpleIdentity('bob'),
-                                                       ops)
+        allowed, caveats = AuthorizerFunc(f).authorize(
+            checkers.AuthContext(),
+            SimpleIdentity('bob'),
+            *ops
+        )
         self.assertEqual(allowed, [False, True, True, True])
-        self.assertEqual(caveats,
-                         [
-                             Caveat(location='somewhere', condition='c'),
-                             Caveat(location='somewhere', condition='d')
-                         ])
+        self.assertEqual(caveats, [
+            checkers.Caveat(location='somewhere', condition='c'),
+            checkers.Caveat(location='somewhere', condition='d')
+        ])
 
     def test_acl_authorizer(self):
-        ctx = AuthContext()
+        ctx = checkers.AuthContext()
         tests = [
             ('no ops, no problem',
              ACLAuthorizer(allow_public=True,
-                           get_acl=lambda x, y: []), None, None, None),
+                           get_acl=lambda x, y: []), None, [], []),
             ('identity that does not implement ACLIdentity; '
              'user should be denied except for everyone group',
              ACLAuthorizer(allow_public=True,
@@ -71,12 +73,12 @@ class TestAuthorizer(TestCase):
              [True])
         ]
         for test in tests:
-            allowed, caveats = test[1].authorize(ctx, test[2], test[3])
-            self.assertIsNone(caveats)
+            allowed, caveats = test[1].authorize(ctx, test[2], *test[3])
+            self.assertEqual(len(caveats), 0)
             self.assertEqual(allowed, test[4])
 
     def test_context_wired_properly(self):
-        ctx = AuthContext({'a': 'aval'})
+        ctx = checkers.AuthContext({'a': 'aval'})
 
         class Visited:
             in_f = False

@@ -1,16 +1,11 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
 
-import base64
 from collections import namedtuple
-import json
 import requests
+
 from macaroonbakery import utils
-
-import nacl.utils
-from nacl.public import Box
-
-from pymacaroons import Macaroon
+from macaroonbakery.discharge import discharge
 
 ERR_INTERACTION_REQUIRED = 'interaction required'
 ERR_DISCHARGE_REQUIRED = 'macaroon discharge required'
@@ -18,11 +13,6 @@ TIME_OUT = 30
 DEFAULT_PROTOCOL_VERSION = {'Bakery-Protocol-Version': '1'}
 MAX_DISCHARGE_RETRIES = 3
 
-BAKERY_V0 = 0
-BAKERY_V1 = 1
-BAKERY_V2 = 2
-BAKERY_V3 = 3
-LATEST_BAKERY_VERSION = BAKERY_V3
 NONCE_LEN = 24
 
 
@@ -63,32 +53,6 @@ def discharge_all(macaroon, visit_page=None, jar=None, key=None):
     except Exception as exc:
         raise DischargeException('unable to discharge the macaroon', exc)
     return discharges
-
-
-def discharge(key, id, caveat=None, checker=None, locator=None):
-    '''Creates a macaroon to discharge a third party caveat.
-
-    @param key nacl key holds the key to use to decrypt the third party
-    caveat information and to encrypt any additional
-    third party caveats returned by the caveat checker
-    @param id bytes holding the id to give to the discharge macaroon.
-    If caveat is empty, then the id also holds the encrypted third party caveat
-    @param caveat bytes holding the encrypted third party caveat.
-    If this is None, id will be used
-    @param checker used to check the third party caveat,
-    and may also return further caveats to be added to
-    the discharge macaroon. object that will have a function
-    check_third_party_caveat taking a dict of third party caveat info
-    as parameter.
-    @param locator used to retrieve information on third parties
-    referred to by third party caveats returned by the checker. Object that
-    will have a third_party_info function taking a location as a string.
-    @return macaroon with third party caveat discharged.
-    '''
-    if caveat is None:
-        caveat = id
-    cav_info = _decode_caveat(key, caveat)
-    return Macaroon(location='', key=cav_info['RootKey'], identifier=id)
 
 
 class _Client:
@@ -152,39 +116,6 @@ class _Client:
             self._visit_page(info.visit_url)
             # Wait on the wait url and then get a macaroon if validated.
             return _acquire_macaroon_from_wait(info.wait_url)
-
-
-def _decode_caveat(key, caveat):
-    '''Attempts to decode caveat by decrypting the encrypted part using key.
-
-    @param key a nacl key.
-    @param caveat bytes to be decoded.
-    @return a dict of third party caveat info.
-    '''
-    data = base64.b64decode(caveat).decode('utf-8')
-    tpid = json.loads(data)
-    third_party_public_key = nacl.public.PublicKey(
-        base64.b64decode(tpid['ThirdPartyPublicKey']))
-    if key.public_key != third_party_public_key:
-        return 'some error'
-    if tpid.get('FirstPartyPublicKey', None) is None:
-        return 'target service public key not specified'
-    # The encrypted string is base64 encoded in the JSON representation.
-    secret = base64.b64decode(tpid['Id'])
-    first_party_public_key = nacl.public.PublicKey(
-        base64.b64decode(tpid['FirstPartyPublicKey']))
-    box = Box(key,
-              first_party_public_key)
-    c = box.decrypt(secret, base64.b64decode(tpid['Nonce']))
-    record = json.loads(c.decode('utf-8'))
-    return {
-        'Condition': record['Condition'],
-        'FirstPartyPublicKey': first_party_public_key,
-        'ThirdPartyKeyPair': key,
-        'RootKey': base64.b64decode(record['RootKey']),
-        'Caveat': caveat,
-        'MacaroonId': id,
-    }
 
 
 def _extract_macaroon_from_response(response):

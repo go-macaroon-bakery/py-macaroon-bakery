@@ -11,7 +11,18 @@ else:
 
 VERSION = (0, 0, 3)
 
+BAKERY_V0 = 0
+BAKERY_V1 = 1
+BAKERY_V2 = 2
+BAKERY_V3 = 3
+LATEST_BAKERY_VERSION = BAKERY_V3
+
 
 def get_version():
     '''Return the macaroon bakery version as a string.'''
     return '.'.join(map(str, VERSION))
+
+__all__ = [
+    'VERSION', 'BAKERY_V0', 'BAKERY_V1', 'BAKERY_V2', 'BAKERY_V3',
+    'LATEST_BAKERY_VERSION'
+]
