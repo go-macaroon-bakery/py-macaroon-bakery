@@ -9,20 +9,90 @@ except ImportError:
 else:
     urllib3.contrib.pyopenssl.inject_into_urllib3()
 
-VERSION = (0, 0, 3)
+from macaroonbakery.versions import (
+    LATEST_BAKERY_VERSION, BAKERY_V3, BAKERY_V2, BAKERY_V1, BAKERY_V0
+)
+from macaroonbakery.authorizer import (
+    ClosedAuthorizer, EVERYONE, AuthorizerFunc, Authorizer, ACLAuthorizer
+)
+from macaroonbakery.codec import (
+    encode_caveat, decode_caveat, encode_uvarint
+)
+from macaroonbakery.checker import (
+    Op, LOGIN_OP, AuthInfo, AuthChecker, Checker
+)
+from macaroonbakery.error import (
+    ThirdPartyCaveatCheckFailed, CaveatNotRecognizedError, AuthInitError,
+    PermissionDenied, IdentityError, DischargeRequiredError, VerificationError
+)
+from macaroonbakery.identity import (
+    Identity, ACLIdentity, SimpleIdentity, IdentityClient, NoIdentities
+)
+from macaroonbakery.keys import generate_key
+from macaroonbakery.store import MemoryOpsStore, MemoryKeyStore
+from macaroonbakery.third_party import (
+    ThirdPartyCaveatInfo, ThirdPartyInfo, legacy_namespace
+)
+from macaroonbakery.macaroon import (
+    Macaroon, MacaroonJSONDecoder, MacaroonJSONEncoder, ThirdPartyStore,
+    ThirdPartyLocator, macaroon_version
+)
+from macaroonbakery.discharge import (
+    discharge_all, discharge, local_third_party_caveat, ThirdPartyCaveatChecker
+)
+from macaroonbakery.oven import Oven, canonical_ops
+from macaroonbakery.bakery import Bakery
 
-BAKERY_V0 = 0
-BAKERY_V1 = 1
-BAKERY_V2 = 2
-BAKERY_V3 = 3
-LATEST_BAKERY_VERSION = BAKERY_V3
-
-
-def get_version():
-    '''Return the macaroon bakery version as a string.'''
-    return '.'.join(map(str, VERSION))
 
 __all__ = [
-    'VERSION', 'BAKERY_V0', 'BAKERY_V1', 'BAKERY_V2', 'BAKERY_V3',
-    'LATEST_BAKERY_VERSION'
+    'ACLIdentity',
+    'ACLAuthorizer',
+    'AuthChecker',
+    'AuthInfo',
+    'AuthInitError',
+    'Authorizer',
+    'AuthorizerFunc',
+    'BAKERY_V0',
+    'BAKERY_V1',
+    'BAKERY_V2',
+    'BAKERY_V3',
+    'Bakery',
+    'CaveatNotRecognizedError',
+    'Checker',
+    'ClosedAuthorizer',
+    'DischargeRequiredError',
+    'EVERYONE',
+    'Identity',
+    'IdentityClient',
+    'IdentityError',
+    'LATEST_BAKERY_VERSION',
+    'LOGIN_OP',
+    'Macaroon',
+    'MacaroonJSONDecoder',
+    'MacaroonJSONEncoder',
+    'MemoryKeyStore',
+    'MemoryOpsStore',
+    'NoIdentities',
+    'Op',
+    'Oven',
+    'PermissionDenied',
+    'SimpleIdentity',
+    'ThirdPartyCaveatCheckFailed',
+    'ThirdPartyCaveatChecker',
+    'ThirdPartyCaveatInfo',
+    'ThirdPartyInfo',
+    'ThirdPartyLocator',
+    'ThirdPartyStore',
+    'VERSION',
+    'VerificationError',
+    'canonical_ops',
+    'decode_caveat',
+    'discharge',
+    'discharge_all',
+    'encode_caveat',
+    'encode_uvarint',
+    'generate_key',
+    'legacy_namespace',
+    'local_third_party_caveat',
+    'macaroon_version',
 ]

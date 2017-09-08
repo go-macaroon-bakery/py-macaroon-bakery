@@ -2,7 +2,7 @@
 # Licensed under the LGPLv3, see LICENCE file for details.
 import abc
 
-from macaroonbakery.error import IdentityError
+import macaroonbakery
 
 
 class Identity(object):
@@ -123,4 +123,4 @@ class NoIdentities(IdentityClient):
         return None, None
 
     def declared_identity(self, ctx, declared):
-        raise IdentityError('no identity declared or possible')
+        raise macaroonbakery.IdentityError('no identity declared or possible')

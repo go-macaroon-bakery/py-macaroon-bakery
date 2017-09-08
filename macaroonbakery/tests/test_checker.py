@@ -9,23 +9,8 @@ from datetime import timedelta
 from pymacaroons.verifier import Verifier, FirstPartyCaveatVerifierDelegate
 import pymacaroons
 
-from macaroonbakery import LATEST_BAKERY_VERSION
-from macaroonbakery.third_party import ThirdPartyInfo
-from macaroonbakery.discharge import discharge
-from macaroonbakery.identity import IdentityClient, SimpleIdentity
-from macaroonbakery import checkers
-from macaroonbakery.checker import Op, Checker, LOGIN_OP
-from macaroonbakery.authorizer import (
-    Authorizer, EVERYONE, ClosedAuthorizer, ACLAuthorizer, AuthorizerFunc
-)
-from macaroonbakery.store import MemoryKeyStore
-from macaroonbakery.macaroon import Macaroon
-from macaroonbakery.error import (
-    IdentityError, PermissionDenied, VerificationError, DischargeRequiredError,
-    CaveatNotRecognizedError, ThirdPartyCaveatCheckFailed
-)
-from macaroonbakery.keys import generate_key
-from macaroonbakery.discharge import discharge_all, ThirdPartyCaveatChecker
+import macaroonbakery
+import macaroonbakery.checkers as checkers
 from macaroonbakery.tests.common import test_context, epoch, test_checker
 
 
@@ -37,11 +22,13 @@ class TestChecker(TestCase):
         locator = _DischargerLocator()
         ids = _IdService('ids', locator, self)
         auth = _OpAuthorizer(
-            {Op(entity='something', action='read'): {EVERYONE}})
+            {macaroonbakery.Op(entity='something', action='read'):
+                {macaroonbakery.EVERYONE}})
         ts = _Service('myservice', auth, ids, locator)
         client = _Client(locator)
-        auth_info = client.do(test_context, ts, Op(entity='something',
-                                                   action='read'))
+        auth_info = client.do(test_context, ts,
+                              macaroonbakery.Op(entity='something',
+                                                action='read'))
         self.assertEqual(len(self._discharges), 0)
         self.assertIsNotNone(auth_info)
         self.assertIsNone(auth_info.identity)
@@ -50,24 +37,25 @@ class TestChecker(TestCase):
     def test_authorization_denied(self):
         locator = _DischargerLocator()
         ids = _IdService('ids', locator, self)
-        auth = ClosedAuthorizer()
+        auth = macaroonbakery.ClosedAuthorizer()
         ts = _Service('myservice', auth, ids, locator)
         client = _Client(locator)
         ctx = test_context.with_value(_DISCHARGE_USER_KEY, 'bob')
-        with self.assertRaises(PermissionDenied):
-            client.do(ctx, ts, Op(entity='something',
-                                  action='read'))
+        with self.assertRaises(macaroonbakery.PermissionDenied):
+            client.do(ctx, ts, macaroonbakery.Op(entity='something',
+                                                 action='read'))
 
     def test_authorize_with_authentication_required(self):
         locator = _DischargerLocator()
         ids = _IdService('ids', locator, self)
         auth = _OpAuthorizer(
-            {Op(entity='something', action='read'): {'bob'}})
+            {macaroonbakery.Op(entity='something', action='read'): {'bob'}})
         ts = _Service('myservice', auth, ids, locator)
         client = _Client(locator)
 
         ctx = test_context.with_value(_DISCHARGE_USER_KEY, 'bob')
-        auth_info = client.do(ctx, ts, Op(entity='something', action='read'))
+        auth_info = client.do(ctx, ts, macaroonbakery.Op(entity='something',
+                                                         action='read'))
         self.assertEqual(self._discharges,
                          [_DischargeRecord(location='ids', user='bob')])
         self.assertIsNotNone(auth_info)
@@ -79,16 +67,16 @@ class TestChecker(TestCase):
         ids = _IdService('ids', locator, self)
         auth = _OpAuthorizer(
             {
-                Op(entity='something', action='read'): {'bob'},
-                Op(entity='otherthing', action='read'): {'bob'}
+                macaroonbakery.Op(entity='something', action='read'): {'bob'},
+                macaroonbakery.Op(entity='otherthing', action='read'): {'bob'}
             }
         )
         ts = _Service('myservice', auth, ids, locator)
         client = _Client(locator)
         ctx = test_context.with_value(_DISCHARGE_USER_KEY, 'bob')
         client.do(ctx, ts,
-                  Op(entity='something', action='read'),
-                  Op(entity='otherthing', action='read'))
+                  macaroonbakery.Op(entity='something', action='read'),
+                  macaroonbakery.Op(entity='otherthing', action='read'))
         self.assertEqual(self._discharges,
                          [_DischargeRecord(location='ids', user='bob')])
 
@@ -96,17 +84,19 @@ class TestChecker(TestCase):
         locator = _DischargerLocator()
         ids = _IdService('ids', locator, self)
         auth = _OpAuthorizer(
-            {Op(entity='something', action='read'): {'bob'}})
+            {macaroonbakery.Op(entity='something', action='read'): {'bob'}})
         ts = _Service('myservice', auth, ids, locator)
         client = _Client(locator)
 
         ctx = test_context.with_value(_DISCHARGE_USER_KEY, 'bob')
-        m = client.discharged_capability(ctx, ts, Op(entity='something',
-                                                     action='read'))
+        m = client.discharged_capability(ctx, ts,
+                                         macaroonbakery.Op(entity='something',
+                                                           action='read'))
         # Check that we can exercise the capability directly on the service
         # with no discharging required.
-        auth_info = ts.do(test_context, [m], Op(entity='something',
-                                                action='read'))
+        auth_info = ts.do(test_context, [m],
+                          macaroonbakery.Op(entity='something',
+                                            action='read'))
         self.assertIsNotNone(auth_info)
         self.assertIsNone(auth_info.identity)
         self.assertEqual(len(auth_info.macaroons), 1)
@@ -118,40 +108,43 @@ class TestChecker(TestCase):
         ids = _IdService('ids', locator, self)
         auth = _OpAuthorizer(
             {
-                Op(entity='e1', action='read'): {'bob'},
-                Op(entity='e2', action='read'): {'bob'},
-                Op(entity='e3', action='read'): {'bob'},
+                macaroonbakery.Op(entity='e1', action='read'): {'bob'},
+                macaroonbakery.Op(entity='e2', action='read'): {'bob'},
+                macaroonbakery.Op(entity='e3', action='read'): {'bob'},
             })
         ts = _Service('myservice', auth, ids, locator)
         client = _Client(locator)
         ctx = test_context.with_value(_DISCHARGE_USER_KEY, 'bob')
         m = client.discharged_capability(ctx, ts,
-                                         Op(entity='e1', action='read'),
-                                         Op(entity='e2', action='read'),
-                                         Op(entity='e3', action='read'))
+                                         macaroonbakery.Op(entity='e1',
+                                                           action='read'),
+                                         macaroonbakery.Op(entity='e2',
+                                                           action='read'),
+                                         macaroonbakery.Op(entity='e3',
+                                                           action='read'))
         self.assertEqual(self._discharges,
                          [_DischargeRecord(location='ids', user='bob')])
 
         # Check that we can exercise the capability directly on the service
         # with no discharging required.
         ts.do(test_context, [m],
-              Op(entity='e1', action='read'),
-              Op(entity='e2', action='read'),
-              Op(entity='e3', action='read'))
+              macaroonbakery.Op(entity='e1', action='read'),
+              macaroonbakery.Op(entity='e2', action='read'),
+              macaroonbakery.Op(entity='e3', action='read'))
 
         # Check that we can exercise the capability to act on a subset of
         # the operations.
-        ts.do(test_context, [m], Op(entity='e2', action='read'),
-              Op(entity='e3', action='read'))
-        ts.do(test_context, [m], Op(entity='e3', action='read'))
+        ts.do(test_context, [m], macaroonbakery.Op(entity='e2', action='read'),
+              macaroonbakery.Op(entity='e3', action='read'))
+        ts.do(test_context, [m], macaroonbakery.Op(entity='e3', action='read'))
 
     def test_multiple_capabilities(self):
         locator = _DischargerLocator()
         ids = _IdService('ids', locator, self)
         auth = _OpAuthorizer(
             {
-                Op(entity='e1', action='read'): {'alice'},
-                Op(entity='e2', action='read'): {'bob'},
+                macaroonbakery.Op(entity='e1', action='read'): {'alice'},
+                macaroonbakery.Op(entity='e2', action='read'): {'bob'},
             })
         ts = _Service('myservice', auth, ids, locator)
 
@@ -160,20 +153,22 @@ class TestChecker(TestCase):
         # at once.
         ctx = test_context.with_value(_DISCHARGE_USER_KEY, 'alice')
         m1 = _Client(locator).discharged_capability(ctx, ts,
-                                                    Op(entity='e1',
-                                                       action='read'))
+                                                    macaroonbakery.Op(
+                                                        entity='e1',
+                                                        action='read'))
         ctx = test_context.with_value(_DISCHARGE_USER_KEY, 'bob')
         m2 = _Client(locator).discharged_capability(ctx, ts,
-                                                    Op(entity='e2',
-                                                       action='read'))
+                                                    macaroonbakery.Op(
+                                                        entity='e2',
+                                                        action='read'))
         self.assertEqual(self._discharges,
                          [
                              _DischargeRecord(location='ids', user='alice'),
                              _DischargeRecord(location='ids', user='bob'),
                          ])
         auth_info = ts.do(test_context, [m1, m2],
-                          Op(entity='e1', action='read'),
-                          Op(entity='e2', action='read'))
+                          macaroonbakery.Op(entity='e1', action='read'),
+                          macaroonbakery.Op(entity='e2', action='read'))
         self.assertIsNotNone(auth_info)
         self.assertIsNone(auth_info.identity)
         self.assertEqual(len(auth_info.macaroons), 2)
@@ -187,9 +182,10 @@ class TestChecker(TestCase):
         ids = _IdService('ids', locator, self)
         auth = _OpAuthorizer(
             {
-                Op(entity='e1', action='read'): {'alice'},
-                Op(entity='e2', action='read'): {'bob'},
-                Op(entity='e3', action='read'): {'bob', 'alice'},
+                macaroonbakery.Op(entity='e1', action='read'): {'alice'},
+                macaroonbakery.Op(entity='e2', action='read'): {'bob'},
+                macaroonbakery.Op(entity='e3', action='read'): {'bob',
+                                                                'alice'},
             })
         ts = _Service('myservice', auth, ids, locator)
 
@@ -198,28 +194,28 @@ class TestChecker(TestCase):
         # capable of both operations.
         ctx = test_context.with_value(_DISCHARGE_USER_KEY, 'alice')
         m1 = _Client(locator).discharged_capability(
-            ctx, ts, Op(entity='e1', action='read'),
-            Op(entity='e3', action='read'))
+            ctx, ts, macaroonbakery.Op(entity='e1', action='read'),
+            macaroonbakery.Op(entity='e3', action='read'))
         ctx = test_context.with_value(_DISCHARGE_USER_KEY, 'bob')
         m2 = _Client(locator).discharged_capability(
-            ctx, ts, Op(entity='e2', action='read'))
+            ctx, ts, macaroonbakery.Op(entity='e2', action='read'))
 
         m = ts.capability(test_context, [m1, m2],
-                          Op(entity='e1', action='read'),
-                          Op(entity='e2', action='read'),
-                          Op(entity='e3', action='read'))
+                          macaroonbakery.Op(entity='e1', action='read'),
+                          macaroonbakery.Op(entity='e2', action='read'),
+                          macaroonbakery.Op(entity='e3', action='read'))
         ts.do(test_context, [[m.macaroon]],
-              Op(entity='e1', action='read'),
-              Op(entity='e2', action='read'),
-              Op(entity='e3', action='read'))
+              macaroonbakery.Op(entity='e1', action='read'),
+              macaroonbakery.Op(entity='e2', action='read'),
+              macaroonbakery.Op(entity='e3', action='read'))
 
     def test_partially_authorized_request(self):
         locator = _DischargerLocator()
         ids = _IdService('ids', locator, self)
         auth = _OpAuthorizer(
             {
-                Op(entity='e1', action='read'): {'alice'},
-                Op(entity='e2', action='read'): {'bob'},
+                macaroonbakery.Op(entity='e1', action='read'): {'alice'},
+                macaroonbakery.Op(entity='e2', action='read'): {'bob'},
             })
         ts = _Service('myservice', auth, ids, locator)
 
@@ -227,15 +223,16 @@ class TestChecker(TestCase):
         # authorize e2.
         ctx = test_context.with_value(_DISCHARGE_USER_KEY, 'alice')
         m = _Client(locator).discharged_capability(ctx, ts,
-                                                   Op(entity='e1',
-                                                      action='read'))
+                                                   macaroonbakery.Op(
+                                                       entity='e1',
+                                                       action='read'))
         client = _Client(locator)
         client.add_macaroon(ts, 'authz', m)
 
         ctx = test_context.with_value(_DISCHARGE_USER_KEY, 'bob')
         client.discharged_capability(
-            ctx, ts, Op(entity='e1', action='read'),
-            Op(entity='e2', action='read'))
+            ctx, ts, macaroonbakery.Op(entity='e1', action='read'),
+            macaroonbakery.Op(entity='e2', action='read'))
 
     def test_auth_with_third_party_caveats(self):
         locator = _DischargerLocator()
@@ -245,14 +242,16 @@ class TestChecker(TestCase):
         # when authorizing.
         def authorize_with_tp_discharge(ctx, id, op):
             if (id is not None and id.id() == 'bob' and
-                    op == Op(entity='something', action='read')):
+                    op == macaroonbakery.Op(entity='something',
+                                            action='read')):
                 return True, [checkers.Caveat(condition='question',
                                               location='other third party')]
             return False, None
-        auth = AuthorizerFunc(authorize_with_tp_discharge)
+
+        auth = macaroonbakery.AuthorizerFunc(authorize_with_tp_discharge)
         ts = _Service('myservice', auth, ids, locator)
 
-        class _LocalDischargeChecker(ThirdPartyCaveatChecker):
+        class _LocalDischargeChecker(macaroonbakery.ThirdPartyCaveatChecker):
             def check_third_party_caveat(_, ctx, info):
                 if info.condition != 'question':
                     raise ValueError('third party condition not recognized')
@@ -261,14 +260,16 @@ class TestChecker(TestCase):
                     user=ctx.get(_DISCHARGE_USER_KEY)
                 ))
                 return []
+
         locator['other third party'] = _Discharger(
-            key=generate_key(),
+            key=macaroonbakery.generate_key(),
             checker=_LocalDischargeChecker(),
             locator=locator,
         )
         client = _Client(locator)
         ctx = test_context.with_value(_DISCHARGE_USER_KEY, 'bob')
-        client.do(ctx, ts, Op(entity='something', action='read'))
+        client.do(ctx, ts, macaroonbakery.Op(entity='something',
+                                             action='read'))
         self.assertEqual(self._discharges, [
             _DischargeRecord(location='ids', user='bob'),
             _DischargeRecord(location='other third party',
@@ -280,8 +281,8 @@ class TestChecker(TestCase):
         ids = _IdService('ids', locator, self)
         auth = _OpAuthorizer(
             {
-                Op(entity='e1', action='read'): {'alice'},
-                Op(entity='e2', action='read'): {'bob'}
+                macaroonbakery.Op(entity='e1', action='read'): {'alice'},
+                macaroonbakery.Op(entity='e2', action='read'): {'bob'}
             }
         )
         ts = _Service('myservice', auth, ids, locator)
@@ -291,12 +292,12 @@ class TestChecker(TestCase):
         # capable of both operations.
         ctx = test_context.with_value(_DISCHARGE_USER_KEY, 'alice')
         m1 = _Client(locator).capability(
-            ctx, ts, Op(entity='e1', action='read'))
+            ctx, ts, macaroonbakery.Op(entity='e1', action='read'))
         m1.macaroon.add_first_party_caveat('true 1')
         m1.macaroon.add_first_party_caveat('true 2')
         ctx = test_context.with_value(_DISCHARGE_USER_KEY, 'bob')
         m2 = _Client(locator).capability(
-            ctx, ts, Op(entity='e2', action='read'))
+            ctx, ts, macaroonbakery.Op(entity='e2', action='read'))
         m2.macaroon.add_first_party_caveat('true 3')
         m2.macaroon.add_first_party_caveat('true 4')
 
@@ -305,8 +306,8 @@ class TestChecker(TestCase):
         client.add_macaroon(ts, 'authz2', [m2.macaroon])
 
         m = client.capability(test_context, ts,
-                              Op(entity='e1', action='read'),
-                              Op(entity='e2', action='read'))
+                              macaroonbakery.Op(entity='e1', action='read'),
+                              macaroonbakery.Op(entity='e2', action='read'))
         self.assertEqual(_macaroon_conditions(m.macaroon.caveats, False), [
             'true 1',
             'true 2',
@@ -319,8 +320,8 @@ class TestChecker(TestCase):
         ids = _IdService('ids', locator, self)
         auth = _OpAuthorizer(
             {
-                Op(entity='e1', action='read'): {'alice'},
-                Op(entity='e2', action='read'): {'alice'},
+                macaroonbakery.Op(entity='e1', action='read'): {'alice'},
+                macaroonbakery.Op(entity='e2', action='read'): {'alice'},
             })
         ts = _Service('myservice', auth, ids, locator)
         tests = [
@@ -335,13 +336,14 @@ class TestChecker(TestCase):
                 checkers.Caveat(condition='true 2', namespace='testns'),
                 checkers.Caveat(condition='true 3', namespace='testns'),
             ]), ('earliest time before', [
-                checkers.time_before_caveat(epoch+timedelta(days=1)),
+                checkers.time_before_caveat(epoch + timedelta(days=1)),
                 checkers.Caveat(condition='true 1', namespace='testns'),
-                checkers.time_before_caveat(epoch+timedelta(days=0, hours=1)),
-                checkers.time_before_caveat(epoch+timedelta(
+                checkers.time_before_caveat(
+                    epoch + timedelta(days=0, hours=1)),
+                checkers.time_before_caveat(epoch + timedelta(
                     days=0, hours=0, minutes=5)),
             ], [
-                checkers.time_before_caveat(epoch+timedelta(
+                checkers.time_before_caveat(epoch + timedelta(
                     days=0, hours=0, minutes=5)),
                 checkers.Caveat(condition='true 1', namespace='testns'),
             ]), ('operations and declared caveats removed', [
@@ -359,13 +361,13 @@ class TestChecker(TestCase):
             # Make a first macaroon with all the required first party caveats.
             ctx = test_context.with_value(_DISCHARGE_USER_KEY, 'alice')
             m1 = _Client(locator).capability(
-                ctx, ts, Op(entity='e1', action='read'))
+                ctx, ts, macaroonbakery.Op(entity='e1', action='read'))
             m1.add_caveats(test[1], None, None)
 
             # Make a second macaroon that's not used to check that it's
             # caveats are not added.
             m2 = _Client(locator).capability(
-                ctx, ts, Op(entity='e1', action='read'))
+                ctx, ts, macaroonbakery.Op(entity='e1', action='read'))
             m2.add_caveat(checkers.Caveat(
                 condition='true notused', namespace='testns'), None, None)
             client = _Client(locator)
@@ -373,7 +375,8 @@ class TestChecker(TestCase):
             client.add_macaroon(ts, 'authz2', [m2.macaroon])
 
             m3 = client.capability(
-                test_context, ts, Op(entity='e1', action='read'))
+                test_context, ts, macaroonbakery.Op(entity='e1',
+                                                    action='read'))
             self.assertEqual(
                 _macaroon_conditions(m3.macaroon.caveats, False),
                 _resolve_caveats(m3.namespace, test[2]))
@@ -381,11 +384,11 @@ class TestChecker(TestCase):
     def test_login_only(self):
         locator = _DischargerLocator()
         ids = _IdService('ids', locator, self)
-        auth = ClosedAuthorizer()
+        auth = macaroonbakery.ClosedAuthorizer()
         ts = _Service('myservice', auth, ids, locator)
 
         ctx = test_context.with_value(_DISCHARGE_USER_KEY, 'bob')
-        auth_info = _Client(locator).do(ctx, ts, LOGIN_OP)
+        auth_info = _Client(locator).do(ctx, ts, macaroonbakery.LOGIN_OP)
         self.assertIsNotNone(auth_info)
         self.assertEqual(auth_info.identity.id(), 'bob')
 
@@ -394,8 +397,8 @@ class TestChecker(TestCase):
         ids = _IdService('ids', locator, self)
         auth = _OpAuthorizer(
             {
-                Op(entity='e1', action='read'): {'alice'},
-                Op(entity='e2', action='read'): {'bob'},
+                macaroonbakery.Op(entity='e1', action='read'): {'alice'},
+                macaroonbakery.Op(entity='e2', action='read'): {'bob'},
             })
         ts = _Service('myservice', auth, ids, locator)
 
@@ -403,8 +406,9 @@ class TestChecker(TestCase):
         # authorize e2.
         ctx = test_context.with_value(_DISCHARGE_USER_KEY, 'alice')
         m = _Client(locator).discharged_capability(ctx, ts,
-                                                   Op(entity='e1',
-                                                      action='read'))
+                                                   macaroonbakery.Op(
+                                                       entity='e1',
+                                                       action='read'))
 
         client = _Client(locator)
         client.add_macaroon(ts, 'authz', m)
@@ -413,17 +417,19 @@ class TestChecker(TestCase):
         ctx = test_context.with_value(_DISCHARGE_USER_KEY, 'bob')
         with self.assertRaises(_DischargeRequiredError):
             client.do_any(
-                ctx, ts, LOGIN_OP, Op(entity='e1', action='read'),
-                Op(entity='e1', action='read'))
+                ctx, ts, macaroonbakery.LOGIN_OP,
+                macaroonbakery.Op(entity='e1', action='read'),
+                macaroonbakery.Op(entity='e1', action='read'))
             self.assertEqual(len(self._discharges), 0)
 
         # Log in as bob.
-        _, err = client.do(ctx, ts, LOGIN_OP)
+        _, err = client.do(ctx, ts, macaroonbakery.LOGIN_OP)
 
         # All the previous actions should now be allowed.
         auth_info, allowed = client.do_any(
-            ctx, ts, LOGIN_OP, Op(entity='e1', action='read'),
-            Op(entity='e1', action='read'))
+            ctx, ts, macaroonbakery.LOGIN_OP,
+            macaroonbakery.Op(entity='e1', action='read'),
+            macaroonbakery.Op(entity='e1', action='read'))
         self.assertEqual(auth_info.identity.id(), 'bob')
         self.assertEqual(len(auth_info.macaroons), 2)
         self.assertEqual(allowed, [True, True, True])
@@ -433,8 +439,8 @@ class TestChecker(TestCase):
         ids = _BasicAuthIdService()
         auth = _OpAuthorizer(
             {
-                Op(entity='e1', action='read'): {'sherlock'},
-                Op(entity='e2', action='read'): {'bob'},
+                macaroonbakery.Op(entity='e1', action='read'): {'sherlock'},
+                macaroonbakery.Op(entity='e2', action='read'): {'bob'},
             })
         ts = _Service('myservice', auth, ids, locator)
 
@@ -442,19 +448,20 @@ class TestChecker(TestCase):
         # context.
         ctx = _context_with_basic_auth(test_context, 'sherlock', 'holmes')
         auth_info = _Client(locator).do(
-            ctx, ts, Op(entity='e1', action='read'))
+            ctx, ts, macaroonbakery.Op(entity='e1', action='read'))
         self.assertEqual(auth_info.identity.id(), 'sherlock')
         self.assertEqual(len(auth_info.macaroons), 0)
 
     def test_auth_login_op_with_identity_from_context(self):
         locator = _DischargerLocator()
         ids = _BasicAuthIdService()
-        ts = _Service('myservice', ClosedAuthorizer(), ids, locator)
+        ts = _Service('myservice', macaroonbakery.ClosedAuthorizer(),
+                      ids, locator)
 
         # Check that we can use LoginOp
         # when auth isn't granted through macaroons.
         ctx = _context_with_basic_auth(test_context, 'sherlock', 'holmes')
-        auth_info = _Client(locator).do(ctx, ts, LOGIN_OP)
+        auth_info = _Client(locator).do(ctx, ts, macaroonbakery.LOGIN_OP)
         self.assertEqual(auth_info.identity.id(), 'sherlock')
         self.assertEqual(len(auth_info.macaroons), 0)
 
@@ -463,84 +470,88 @@ class TestChecker(TestCase):
         ids = _IdService('ids', locator, self)
         auth = _OpAuthorizer(
             {
-                Op(entity='e1', action='read'): {'bob'},
-                Op(entity='e1', action='write'): {'bob'},
-                Op(entity='e2', action='read'): {'bob'},
+                macaroonbakery.Op(entity='e1', action='read'): {'bob'},
+                macaroonbakery.Op(entity='e1', action='write'): {'bob'},
+                macaroonbakery.Op(entity='e2', action='read'): {'bob'},
             })
         ts = _Service('myservice', auth, ids, locator)
         client = _Client(locator)
 
         ctx = test_context.with_value(_DISCHARGE_USER_KEY, 'bob')
         m = client.capability(
-            ctx, ts, Op(entity='e1', action='read'),
-            Op(entity='e1', action='write'),
-            Op(entity='e2', action='read'))
+            ctx, ts, macaroonbakery.Op(entity='e1', action='read'),
+            macaroonbakery.Op(entity='e1', action='write'),
+            macaroonbakery.Op(entity='e2', action='read'))
 
         # Sanity check that we can do a write.
-        ts.do(test_context, [[m.macaroon]], Op(entity='e1', action='write'))
+        ts.do(test_context, [[m.macaroon]],
+              macaroonbakery.Op(entity='e1', action='write'))
 
         m.add_caveat(checkers.allow_caveat(['read']), None, None)
 
         # A read operation should work.
-        ts.do(test_context, [[m.macaroon]], Op(entity='e1', action='read'),
-              Op(entity='e2', action='read'))
+        ts.do(test_context, [[m.macaroon]],
+              macaroonbakery.Op(entity='e1', action='read'),
+              macaroonbakery.Op(entity='e2', action='read'))
 
         # A write operation should fail
         # even though the original macaroon allowed it.
         with self.assertRaises(_DischargeRequiredError):
             ts.do(test_context, [[m.macaroon]],
-                  Op(entity='e1', action='write'))
+                  macaroonbakery.Op(entity='e1', action='write'))
 
     def test_operation_deny_caveat(self):
         locator = _DischargerLocator()
         ids = _IdService('ids', locator, self)
         auth = _OpAuthorizer(
             {
-                Op(entity='e1', action='read'): {'bob'},
-                Op(entity='e1', action='write'): {'bob'},
-                Op(entity='e2', action='read'): {'bob'},
+                macaroonbakery.Op(entity='e1', action='read'): {'bob'},
+                macaroonbakery.Op(entity='e1', action='write'): {'bob'},
+                macaroonbakery.Op(entity='e2', action='read'): {'bob'},
             })
         ts = _Service('myservice', auth, ids, locator)
         client = _Client(locator)
 
         ctx = test_context.with_value(_DISCHARGE_USER_KEY, 'bob')
         m = client.capability(
-            ctx, ts, Op(entity='e1', action='read'),
-            Op(entity='e1', action='write'),
-            Op(entity='e2', action='read'))
+            ctx, ts, macaroonbakery.Op(entity='e1', action='read'),
+            macaroonbakery.Op(entity='e1', action='write'),
+            macaroonbakery.Op(entity='e2', action='read'))
 
         # Sanity check that we can do a write.
-        ts.do(test_context, [[m.macaroon]], Op(entity='e1', action='write'))
+        ts.do(test_context, [[m.macaroon]],
+              macaroonbakery.Op(entity='e1', action='write'))
 
         m.add_caveat(checkers.deny_caveat(['write']), None, None)
 
         # A read operation should work.
         ts.do(
-            test_context, [[m.macaroon]], Op(entity='e1', action='read'),
-            Op(entity='e2', action='read'))
+            test_context, [[m.macaroon]],
+            macaroonbakery.Op(entity='e1', action='read'),
+            macaroonbakery.Op(entity='e2', action='read'))
 
         # A write operation should fail
         # even though the original macaroon allowed it.
         with self.assertRaises(_DischargeRequiredError):
             ts.do(test_context, [[m.macaroon]],
-                  Op(entity='e1', action='write'))
+                  macaroonbakery.Op(entity='e1', action='write'))
 
     def test_duplicate_login_macaroons(self):
         locator = _DischargerLocator()
         ids = _IdService('ids', locator, self)
-        auth = ClosedAuthorizer()
+        auth = macaroonbakery.ClosedAuthorizer()
         ts = _Service('myservice', auth, ids, locator)
 
         # Acquire a login macaroon for bob.
         client1 = _Client(locator)
         ctx = test_context.with_value(_DISCHARGE_USER_KEY, 'bob')
-        auth_info = client1.do(ctx, ts, LOGIN_OP)
+        auth_info = client1.do(ctx, ts, macaroonbakery.LOGIN_OP)
         self.assertEqual(auth_info.identity.id(), 'bob')
 
         # Acquire a login macaroon for alice.
         client2 = _Client(locator)
         ctx = test_context.with_value(_DISCHARGE_USER_KEY, 'alice')
-        auth_info = client2.do(ctx, ts, LOGIN_OP)
+        auth_info = client2.do(ctx, ts, macaroonbakery.LOGIN_OP)
         self.assertEqual(auth_info.identity.id(), 'alice')
 
         # Combine the two login macaroons into one client.
@@ -552,7 +563,7 @@ class TestChecker(TestCase):
 
         # We should authenticate as bob (because macaroons are presented
         # ordered by "cookie" name)
-        auth_info = client3.do(test_context, ts, LOGIN_OP)
+        auth_info = client3.do(test_context, ts, macaroonbakery.LOGIN_OP)
         self.assertEqual(auth_info.identity.id(), 'bob')
         self.assertEqual(len(auth_info.macaroons), 1)
 
@@ -563,17 +574,18 @@ class TestChecker(TestCase):
         client3.add_macaroon(ts, '2.bob',
                              client1._macaroons[ts.name()]['authn'])
 
-        auth_info = client3.do(test_context, ts, LOGIN_OP)
+        auth_info = client3.do(test_context, ts, macaroonbakery.LOGIN_OP)
         self.assertEqual(auth_info.identity.id(), 'alice')
         self.assertEqual(len(auth_info.macaroons), 1)
 
     def test_macaroon_ops_fatal_error(self):
         # When we get a non-VerificationError error from the
         # opstore, we don't do any more verification.
-        checker = Checker(macaroon_opstore=_MacaroonStoreWithError())
+        checker = macaroonbakery.Checker(
+            macaroon_opstore=_MacaroonStoreWithError())
         m = pymacaroons.Macaroon(version=pymacaroons.MACAROON_V2)
         with self.assertRaises(ValueError):
-            checker.auth([m]).allow(test_context, LOGIN_OP)
+            checker.auth([m]).allow(test_context, macaroonbakery.LOGIN_OP)
 
 
 class _DischargerLocator(object):
@@ -586,9 +598,9 @@ class _DischargerLocator(object):
         d = self._dischargers.get(loc)
         if d is None:
             return None
-        return ThirdPartyInfo(
+        return macaroonbakery.ThirdPartyInfo(
             public_key=d._key.public_key,
-            version=LATEST_BAKERY_VERSION,
+            version=macaroonbakery.LATEST_BAKERY_VERSION,
         )
 
     def __setitem__(self, key, item):
@@ -601,22 +613,25 @@ class _DischargerLocator(object):
         return self._dischargers.get(key)
 
 
-class _IdService(IdentityClient, ThirdPartyCaveatChecker):
+class _IdService(macaroonbakery.IdentityClient,
+                 macaroonbakery.ThirdPartyCaveatChecker):
     def __init__(self, location, locator, test_class):
         self._location = location
         self._test = test_class
-        key = generate_key()
+        key = macaroonbakery.generate_key()
         self._discharger = _Discharger(key=key, checker=self, locator=locator)
         locator[location] = self._discharger
 
     def check_third_party_caveat(self, ctx, info):
         if info.condition != 'is-authenticated-user':
-            raise CaveatNotRecognizedError('third party condition not '
-                                           'recognized')
+            raise macaroonbakery.CaveatNotRecognizedError(
+                'third party condition not '
+                'recognized')
 
         username = ctx.get(_DISCHARGE_USER_KEY, '')
         if username == '':
-            return ThirdPartyCaveatCheckFailed('no current user')
+            return macaroonbakery.ThirdPartyCaveatCheckFailed(
+                'no current user')
         self._test._discharges.append(
             _DischargeRecord(location=self._location, user=username))
         return [checkers.declared_caveat('username', username)]
@@ -628,8 +643,9 @@ class _IdService(IdentityClient, ThirdPartyCaveatChecker):
     def declared_identity(self, ctx, declared):
         user = declared.get('username')
         if user is None:
-            raise IdentityError('no username declared')
-        return SimpleIdentity(user)
+            raise macaroonbakery.IdentityError('no username declared')
+        return macaroonbakery.SimpleIdentity(user)
+
 
 _DISCHARGE_USER_KEY = checkers.ContextKey('user-key')
 
@@ -640,37 +656,43 @@ class _Discharger(object):
     ''' utility class that has a discharge function with the same signature of
     get_discharge for discharge_all.
     '''
+
     def __init__(self, key, locator, checker):
         self._key = key
         self._locator = locator
         self._checker = checker
 
     def discharge(self, ctx, cav, payload):
-        return discharge(ctx, key=self._key, id=cav.caveat_id, caveat=payload,
-                         checker=self._checker, locator=self._locator)
+        return macaroonbakery.discharge(ctx, key=self._key, id=cav.caveat_id,
+                                        caveat=payload,
+                                        checker=self._checker,
+                                        locator=self._locator)
 
 
-class _OpAuthorizer(Authorizer):
+class _OpAuthorizer(macaroonbakery.Authorizer):
     '''Implements bakery.Authorizer by looking the operation
     up in the given map. If the username is in the associated list
     or the list contains "everyone", authorization is granted.
     '''
+
     def __init__(self, auth=None):
         if auth is None:
             auth = {}
         self._auth = auth
 
     def authorize(self, ctx, id, *ops):
-        return ACLAuthorizer(allow_public=True,
-                             get_acl=lambda ctx, op: self._auth.get(op, [])
-                             ).authorize(ctx, id, *ops)
+        return macaroonbakery.ACLAuthorizer(
+            allow_public=True,
+            get_acl=lambda ctx, op: self._auth.get(op, [])).authorize(
+            ctx, id, *ops)
 
 
 class _MacaroonStore(object):
     ''' Stores root keys in memory and puts all operations in the macaroon id.
     '''
+
     def __init__(self, key, locator):
-        self._root_key_store = MemoryKeyStore()
+        self._root_key_store = macaroonbakery.MemoryKeyStore()
         self._key = key
         self._locator = locator
 
@@ -678,8 +700,10 @@ class _MacaroonStore(object):
         root_key, id = self._root_key_store.root_key()
         m_id = {'id': base64.urlsafe_b64encode(id).decode('utf-8'), 'ops': ops}
         data = json.dumps(m_id)
-        m = Macaroon(root_key=root_key, id=data, location='',
-                     version=LATEST_BAKERY_VERSION, namespace=namespace)
+        m = macaroonbakery.Macaroon(
+            root_key=root_key, id=data, location='',
+            version=macaroonbakery.LATEST_BAKERY_VERSION,
+            namespace=namespace)
         m.add_caveats(caveats, self._key, self._locator)
         return m
 
@@ -696,12 +720,13 @@ class _MacaroonStore(object):
         class NoValidationOnFirstPartyCaveat(FirstPartyCaveatVerifierDelegate):
             def verify_first_party_caveat(self, verifier, caveat, signature):
                 return True
+
         v.first_party_caveat_verifier_delegate = \
             NoValidationOnFirstPartyCaveat()
         ok = v.verify(macaroon=ms[0], key=root_key,
                       discharge_macaroons=ms[1:])
         if not ok:
-            raise VerificationError('invalid signature')
+            raise macaroonbakery.VerificationError('invalid signature')
         conditions = []
         for m in ms:
             cavs = m.first_party_caveats()
@@ -709,7 +734,7 @@ class _MacaroonStore(object):
                 conditions.append(cav.caveat_id_bytes.decode('utf-8'))
         ops = []
         for op in m_id['ops']:
-            ops.append(Op(entity=op[0], action=op[1]))
+            ops.append(macaroonbakery.Op(entity=op[0], action=op[1]))
         return ops, conditions
 
 
@@ -723,8 +748,8 @@ class _Service(object):
 
     def __init__(self, name, auth, idm, locator):
         self._name = name
-        self._store = _MacaroonStore(generate_key(), locator)
-        self._checker = Checker(
+        self._store = _MacaroonStore(macaroonbakery.generate_key(), locator)
+        self._checker = macaroonbakery.Checker(
             checker=test_checker(),
             authorizer=auth,
             identity_client=idm,
@@ -736,7 +761,7 @@ class _Service(object):
     def do(self, ctx, ms, *ops):
         try:
             authInfo = self._checker.auth(*ms).allow(ctx, *ops)
-        except DischargeRequiredError as exc:
+        except macaroonbakery.DischargeRequiredError as exc:
             self._discharge_required_error(exc)
         return authInfo
 
@@ -746,13 +771,13 @@ class _Service(object):
         try:
             authInfo, allowed = self._checker.auth(*ms).allow_any(ctx, *ops)
             return authInfo, allowed
-        except DischargeRequiredError as exc:
+        except macaroonbakery.DischargeRequiredError as exc:
             self._discharge_required_error(exc)
 
     def capability(self, ctx, ms, *ops):
         try:
             conds = self._checker.auth(*ms).allow_capability(ctx, *ops)
-        except DischargeRequiredError as exc:
+        except macaroonbakery.DischargeRequiredError as exc:
             self._discharge_required_error(exc)
 
         m = self._store.new_macaroon(None, self._checker.namespace(), *ops)
@@ -764,7 +789,7 @@ class _Service(object):
         m = self._store.new_macaroon(err.cavs(), self._checker.namespace(),
                                      *err.ops())
         name = 'authz'
-        if len(err.ops()) == 1 and err.ops()[0] == LOGIN_OP:
+        if len(err.ops()) == 1 and err.ops()[0] == macaroonbakery.LOGIN_OP:
             name = 'authn'
         raise _DischargeRequiredError(name=name, m=m)
 
@@ -786,7 +811,7 @@ class _Client(object):
     max_retries = 3
 
     def __init__(self, dischargers):
-        self._key = generate_key()
+        self._key = macaroonbakery.generate_key()
         self._macaroons = {}
         self._dischargers = dischargers
 
@@ -812,6 +837,7 @@ class _Client(object):
         def svc_capability(ms):
             _M.m = svc.capability(ctx, ms, *ops)
             return
+
         self._do_func(ctx, svc, svc_capability)
         return _M.m
 
@@ -849,7 +875,7 @@ class _Client(object):
         for name in mmap:
             names.append(name)
         names = sorted(names)
-        ms = [None]*len(names)
+        ms = [None] * len(names)
         for i, name in enumerate(names):
             ms[i] = mmap[name]
         return ms
@@ -861,19 +887,20 @@ class _Client(object):
                 raise ValueError('third party discharger '
                                  '{} not found'.format(cav.location))
             return d.discharge(ctx, cav, pay_load)
-        return discharge_all(ctx, m, get_discharge)
+
+        return macaroonbakery.discharge_all(ctx, m, get_discharge)
 
 
-class _BasicAuthIdService(IdentityClient):
+class _BasicAuthIdService(macaroonbakery.IdentityClient):
     def identity_from_context(self, ctx):
         user, pwd = _basic_auth_from_context(ctx)
         if user != 'sherlock' or pwd != 'holmes':
             return None, None
-        return SimpleIdentity(user), None
+        return macaroonbakery.SimpleIdentity(user), None
 
     def declared_identity(self, ctx, declared):
-        raise IdentityError('no identity declarations in basic '
-                            'auth id service')
+        raise macaroonbakery.IdentityError('no identity declarations in basic '
+                                           'auth id service')
 
 
 _BASIC_AUTH_KEY = checkers.ContextKey('user-key')
@@ -895,7 +922,7 @@ def _basic_auth_from_context(ctx):
 
 
 def _macaroon_conditions(caveats, allow_third):
-    conds = ['']*len(caveats)
+    conds = [''] * len(caveats)
     for i, cav in enumerate(caveats):
         if cav.location is not None and cav.location != '':
             if not allow_third:

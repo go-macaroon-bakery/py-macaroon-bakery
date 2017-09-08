@@ -27,13 +27,13 @@ class Namespace:
         '''Returns the namespace representation as returned by serialize
         :return: str
         '''
-        return self.serialize().decode('utf-8')
+        return self.serialize_text().decode('utf-8')
 
     def __eq__(self, other):
         return self._uri_to_prefix == other._uri_to_prefix
 
-    def serialize(self):
-        '''Returns a serialize form of the Namepace.
+    def serialize_text(self):
+        '''Returns a serialized form of the Namepace.
 
         All the elements in the namespace are sorted by
         URI, joined to the associated prefix with a colon and

@@ -7,9 +7,8 @@ import six
 from nacl.encoding import Base64Encoder
 from nacl.public import Box, PublicKey
 
-from macaroonbakery import BAKERY_V1, BAKERY_V2, BAKERY_V3
-from macaroonbakery.third_party import legacy_namespace, ThirdPartyCaveatInfo
-from macaroonbakery import checkers
+import macaroonbakery
+import macaroonbakery.checkers as checkers
 
 _PUBLIC_KEY_PREFIX_LEN = 4
 _KEY_LEN = 32
@@ -35,11 +34,11 @@ def encode_caveat(condition, root_key, third_party_info, key, ns):
     @param ns not used yet
     @return bytes
     '''
-    if third_party_info.version == BAKERY_V1:
+    if third_party_info.version == macaroonbakery.BAKERY_V1:
         return _encode_caveat_v1(condition, root_key,
                                  third_party_info.public_key, key)
-    if (third_party_info.version == BAKERY_V2 or
-            third_party_info.version == BAKERY_V3):
+    if (third_party_info.version == macaroonbakery.BAKERY_V2 or
+            third_party_info.version == macaroonbakery.BAKERY_V3):
         return _encode_caveat_v2_v3(third_party_info.version, condition,
                                     root_key, third_party_info.public_key, key,
                                     ns)
@@ -103,8 +102,8 @@ def _encode_caveat_v2_v3(version, condition, root_key, third_party_pub_key,
         condition [rest of encrypted part]
     '''
     ns_data = bytearray()
-    if version >= BAKERY_V3:
-        ns_data = ns.serialize()
+    if version >= macaroonbakery.BAKERY_V3:
+        ns_data = ns.serialize_text()
     data = bytearray()
     data.append(version)
     data.extend(third_party_pub_key.encode()[:_PUBLIC_KEY_PREFIX_LEN])
@@ -135,7 +134,7 @@ def _encode_secret_part_v2_v3(version, condition, root_key, ns):
     data.append(version)
     encode_uvarint(len(root_key), data)
     data.extend(root_key)
-    if version >= BAKERY_V3:
+    if version >= macaroonbakery.BAKERY_V3:
         encode_uvarint(len(ns), data)
         data.extend(ns)
     data.extend(condition.encode('utf-8'))
@@ -158,9 +157,10 @@ def decode_caveat(key, caveat):
         # encoded JSON object.
         return _decode_caveat_v1(key, caveat)
     first_as_int = six.byte2int(first)
-    if first_as_int == BAKERY_V2 or first_as_int == BAKERY_V3:
+    if (first_as_int == macaroonbakery.BAKERY_V2 or
+            first_as_int == macaroonbakery.BAKERY_V3):
         if (len(caveat) < _VERSION3_CAVEAT_MIN_LEN
-                and first_as_int == BAKERY_V3):
+                and first_as_int == macaroonbakery.BAKERY_V3):
             # If it has the version 3 caveat tag and it's too short, it's
             # almost certainly an id, not an encrypted payload.
             raise ValueError(
@@ -197,14 +197,14 @@ def _decode_caveat_v1(key, caveat):
     c = box.decrypt(secret, nonce)
     record = json.loads(c.decode('utf-8'))
     fp_key = PublicKey(base64.b64decode(wrapper.get('FirstPartyPublicKey')))
-    return ThirdPartyCaveatInfo(
+    return macaroonbakery.ThirdPartyCaveatInfo(
         condition=record.get('Condition'),
         first_party_public_key=fp_key,
         third_party_key_pair=key,
         root_key=base64.b64decode(record.get('RootKey')),
         caveat=caveat,
-        version=BAKERY_V1,
-        ns=legacy_namespace()
+        version=macaroonbakery.BAKERY_V1,
+        namespace=macaroonbakery.legacy_namespace()
     )
 
 
@@ -230,14 +230,14 @@ def _decode_caveat_v2_v3(version, key, caveat):
     box = Box(key, fp_public_key)
     data = box.decrypt(caveat, nonce)
     root_key, condition, ns = _decode_secret_part_v2_v3(version, data)
-    return ThirdPartyCaveatInfo(
+    return macaroonbakery.ThirdPartyCaveatInfo(
         condition=condition.decode('utf-8'),
         first_party_public_key=fp_public_key,
         third_party_key_pair=key,
         root_key=root_key,
         caveat=original_caveat,
         version=version,
-        ns=ns
+        namespace=ns
     )
 
 
@@ -250,18 +250,18 @@ def _decode_secret_part_v2_v3(version, data):
         raise ValueError(
             'unexpected secret part version, got {} want {}'.format(
                 got_version, version))
-    root_key_length, read = _decode_uvarint(data)
+    root_key_length, read = decode_uvarint(data)
     data = data[read:]
     root_key = data[:root_key_length]
     data = data[root_key_length:]
-    if version >= BAKERY_V3:
-        namespace_length, read = _decode_uvarint(data)
+    if version >= macaroonbakery.BAKERY_V3:
+        namespace_length, read = decode_uvarint(data)
         data = data[read:]
         ns_data = data[:namespace_length]
         data = data[namespace_length:]
         ns = checkers.deserialize_namespace(ns_data)
     else:
-        ns = legacy_namespace()
+        ns = macaroonbakery.legacy_namespace()
     return root_key, data, ns
 
 
@@ -278,8 +278,8 @@ def encode_uvarint(n, data):
         data.append(this_byte | 128)
 
 
-def _decode_uvarint(data):
-    '''Decode a variable -length integer.
+def decode_uvarint(data):
+    '''Decode a variable-length integer.
 
     Reads a sequence of unsigned integer byte and decodes them into an integer
     in variable-length format and returns it and the length read.

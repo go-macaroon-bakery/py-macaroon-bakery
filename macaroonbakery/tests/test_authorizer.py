@@ -2,10 +2,8 @@
 # Licensed under the LGPLv3, see LICENCE file for details.
 from unittest import TestCase
 
-from macaroonbakery.identity import Identity, SimpleIdentity, ACLIdentity
-from macaroonbakery import checkers
-from macaroonbakery.authorizer import AuthorizerFunc, ACLAuthorizer, EVERYONE
-from macaroonbakery.checker import Op
+import macaroonbakery
+import macaroonbakery.checkers as checkers
 
 
 class TestAuthorizer(TestCase):
@@ -25,10 +23,11 @@ class TestAuthorizer(TestCase):
             else:
                 self.fail('unexpected entity: ' + op.Entity)
 
-        ops = [Op('a', 'x'), Op('b', 'x'), Op('c', 'x'), Op('d', 'x')]
-        allowed, caveats = AuthorizerFunc(f).authorize(
+        ops = [macaroonbakery.Op('a', 'x'), macaroonbakery.Op('b', 'x'),
+               macaroonbakery.Op('c', 'x'), macaroonbakery.Op('d', 'x')]
+        allowed, caveats = macaroonbakery.AuthorizerFunc(f).authorize(
             checkers.AuthContext(),
-            SimpleIdentity('bob'),
+            macaroonbakery.SimpleIdentity('bob'),
             *ops
         )
         self.assertEqual(allowed, [False, True, True, True])
@@ -41,35 +40,42 @@ class TestAuthorizer(TestCase):
         ctx = checkers.AuthContext()
         tests = [
             ('no ops, no problem',
-             ACLAuthorizer(allow_public=True,
-                           get_acl=lambda x, y: []), None, [], []),
+             macaroonbakery.ACLAuthorizer(allow_public=True,
+                                          get_acl=lambda x, y: []), None, [],
+             []),
             ('identity that does not implement ACLIdentity; '
              'user should be denied except for everyone group',
-             ACLAuthorizer(allow_public=True,
-                           get_acl=lambda ctx, op: [EVERYONE]
-                           if op.entity == 'a' else ['alice']),
+             macaroonbakery.ACLAuthorizer(allow_public=True,
+                                          get_acl=lambda ctx, op: [
+                                              macaroonbakery.EVERYONE]
+                                          if op.entity == 'a' else ['alice']),
              SimplestIdentity('bob'),
-             [Op(entity='a', action='a'), Op(entity='b', action='b')],
+             [macaroonbakery.Op(entity='a', action='a'),
+              macaroonbakery.Op(entity='b', action='b')],
              [True, False]),
             ('identity that does not implement ACLIdentity with user == Id; '
              'user should be denied except for everyone group',
-             ACLAuthorizer(allow_public=True,
-                           get_acl=lambda ctx, op: [EVERYONE] if
-                           op.entity == 'a' else ['bob']),
+             macaroonbakery.ACLAuthorizer(allow_public=True,
+                                          get_acl=lambda ctx, op: [
+                                              macaroonbakery.EVERYONE] if
+                                          op.entity == 'a' else ['bob']),
              SimplestIdentity('bob'),
-             [Op(entity='a', action='a'), Op(entity='b', action='b')],
+             [macaroonbakery.Op(entity='a', action='a'),
+              macaroonbakery.Op(entity='b', action='b')],
              [True, False]),
             ('permission denied for everyone without AllowPublic',
-             ACLAuthorizer(allow_public=False,
-                           get_acl=lambda x, y: [EVERYONE]),
+             macaroonbakery.ACLAuthorizer(allow_public=False,
+                                          get_acl=lambda x, y: [
+                                              macaroonbakery.EVERYONE]),
              SimplestIdentity('bob'),
-             [Op(entity='a', action='a')],
+             [macaroonbakery.Op(entity='a', action='a')],
              [False]),
             ('permission granted to anyone with no identity with AllowPublic',
-             ACLAuthorizer(allow_public=True,
-                           get_acl=lambda x, y: [EVERYONE]),
+             macaroonbakery.ACLAuthorizer(allow_public=True,
+                                          get_acl=lambda x, y: [
+                                              macaroonbakery.EVERYONE]),
              None,
-             [Op(entity='a', action='a')],
+             [macaroonbakery.Op(entity='a', action='a')],
              [True])
         ]
         for test in tests:
@@ -89,10 +95,13 @@ class TestAuthorizer(TestCase):
             self.assertEqual(ctx.get('a'), 'aval')
             Visited.in_f = True
             return False, None
-        AuthorizerFunc(f).authorize(ctx, SimpleIdentity('bob'), ['op1'])
+
+        macaroonbakery.AuthorizerFunc(f).authorize(
+            ctx, macaroonbakery.SimpleIdentity('bob'), ['op1']
+        )
         self.assertTrue(Visited.in_f)
 
-        class TestIdentity(SimplestIdentity, ACLIdentity):
+        class TestIdentity(SimplestIdentity, macaroonbakery.ACLIdentity):
             def allow(other, ctx, acls):
                 self.assertEqual(ctx.get('a'), 'aval')
                 Visited.in_allow = True
@@ -102,15 +111,15 @@ class TestAuthorizer(TestCase):
             self.assertEqual(ctx.get('a'), 'aval')
             Visited.in_get_acl = True
             return []
-        ACLAuthorizer(allow_public=False,
-                      get_acl=get_acl).authorize(ctx,
-                                                 TestIdentity('bob'),
-                                                 ['op1'])
+
+        macaroonbakery.ACLAuthorizer(allow_public=False,
+                                     get_acl=get_acl).authorize(
+            ctx, TestIdentity('bob'), ['op1'])
         self.assertTrue(Visited.in_get_acl)
         self.assertTrue(Visited.in_allow)
 
 
-class SimplestIdentity(Identity):
+class SimplestIdentity(macaroonbakery.Identity):
     # SimplestIdentity implements Identity for a string. Unlike
     # SimpleIdentity, it does not implement ACLIdentity.
     def __init__(self, user):

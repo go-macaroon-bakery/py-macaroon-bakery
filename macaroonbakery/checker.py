@@ -3,51 +3,25 @@
 from collections import namedtuple
 from threading import Lock
 
-from macaroonbakery import checkers
-from macaroonbakery.error import (
-    AuthInitError
-)
 
 import pyrfc3339
 
-from macaroonbakery.authorizer import ClosedAuthorizer
-from macaroonbakery.identity import NoIdentities
-from macaroonbakery.error import DischargeRequiredError, PermissionDenied, \
-    VerificationError
-from macaroonbakery.identity import IdentityError
+import macaroonbakery
+import macaroonbakery.checkers as checkers
 
 
 class Op(namedtuple('Op', 'entity, action')):
     ''' Op holds an entity and action to be authorized on that entity.
+    entity string holds the name of the entity to be authorized.
+
+    @param entity should not contain spaces and should
+    not start with the prefix "login" or "multi-" (conventionally,
+    entity names will be prefixed with the entity type followed
+    by a hyphen.
+    @param action string holds the action to perform on the entity,
+    such as "read" or "delete". It is up to the service using a checker
+    to define a set of operations and keep them consistent over time.
     '''
-    __slots__ = ()
-
-    def __new__(cls, entity, action):
-        '''
-
-        @param entity string holds the name of the entity to be authorized.
-        Entity names should not contain spaces and should
-        not start with the prefix "login" or "multi-" (conventionally,
-        entity names will be prefixed with the entity type followed
-        by a hyphen.
-
-        @param action string holds the action to perform on the entity,
-        such as "read" or "delete". It is up to the service using a checker
-        to define a set of operations and keep them consistent over time.
-
-        '''
-        return super(Op, cls).__new__(cls, entity, action)
-
-    def __key(self):
-        return self.entity, self.action
-
-    def __eq__(self, other):
-        if not isinstance(other, self.__class__):
-            return False
-        return self.__key() == other.__key()
-
-    def __hash__(self):
-        return hash(self.__key())
 
 
 # LOGIN_OP represents a login (authentication) operation.
@@ -64,8 +38,8 @@ class Checker(object):
     See the Oven type (TODO) for one way of doing that.
     '''
     def __init__(self, checker=checkers.Checker(),
-                 authorizer=ClosedAuthorizer(),
-                 identity_client=NoIdentities(),
+                 authorizer=macaroonbakery.ClosedAuthorizer(),
+                 identity_client=None,
                  macaroon_opstore=None):
         '''
         :param checker: a first party checker implementing a
@@ -82,6 +56,8 @@ class Checker(object):
         '''
         self._first_party_caveat_checker = checker
         self._authorizer = authorizer
+        if identity_client is None:
+            identity_client = macaroonbakery.NoIdentities()
         self._identity_client = identity_client
         self._macaroon_opstore = macaroon_opstore
 
@@ -129,7 +105,7 @@ class AuthChecker(object):
                 self._init_once(ctx)
                 self._executed = True
         if self._init_errors is not None and len(self._init_errors) > 0:
-            raise AuthInitError(self._init_errors[0])
+            raise macaroonbakery.AuthInitError(self._init_errors[0])
 
     def _init_once(self, ctx):
         self._auth_indexes = {}
@@ -138,7 +114,7 @@ class AuthChecker(object):
             try:
                 ops, conditions = self.parent._macaroon_opstore.macaroon_ops(
                     ms)
-            except VerificationError as exc:
+            except macaroonbakery.VerificationError as exc:
                 self._init_errors.append(exc.args[0])
                 continue
 
@@ -178,7 +154,7 @@ class AuthChecker(object):
             try:
                 identity = self.parent._identity_client.declared_identity(
                     ctx, declared)
-            except IdentityError as exc:
+            except macaroonbakery.IdentityError as exc:
                 self._init_errors.append(
                     'cannot decode declared identity: {}'.format(exc.args[0]))
                 continue
@@ -192,7 +168,7 @@ class AuthChecker(object):
             try:
                 identity, cavs = self.parent.\
                     _identity_client.identity_from_context(ctx)
-            except IdentityError:
+            except macaroonbakery.IdentityError:
                 self._init_errors.append('could not determine identity')
             if cavs is None:
                 cavs = []
@@ -313,7 +289,7 @@ class AuthChecker(object):
             # no caveats to be discharged.
             return authed, used
         if self._identity is None and len(self._identity_caveats) > 0:
-            raise DischargeRequiredError(
+            raise macaroonbakery.DischargeRequiredError(
                 msg='authentication required',
                 ops=[LOGIN_OP],
                 cavs=self._identity_caveats)
@@ -324,8 +300,8 @@ class AuthChecker(object):
             err = ''
             if len(all_errors) > 0:
                 err = all_errors[0]
-            raise PermissionDenied(err)
-        raise DischargeRequiredError(
+            raise macaroonbakery.PermissionDenied(err)
+        raise macaroonbakery.DischargeRequiredError(
             msg='some operations have extra caveats', ops=ops, cavs=caveats)
 
     def allow_capability(self, ctx, *ops):
@@ -374,19 +350,15 @@ class AuthChecker(object):
 
 class AuthInfo(namedtuple('AuthInfo', 'identity macaroons')):
     '''AuthInfo information about an authorization decision.
-    '''
-    __slots__ = ()
 
-    def __new__(cls, identity, macaroons):
-        '''
-        :param identity: holds information on the authenticated user as
-        returned identity_client. It may be None after a successful
-        authorization if LOGIN_OP access was not required.
-        :param macaroons: holds all the macaroons that were used for the
-        authorization. Macaroons that were invalid or unnecessary are
-        not included.
-        '''
-        return super(AuthInfo, cls).__new__(cls, identity, macaroons)
+    :param: identity: holds information on the authenticated user as
+    returned identity_client. It may be None after a successful
+    authorization if LOGIN_OP access was not required.
+
+    :param: macaroons: holds all the macaroons that were used for the
+    authorization. Macaroons that were invalid or unnecessary are
+    not included.
+    '''
 
 
 class _CaveatSquasher(object):

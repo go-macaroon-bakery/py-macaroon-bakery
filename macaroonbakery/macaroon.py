@@ -1,6 +1,8 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
 import abc
+import base64
+import json
 import logging
 import os
 
@@ -9,11 +11,9 @@ from pymacaroons.serializers import json_serializer
 from nacl.public import PublicKey
 from nacl.encoding import Base64Encoder
 
-from macaroonbakery import (
-    BAKERY_V0, BAKERY_V1, BAKERY_V3, LATEST_BAKERY_VERSION
-)
-from macaroonbakery import codec, checkers
-from macaroonbakery.third_party import ThirdPartyInfo
+import macaroonbakery
+import macaroonbakery.checkers as checkers
+from macaroonbakery import utils
 
 
 log = logging.getLogger(__name__)
@@ -24,8 +24,9 @@ class Macaroon(object):
     party caveat namespace and associated third party caveat information
     which should be passed to the third party when discharging a caveat.
     '''
+
     def __init__(self, root_key, id, location=None,
-                 version=LATEST_BAKERY_VERSION, namespace=None):
+                 version=macaroonbakery.LATEST_BAKERY_VERSION, namespace=None):
         '''Creates a new macaroon with the given root key, id and location.
 
         If the version is more than the latest known version,
@@ -37,11 +38,11 @@ class Macaroon(object):
         @param version the bakery version.
         @param namespace is that of the service creating it
         '''
-        if version > LATEST_BAKERY_VERSION:
+        if version > macaroonbakery.LATEST_BAKERY_VERSION:
             log.info('use last known version:{} instead of: {}'.format(
-                LATEST_BAKERY_VERSION, version
+                macaroonbakery.LATEST_BAKERY_VERSION, version
             ))
-            version = LATEST_BAKERY_VERSION
+            version = macaroonbakery.LATEST_BAKERY_VERSION
         # m holds the underlying macaroon.
         self._macaroon = pymacaroons.Macaroon(
             location=location, key=root_key, identifier=id,
@@ -121,12 +122,12 @@ class Macaroon(object):
 
         # Use the least supported version to encode the caveat.
         if self._version < info.version:
-            info = ThirdPartyInfo(version=self._version,
-                                  public_key=info.public_key)
+            info = macaroonbakery.ThirdPartyInfo(version=self._version,
+                                                 public_key=info.public_key)
 
-        caveat_info = codec.encode_caveat(cav.condition, root_key, info,
-                                          key, self._namespace)
-        if info.version < BAKERY_V3:
+        caveat_info = macaroonbakery.encode_caveat(
+            cav.condition, root_key, info, key, self._namespace)
+        if info.version < macaroonbakery.BAKERY_V3:
             # We're encoding for an earlier client or third party which does
             # not understand bundled caveat info, so use the encoded
             # caveat information as the caveat id.
@@ -152,22 +153,69 @@ class Macaroon(object):
             self.add_caveat(cav, key, loc)
 
     def serialize_json(self):
-        '''Return a dictionary holding the macaroon data in JSON format.
-
-        Note that this differs from the underlying macaroon serialize method as
-        it does not return a string. This makes it easier to incorporate the
-        macaroon into other JSON objects.
-
-        @return a dictionary holding the macaroon data in JSON format
+        '''Return a string holding the macaroon data in JSON format.
+        @return a string holding the macaroon data in JSON format
         '''
+        if self.version < macaroonbakery.BAKERY_V3:
+            if len(self._caveat_data) > 0:
+                raise ValueError('cannot serialize pre-version3 macaroon with '
+                                 'external caveat data')
+            return self._macaroon.serialize(json_serializer.JsonSerializer())
         serialized = {
-            'm': self._macaroon.serialize(
-                json_serializer.JsonSerializer()),
+            'm': json.loads(self._macaroon.serialize(
+                json_serializer.JsonSerializer())),
             'v': self._version,
         }
         if self._namespace is not None:
-            serialized['ns'] = self._namespace.serialize()
-        return serialized
+            serialized['ns'] = self._namespace._uri_to_prefix
+        caveat_data = {}
+        for id in self._caveat_data:
+            key = base64.b64encode(id).decode('utf-8')
+            value = base64.b64encode(self._caveat_data[id]).decode('utf-8')
+            caveat_data[key] = value
+        if len(caveat_data) > 0:
+            serialized['cdata'] = caveat_data
+        return json.dumps(serialized)
+
+    @classmethod
+    def deserialize_json(cls, serialized_json):
+        serialized = json.loads(serialized_json)
+        json_macaroon = serialized.get('m')
+        if json_macaroon is None:
+            # Try the v1 format if we don't have a macaroon filed
+            m = pymacaroons.Macaroon.deserialize(
+                serialized_json, json_serializer.JsonSerializer())
+            macaroon = Macaroon(root_key=None, id=None,
+                                namespace=macaroonbakery.legacy_namespace(),
+                                version=_bakery_version(m.version))
+            macaroon._macaroon = m
+            return macaroon
+
+        version = serialized.get('v', None)
+        if version is None:
+            raise ValueError('no version specified')
+        if (version < macaroonbakery.BAKERY_V3 or
+                version > macaroonbakery.LATEST_BAKERY_VERSION):
+            raise ValueError('unknow bakery version {}'.format(version))
+        m = pymacaroons.Macaroon.deserialize(json.dumps(json_macaroon),
+                                             json_serializer.JsonSerializer())
+        if m.version != macaroon_version(version):
+            raise ValueError(
+                'underlying macaroon has inconsistent version; '
+                'got {} want {}'.format(m.version, macaroon_version(version)))
+        namespace = serialized.get('ns')
+        cdata = serialized.get('cdata', {})
+        caveat_data = {}
+        for id64 in cdata:
+            id = utils.raw_b64decode(id64)
+            data = utils.raw_b64decode(cdata[id64])
+            caveat_data[id] = data
+        macaroon = Macaroon(root_key=None, id=None,
+                            namespace=checkers.Namespace(namespace),
+                            version=version)
+        macaroon._caveat_data = caveat_data
+        macaroon._macaroon = m
+        return macaroon
 
     def _new_caveat_id(self, base):
         '''Return a third party caveat id
@@ -189,7 +237,7 @@ class Macaroon(object):
             # payload, having this version gives a strong indication
             # that the payload has been omitted so we can produce
             # a better error for the user.
-            id.append(BAKERY_V3)
+            id.append(macaroonbakery.BAKERY_V3)
 
         # Iterate through integers looking for one that isn't already used,
         # starting from n so that if everyone is using this same algorithm,
@@ -203,7 +251,7 @@ class Macaroon(object):
             # end up with a duplicate third party caveat id and thus create
             # a macaroon that cannot be discharged.
             temp = id[:]
-            codec.encode_uvarint(i, temp)
+            macaroonbakery.encode_uvarint(i, temp)
             found = False
             for cav in caveats:
                 if (cav.verification_key_id is not None
@@ -229,6 +277,18 @@ class Macaroon(object):
         '''
         return self._macaroon.third_party_caveats()
 
+    def copy(self):
+        ''' Returns a copy of the macaroon. Note that the the new
+        macaroon's namespace still points to the same underlying Namespace -
+        copying the macaroon does not make a copy of the namespace.
+        :return a Macaroon
+        '''
+        m1 = Macaroon(None, None, version=self._version,
+                      namespace=self._namespace)
+        m1._macaroon = self._macaroon.copy()
+        m1._caveat_data = self._caveat_data.copy()
+        return m1
+
 
 def macaroon_version(bakery_version):
     '''Return the macaroon version given the bakery version.
@@ -236,7 +296,7 @@ def macaroon_version(bakery_version):
     @param bakery_version the bakery version
     @return macaroon_version the derived macaroon version
     '''
-    if bakery_version in [BAKERY_V0, BAKERY_V1]:
+    if bakery_version in [macaroonbakery.BAKERY_V0, macaroonbakery.BAKERY_V1]:
         return pymacaroons.MACAROON_V1
     return pymacaroons.MACAROON_V2
 
@@ -288,9 +348,9 @@ def _parse_local_location(loc):
     caveat location.
     @return a ThirdPartyInfo.
     '''
-    if not(loc.startswith('local ')):
+    if not (loc.startswith('local ')):
         return None
-    v = BAKERY_V1
+    v = macaroonbakery.BAKERY_V1
     fields = loc.split()
     fields = fields[1:]  # Skip 'local'
     if len(fields) == 2:
@@ -301,6 +361,36 @@ def _parse_local_location(loc):
         fields = fields[1:]
     if len(fields) == 1:
         key = PublicKey(fields[0], encoder=Base64Encoder)
-        return ThirdPartyInfo(public_key=key,
-                              version=v)
+        return macaroonbakery.ThirdPartyInfo(public_key=key,
+                                             version=v)
     return None
+
+
+def _bakery_version(v):
+    # bakery_version returns a bakery version that corresponds to
+    # the macaroon version v. It is necessarily approximate because
+    # several bakery versions can correspond to a single macaroon
+    # version, so it's only of use when decoding legacy formats
+    #
+    # It will raise a ValueError if it doesn't recognize the version.
+    if v == pymacaroons.MACAROON_V1:
+        # Use version 1 because we don't know of any existing
+        # version 0 clients.
+        return macaroonbakery.BAKERY_V1
+    elif v == pymacaroons.MACAROON_V2:
+        # Note that this could also correspond to Version 3, but
+        # this logic is explicitly for legacy versions.
+        return macaroonbakery.BAKERY_V2
+    else:
+        raise ValueError('unknown macaroon version when deserializing legacy '
+                         'bakery macaroon; got {}'.format(v))
+
+
+class MacaroonJSONEncoder(json.JSONEncoder):
+    def encode(self, m):
+        return m.serialize_json()
+
+
+class MacaroonJSONDecoder(json.JSONDecoder):
+    def decode(self, s, _w=json.decoder.WHITESPACE.match):
+        return Macaroon.deserialize_json(s)

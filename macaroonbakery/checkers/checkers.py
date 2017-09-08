@@ -152,10 +152,6 @@ class CheckerInfo(namedtuple('CheckInfo', 'prefix name ns check')):
         '''
         return super(CheckerInfo, cls).__new__(cls, prefix, name, ns, check)
 
-    def __eq__(self, other):
-        return (self.prefix == other.prefix and self.name == other.name
-                and self.ns == other.ns)
-
 
 def _check_time_before(ctx, cond, arg):
     clock = ctx.get(TIME_KEY)
