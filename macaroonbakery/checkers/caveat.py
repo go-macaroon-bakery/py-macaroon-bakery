@@ -5,7 +5,7 @@ import collections
 
 import pyrfc3339
 
-from macaroonbakery.checkers import (
+from macaroonbakery.checkers.conditions import (
     STD_NAMESPACE, COND_TIME_BEFORE, COND_ERROR, COND_DENY, COND_ALLOW,
     COND_DECLARED
 )

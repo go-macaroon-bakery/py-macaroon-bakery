@@ -8,27 +8,22 @@ import os
 import pymacaroons
 from pymacaroons.serializers import json_serializer
 
-from macaroonbakery import bakery, codec
-from macaroonbakery.checkers import checkers
+
+from macaroonbakery import (
+    BAKERY_V0, BAKERY_V1, BAKERY_V3, LATEST_BAKERY_VERSION
+)
+from macaroonbakery import codec
 
 log = logging.getLogger(__name__)
 
 
-def legacy_namespace():
-    ''' Standard namespace for pre-version3 macaroons.
-    '''
-    ns = checkers.Namespace(None)
-    ns.register(checkers.STD_NAMESPACE, '')
-    return ns
-
-
-class Macaroon:
-    '''Represent an undischarged macaroon along its first
+class Macaroon(object):
+    '''Represent an undischarged macaroon along with its first
     party caveat namespace and associated third party caveat information
     which should be passed to the third party when discharging a caveat.
     '''
     def __init__(self, root_key, id, location=None,
-                 version=bakery.LATEST_BAKERY_VERSION, ns=None):
+                 version=LATEST_BAKERY_VERSION, ns=None):
         '''Creates a new macaroon with the given root key, id and location.
 
         If the version is more than the latest known version,
@@ -40,24 +35,34 @@ class Macaroon:
         @param version the bakery version.
         @param ns
         '''
-        if version > bakery.LATEST_BAKERY_VERSION:
+        if version > LATEST_BAKERY_VERSION:
             log.info('use last known version:{} instead of: {}'.format(
-                bakery.LATEST_BAKERY_VERSION, version
+                LATEST_BAKERY_VERSION, version
             ))
-            version = bakery.LATEST_BAKERY_VERSION
+            version = LATEST_BAKERY_VERSION
         # m holds the underlying macaroon.
         self._macaroon = pymacaroons.Macaroon(
             location=location, key=root_key, identifier=id,
             version=macaroon_version(version))
         # version holds the version of the macaroon.
-        self.version = version
-        self.caveat_data = {}
-        self.ns = ns
+        self._version = version
+        self._caveat_data = {}
+        self._ns = ns
+        self._caveat_id_prefix = bytearray()
 
     def macaroon(self):
         ''' Return the underlying macaroon.
         '''
         return self._macaroon
+
+    def version(self):
+        return self._version
+
+    def namespace(self):
+        return self._ns
+
+    def caveat_data(self):
+        return self._caveat_data
 
     def add_caveat(self, cav, key=None, loc=None):
         '''Add a caveat to the macaroon.
@@ -98,21 +103,26 @@ class Macaroon:
                 raise ValueError(
                     'no locator when adding third party caveat')
             info = loc.third_party_info(cav.location)
-        root_key = os.urandom(24)
+            if info is None:
+                raise ValueError(
+                    'cannot find public key for location {}'.format(
+                        cav.location)
+                )
+            root_key = os.urandom(24)
         # Use the least supported version to encode the caveat.
-        if self.version < info.version:
-            info.version = self.version
+        if self._version < info.version:
+            info.version = self._version
 
         caveat_info = codec.encode_caveat(cav.condition, root_key, info,
-                                          key, None)
-        if info.version < bakery.BAKERY_V3:
+                                          key, self._ns)
+        if info.version < BAKERY_V3:
             # We're encoding for an earlier client or third party which does
             # not understand bundled caveat info, so use the encoded
             # caveat information as the caveat id.
             id = caveat_info
         else:
-            id = self._new_caveat_id(self.caveat_id_prefix)
-            self.caveat_data[id] = caveat_info
+            id = self._new_caveat_id(self._caveat_id_prefix)
+            self._caveat_data[id] = caveat_info
 
         self._macaroon.add_third_party_caveat(cav.location, root_key, id)
 
@@ -142,10 +152,10 @@ class Macaroon:
         serialized = {
             'm': self._macaroon.serialize(
                 json_serializer.JsonSerializer()),
-            'v': self.version,
+            'v': self._version,
         }
-        if self.ns:
-            serialized['ns'] = self.ns.serialize()
+        if self._ns is not None:
+            serialized['ns'] = self._ns.serialize()
         return serialized
 
     def _new_caveat_id(self, base):
@@ -154,10 +164,40 @@ class Macaroon:
         This does not duplicate any third party caveat ids already inside
         macaroon. If base is non-empty, it is used as the id prefix.
 
-        @param base string
-        @return string
+        @param base bytes
+        @return bytes
         '''
-        raise NotImplementedError
+        id = bytearray()
+        if len(base) > 0:
+            id.append(base)
+        else:
+            # Add a version byte to the caveat id. Technically
+            # this is unnecessary as the caveat-decoding logic
+            # that looks at versions should never see this id,
+            # but if the caveat payload isn't provided with the
+            # payload, having this version gives a strong indication
+            # that the payload has been omitted so we can produce
+            # a better error for the user.
+            id.append(BAKERY_V3)
+
+        # Iterate through integers looking for one that isn't already used,
+        # starting from n so that if everyone is using this same algorithm,
+        # we'll only perform one iteration.
+        i = len(self._caveat_data)
+        caveats = self._macaroon.caveats
+        while True:
+            # We append a varint to the end of the id and assume that
+            # any client that's created the id that we're using as a base
+            # is using similar conventions - in the worst case they might
+            # end up with a duplicate third party caveat id and thus create
+            # a macaroon that cannot be discharged.
+            temp = id[:]
+            codec.encode_uvarint(i, temp)
+            for cav in caveats:
+                if cav.verification_id is not None and cav.caveat_id == temp:
+                    i += 1
+                    break
+            return bytes(temp)
 
     def first_party_caveats(self):
         '''Return the first party caveats from this macaroon.
@@ -181,7 +221,7 @@ def macaroon_version(bakery_version):
     @param bakery_version the bakery version
     @return macaroon_version the derived macaroon version
     '''
-    if bakery_version in [bakery.BAKERY_V0, bakery.BAKERY_V1]:
+    if bakery_version in [BAKERY_V0, BAKERY_V1]:
         return pymacaroons.MACAROON_V1
     return pymacaroons.MACAROON_V2
 
@@ -202,7 +242,7 @@ def parse_local_location(loc):
     '''
     if not(loc.startswith('local ')):
         return (), False
-    v = bakery.BAKERY_V1
+    v = BAKERY_V1
     fields = loc.split()
     fields = fields[1:]  # Skip 'local'
     if len(fields) == 2:
@@ -216,7 +256,7 @@ def parse_local_location(loc):
     return (), False
 
 
-class ThirdPartyLocator:
+class ThirdPartyLocator(object):
     '''Used to find information on third party discharge services.
     '''
     def __init__(self):
@@ -238,45 +278,3 @@ class ThirdPartyLocator:
         It will ignore any trailing slash.
         '''
         self._store[loc.rstrip('\\')] = info
-
-
-class ThirdPartyCaveatInfo:
-    '''ThirdPartyCaveatInfo holds the information decoded from
-    a third party caveat id.
-    '''
-    def __init__(self, condition, first_party_public_key, third_party_key_pair,
-                 root_key, caveat, version, ns):
-        '''
-        @param condition holds the third party condition to be discharged.
-        This is the only field that most third party dischargers will
-        need to consider.
-        @param first_party_public_key 	holds the nacl public key of the party
-        that created the third party caveat.
-        @param third_party_key_pair holds the nacl private used to decrypt
-        the caveat - the key pair of the discharging service.
-        @param root_key bytes holds the secret root key encoded by the caveat.
-        @param caveat holds the full encoded base64 string caveat id from
-        which all the other fields are derived.
-        @param version holds the version that was used to encode
-        the caveat id.
-        @params Namespace object that holds the namespace of the first party
-        that created the macaroon, as encoded by the party that added the
-        third party caveat.
-        '''
-        self.condition = condition,
-        self.first_party_public_key = first_party_public_key,
-        self.third_party_key_pair = third_party_key_pair,
-        self.root_key = root_key,
-        self.caveat = caveat,
-        self.version = version,
-        self.ns = ns
-
-    def __eq__(self, other):
-        return (
-            self.condition == other.condition and
-            self.first_party_public_key == other.first_party_public_key and
-            self.third_party_key_pair == other.third_party_key_pair and
-            self.caveat == other.caveat and
-            self.version == other.version and
-            self.ns == other.ns
-        )

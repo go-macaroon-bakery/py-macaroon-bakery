@@ -9,9 +9,11 @@ import os
 from pymacaroons import MACAROON_V2, Verifier
 import six
 
-from macaroonbakery import bakery, checker, macaroon, store, utils
-from macaroonbakery.checkers.caveat import time_before_caveat
-
+from macaroonbakery import (
+    checker, macaroon, store, utils, LATEST_BAKERY_VERSION, BAKERY_V2,
+    BAKERY_V3
+)
+from macaroonbakery import checkers
 from macaroonbakery.internal import id_pb2
 
 
@@ -60,25 +62,25 @@ class Oven:
             my_store = store.MemoryKeyStore()
             self.root_keystore_for_ops = lambda x: my_store
 
-    def macaroon(self, version, expiry, caveats, ops):
+    def macaroon(self, version, expiry, caveats, *ops):
         ''' Takes a macaroon with the given version from the oven,
         associates it with the given operations and attaches the given caveats.
         There must be at least one operation specified.
         The macaroon will expire at the given time - a time_before first party
         caveat will be added with that time.
 
-        @return:
+        @return: a new Macaroon object.
         '''
         if len(ops) == 0:
             raise ValueError('cannot mint a macaroon associated '
                              'with no operations')
 
-        ops = canonical_ops(ops)
+        ops = canonical_ops(*ops)
         root_key, storage_id = self.root_keystore_for_ops(ops).root_key()
 
-        id = self._new_macaroon_id(ops, storage_id, expiry)
+        id = self._new_macaroon_id(storage_id, expiry, *ops)
 
-        id_bytes = six.int2byte(bakery.LATEST_BAKERY_VERSION) + \
+        id_bytes = six.int2byte(LATEST_BAKERY_VERSION) + \
             id.SerializeToString()
 
         if macaroon.macaroon_version(version) < MACAROON_V2:
@@ -86,29 +88,30 @@ class Oven:
             # so base64-encode it.
             id_bytes = utils.raw_urlsafe_b64encode(id_bytes)
 
-        m = macaroon.Macaroon(root_key, id_bytes, self.location, version, None)
-        m.add_caveat(time_before_caveat(expiry), self.key,
+        m = macaroon.Macaroon(root_key, id_bytes, self.location, version,
+                              self.ns)
+        m.add_caveat(checkers.time_before_caveat(expiry), self.key,
                      self.locator)
         m.add_caveats(caveats, self.key, self.locator)
         return m
 
-    def _new_macaroon_id(self, ops, storage_id, expiry):
+    def _new_macaroon_id(self, storage_id, expiry, *ops):
         nonce = os.urandom(16)
         if len(ops) == 1 or self.ops_store is None:
             return id_pb2.MacaroonId(
                 nonce=nonce,
                 storageId=storage_id,
-                ops=_macaroon_id_ops(ops))
+                ops=_macaroon_id_ops(*ops))
         # We've got several operations and a multi-op store, so use the store.
         # TODO use the store only if the encoded macaroon id exceeds some size?
-        entity = self.ops_entity(ops)
-        self.ops_store.put_ops(entity, ops, expiry)
+        entity = self.ops_entity(*ops)
+        self.ops_store.put_ops(entity, expiry, *ops)
         return id_pb2.MacaroonId(
             nonce=nonce,
             storageId=storage_id,
             ops=[id_pb2.Op(entity=entity, actions=["*"])])
 
-    def ops_entity(self, ops):
+    def ops_entity(self, *ops):
         ''' Returns a new multi-op entity name string that represents
         all the given operations and caveats. It returns the same value
         regardless of the ordering of the operations. It assumes that the
@@ -189,10 +192,10 @@ def _decode_macaroon_id(id):
     # creating macaroons to make all macaroons unique even if
     # they're using the same root key.
     first = six.byte2int(id[:1])
-    if first == bakery.BAKERY_V2:
+    if first == BAKERY_V2:
         # Skip the UUID at the start of the id.
         storage_id = id[1 + 16:]
-    if first == bakery.BAKERY_V3:
+    if first == BAKERY_V3:
         id1 = id_pb2.MacaroonId.FromString(id[1:])
         if len(id1.ops) == 0 and len(id1.ops[0].actions) == 0:
             raise ValueError("no operations found in macaroon")
@@ -220,18 +223,18 @@ def _is_lower_case_hex_char(b):
     return False
 
 
-def canonical_ops(ops):
+def canonical_ops(*ops):
     ''' Returns the given operations array sorted with duplicates removed.
 
     @param ops checker.Ops
     @return: checker.Ops
     '''
 
-    new_ops = sorted(set(ops), key=lambda x: (x.entity, x.action))
+    new_ops = sorted(set(*ops), key=lambda x: (x.entity, x.action))
     return new_ops
 
 
-def _macaroon_id_ops(ops):
+def _macaroon_id_ops(*ops):
     '''Return operations suitable for serializing as part of a MacaroonId.
 
     It assumes that ops has been canonicalized and that there's at least

@@ -8,8 +8,12 @@ import six
 from nacl.encoding import Base64Encoder
 from nacl.public import PrivateKey
 
-from macaroonbakery import bakery, codec, macaroon, utils
-from macaroonbakery.checkers.namespace import Namespace
+from macaroonbakery import (
+    BAKERY_V1, BAKERY_V2, BAKERY_V3, codec, utils
+)
+from macaroonbakery.bakery import ThirdPartyInfo
+from macaroonbakery import checkers
+from macaroonbakery.third_party import legacy_namespace, ThirdPartyCaveatInfo
 
 
 class TestCodec(TestCase):
@@ -18,8 +22,8 @@ class TestCodec(TestCase):
         self.tp_key = nacl.public.PrivateKey.generate()
 
     def test_v1_round_trip(self):
-        tp_info = bakery.ThirdPartyInfo(bakery.BAKERY_V1,
-                                        self.tp_key.public_key)
+        tp_info = ThirdPartyInfo(version=BAKERY_V1,
+                                 public_key=self.tp_key.public_key)
         cid = codec.encode_caveat('is-authenticated-user',
                                   b'a random string',
                                   tp_info,
@@ -27,39 +31,39 @@ class TestCodec(TestCase):
                                   None)
 
         res = codec.decode_caveat(self.tp_key, cid)
-        self.assertEquals(res, macaroon.ThirdPartyCaveatInfo(
+        self.assertEquals(res, ThirdPartyCaveatInfo(
             first_party_public_key=self.fp_key.public_key,
             root_key=b'a random string',
             condition='is-authenticated-user',
             caveat=cid,
             third_party_key_pair=self.tp_key,
-            version=bakery.BAKERY_V1,
-            ns=macaroon.legacy_namespace()
+            version=BAKERY_V1,
+            ns=legacy_namespace()
         ))
 
     def test_v2_round_trip(self):
-        tp_info = bakery.ThirdPartyInfo(bakery.BAKERY_V2,
-                                        self.tp_key.public_key)
+        tp_info = ThirdPartyInfo(version=BAKERY_V2,
+                                 public_key=self.tp_key.public_key)
         cid = codec.encode_caveat('is-authenticated-user',
                                   b'a random string',
                                   tp_info,
                                   self.fp_key,
                                   None)
         res = codec.decode_caveat(self.tp_key, cid)
-        self.assertEquals(res, macaroon.ThirdPartyCaveatInfo(
+        self.assertEquals(res, ThirdPartyCaveatInfo(
             first_party_public_key=self.fp_key.public_key,
             root_key=b'a random string',
             condition='is-authenticated-user',
             caveat=cid,
             third_party_key_pair=self.tp_key,
-            version=bakery.BAKERY_V2,
-            ns=macaroon.legacy_namespace()
+            version=BAKERY_V2,
+            ns=legacy_namespace()
         ))
 
     def test_v3_round_trip(self):
-        tp_info = bakery.ThirdPartyInfo(bakery.BAKERY_V3,
-                                        self.tp_key.public_key)
-        ns = Namespace()
+        tp_info = ThirdPartyInfo(version=BAKERY_V3,
+                                 public_key=self.tp_key.public_key)
+        ns = checkers.Namespace()
         ns.register('testns', 'x')
         cid = codec.encode_caveat('is-authenticated-user',
                                   b'a random string',
@@ -67,13 +71,13 @@ class TestCodec(TestCase):
                                   self.fp_key,
                                   ns)
         res = codec.decode_caveat(self.tp_key, cid)
-        self.assertEquals(res, macaroon.ThirdPartyCaveatInfo(
+        self.assertEquals(res, ThirdPartyCaveatInfo(
             first_party_public_key=self.fp_key.public_key,
             root_key=b'a random string',
             condition='is-authenticated-user',
             caveat=cid,
             third_party_key_pair=self.tp_key,
-            version=bakery.BAKERY_V3,
+            version=BAKERY_V3,
             ns=ns
         ))
 
@@ -101,14 +105,14 @@ class TestCodec(TestCase):
             '0V2lEOHhRUWdjU3ljOHY4eUt4dEhxejVEczJOYmh1ZDJhUFdt'
             'UTVMcVlNWitmZ2FNaTAxdE9DIn0=')
         cav = codec.decode_caveat(tp_key, encrypted_cav)
-        self.assertEquals(cav, macaroon.ThirdPartyCaveatInfo(
+        self.assertEquals(cav, ThirdPartyCaveatInfo(
             condition='caveat condition',
             first_party_public_key=fp_key.public_key,
             third_party_key_pair=tp_key,
             root_key=b'random',
             caveat=encrypted_cav,
-            version=bakery.BAKERY_V1,
-            ns=macaroon.legacy_namespace()
+            version=BAKERY_V1,
+            ns=legacy_namespace()
         ))
 
     def test_decode_caveat_v2_from_go(self):
@@ -124,14 +128,14 @@ class TestCodec(TestCase):
                 'Lh0cL6D9qpeKI0mXmCPfnwRQDuVYC8y5gVWd-oCGZaj5TGtk3byp2Vnw6ojmt'
                 'sULDhY59YA_J_Y0ATkERO5T9ajoRWBxU2OXBoX6bImXA')))
         cav = codec.decode_caveat(tp_key, encrypted_cav)
-        self.assertEquals(cav, macaroon.ThirdPartyCaveatInfo(
+        self.assertEquals(cav, ThirdPartyCaveatInfo(
             condition='third party condition',
             first_party_public_key=fp_key.public_key,
             third_party_key_pair=tp_key,
             root_key=b'random',
             caveat=encrypted_cav,
-            version=bakery.BAKERY_V2,
-            ns=macaroon.legacy_namespace()
+            version=BAKERY_V2,
+            ns=legacy_namespace()
         ))
 
     def test_decode_caveat_v3_from_go(self):
@@ -147,14 +151,14 @@ class TestCodec(TestCase):
                 'EYvmgVH95GWu7T7caKxKhhOQFcEKgnXKJvYXxz1zin4cZc4Q6C7gVqA-J4_j3'
                 '1LX4VKxymqG62UGPo78wOv0_fKjr3OI6PPJOYOQgBMclemlRF2')))
         cav = codec.decode_caveat(tp_key, encrypted_cav)
-        self.assertEquals(cav, macaroon.ThirdPartyCaveatInfo(
+        self.assertEquals(cav, ThirdPartyCaveatInfo(
             condition='third party condition',
             first_party_public_key=fp_key.public_key,
             third_party_key_pair=tp_key,
             root_key=b'random',
             caveat=encrypted_cav,
-            version=bakery.BAKERY_V3,
-            ns=macaroon.legacy_namespace()
+            version=BAKERY_V3,
+            ns=legacy_namespace()
         ))
 
     def test_encode_decode_varint(self):
@@ -169,7 +173,7 @@ class TestCodec(TestCase):
         for test in tests:
             data = bytearray()
             expected = bytearray()
-            codec._encode_uvarint(test[0], data)
+            codec.encode_uvarint(test[0], data)
             for v in test[1]:
                 expected.append(v)
             self.assertEquals(data, expected)

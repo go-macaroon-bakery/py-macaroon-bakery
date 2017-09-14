@@ -1,6 +1,6 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
-
+import abc
 from collections import namedtuple
 from datetime import datetime
 
@@ -12,14 +12,40 @@ from macaroonbakery.checkers.time import TIME_KEY
 from macaroonbakery.checkers.operation import OP_KEY
 from macaroonbakery.checkers.namespace import Namespace
 from macaroonbakery.checkers.caveat import parse_caveat
-from macaroonbakery.checkers import (
+from macaroonbakery.checkers.conditions import (
     STD_NAMESPACE, COND_DECLARED, COND_ALLOW, COND_DENY, COND_ERROR,
     COND_TIME_BEFORE
 )
 from macaroonbakery.checkers.utils import condition_with_prefix
 
 
-class Checker(object):
+class FirstPartyCaveatChecker(object):
+    '''Used to check first party caveats for validity with respect to
+    information in the provided context.
+
+    If the caveat kind was not recognised, the checker should return
+    ErrCaveatNotRecognized.
+    '''
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def check_first_party_caveat(self, ctx, caveat):
+        '''	Checks that the given caveat condition is valid with respect to
+        the given context information.
+        :param ctx: an Auth context
+        :param caveat a string
+        '''
+        raise NotImplementedError('check_first_party_caveat method must be '
+                                  'defined in subclass')
+
+    def namespace(self):
+        '''	Returns the namespace associated with the caveat checker.
+        '''
+        raise NotImplementedError('namespace method must be '
+                                  'defined in subclass')
+
+
+class Checker(FirstPartyCaveatChecker):
     ''' Holds a set of checkers for first party caveats.
     '''
 
