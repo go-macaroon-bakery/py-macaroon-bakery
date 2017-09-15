@@ -52,7 +52,7 @@ class ContextKey(object):
         self._name = name
 
     def __str__(self):
-        return "%s#%#x" % (self._name, id(self))
+        return '%s#%#x' % (self._name, id(self))
 
     def __repr__(self):
-        return "context_key(%r, %#x)" % (self._name, id(self))
+        return 'context_key(%r, %#x)' % (self._name, id(self))

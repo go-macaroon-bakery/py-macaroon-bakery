@@ -1,18 +1,16 @@
 # Copyright 2017 Canonical Ltd.
-# Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
 import base64
 from collections import namedtuple
 import json
 from unittest import TestCase
-from datetime import datetime, timedelta
-import pytz
+from datetime import timedelta
 
 from pymacaroons.verifier import Verifier, FirstPartyCaveatVerifierDelegate
 import pymacaroons
 
 from macaroonbakery import LATEST_BAKERY_VERSION
-from macaroonbakery.bakery import ThirdPartyInfo
+from macaroonbakery.third_party import ThirdPartyInfo
 from macaroonbakery.discharge import discharge
 from macaroonbakery.identity import IdentityClient, SimpleIdentity
 from macaroonbakery import checkers
@@ -23,24 +21,12 @@ from macaroonbakery.authorizer import (
 from macaroonbakery.store import MemoryKeyStore
 from macaroonbakery.macaroon import Macaroon
 from macaroonbakery.error import (
-    IdentityError, PermissionDenied, VerificationError, DischargeRequiredError
+    IdentityError, PermissionDenied, VerificationError, DischargeRequiredError,
+    CaveatNotRecognizedError, ThirdPartyCaveatCheckFailed
 )
 from macaroonbakery.keys import generate_key
 from macaroonbakery.discharge import discharge_all, ThirdPartyCaveatChecker
-
-
-class _StoppedClock(object):
-    def __init__(self, t):
-        self.t = t
-
-    def utcnow(self):
-        return self.t
-
-
-epoch = pytz.utc.localize(
-    datetime(year=1900, month=11, day=17, hour=19, minute=00, second=13))
-test_context = checkers.context_with_clock(
-    checkers.AuthContext(), _StoppedClock(epoch))
+from macaroonbakery.tests.common import test_context, epoch, test_checker
 
 
 class TestChecker(TestCase):
@@ -222,7 +208,7 @@ class TestChecker(TestCase):
                           Op(entity='e1', action='read'),
                           Op(entity='e2', action='read'),
                           Op(entity='e3', action='read'))
-        ts.do(test_context, [[m.macaroon()]],
+        ts.do(test_context, [[m.macaroon]],
               Op(entity='e1', action='read'),
               Op(entity='e2', action='read'),
               Op(entity='e3', action='read'))
@@ -274,7 +260,7 @@ class TestChecker(TestCase):
                     location='other third party',
                     user=ctx.get(_DISCHARGE_USER_KEY)
                 ))
-                return None
+                return []
         locator['other third party'] = _Discharger(
             key=generate_key(),
             checker=_LocalDischargeChecker(),
@@ -306,22 +292,22 @@ class TestChecker(TestCase):
         ctx = test_context.with_value(_DISCHARGE_USER_KEY, 'alice')
         m1 = _Client(locator).capability(
             ctx, ts, Op(entity='e1', action='read'))
-        m1.macaroon().add_first_party_caveat('true 1')
-        m1.macaroon().add_first_party_caveat('true 2')
+        m1.macaroon.add_first_party_caveat('true 1')
+        m1.macaroon.add_first_party_caveat('true 2')
         ctx = test_context.with_value(_DISCHARGE_USER_KEY, 'bob')
         m2 = _Client(locator).capability(
             ctx, ts, Op(entity='e2', action='read'))
-        m2.macaroon().add_first_party_caveat('true 3')
-        m2.macaroon().add_first_party_caveat('true 4')
+        m2.macaroon.add_first_party_caveat('true 3')
+        m2.macaroon.add_first_party_caveat('true 4')
 
         client = _Client(locator)
-        client.add_macaroon(ts, 'authz1', [m1.macaroon()])
-        client.add_macaroon(ts, 'authz2', [m2.macaroon()])
+        client.add_macaroon(ts, 'authz1', [m1.macaroon])
+        client.add_macaroon(ts, 'authz2', [m2.macaroon])
 
         m = client.capability(test_context, ts,
                               Op(entity='e1', action='read'),
                               Op(entity='e2', action='read'))
-        self.assertEqual(_macaroon_conditions(m.macaroon().caveats, False), [
+        self.assertEqual(_macaroon_conditions(m.macaroon.caveats, False), [
             'true 1',
             'true 2',
             'true 3',
@@ -383,14 +369,14 @@ class TestChecker(TestCase):
             m2.add_caveat(checkers.Caveat(
                 condition='true notused', namespace='testns'), None, None)
             client = _Client(locator)
-            client.add_macaroon(ts, 'authz1', [m1.macaroon()])
-            client.add_macaroon(ts, 'authz2', [m2.macaroon()])
+            client.add_macaroon(ts, 'authz1', [m1.macaroon])
+            client.add_macaroon(ts, 'authz2', [m2.macaroon])
 
             m3 = client.capability(
                 test_context, ts, Op(entity='e1', action='read'))
             self.assertEqual(
-                _macaroon_conditions(m3.macaroon().caveats, False),
-                _resolve_caveats(m3.namespace(), test[2]))
+                _macaroon_conditions(m3.macaroon.caveats, False),
+                _resolve_caveats(m3.namespace, test[2]))
 
     def test_login_only(self):
         locator = _DischargerLocator()
@@ -491,18 +477,18 @@ class TestChecker(TestCase):
             Op(entity='e2', action='read'))
 
         # Sanity check that we can do a write.
-        ts.do(test_context, [[m.macaroon()]], Op(entity='e1', action='write'))
+        ts.do(test_context, [[m.macaroon]], Op(entity='e1', action='write'))
 
         m.add_caveat(checkers.allow_caveat(['read']), None, None)
 
         # A read operation should work.
-        ts.do(test_context, [[m.macaroon()]], Op(entity='e1', action='read'),
+        ts.do(test_context, [[m.macaroon]], Op(entity='e1', action='read'),
               Op(entity='e2', action='read'))
 
         # A write operation should fail
         # even though the original macaroon allowed it.
         with self.assertRaises(_DischargeRequiredError):
-            ts.do(test_context, [[m.macaroon()]],
+            ts.do(test_context, [[m.macaroon]],
                   Op(entity='e1', action='write'))
 
     def test_operation_deny_caveat(self):
@@ -524,19 +510,19 @@ class TestChecker(TestCase):
             Op(entity='e2', action='read'))
 
         # Sanity check that we can do a write.
-        ts.do(test_context, [[m.macaroon()]], Op(entity='e1', action='write'))
+        ts.do(test_context, [[m.macaroon]], Op(entity='e1', action='write'))
 
         m.add_caveat(checkers.deny_caveat(['write']), None, None)
 
         # A read operation should work.
         ts.do(
-            test_context, [[m.macaroon()]], Op(entity='e1', action='read'),
+            test_context, [[m.macaroon]], Op(entity='e1', action='read'),
             Op(entity='e2', action='read'))
 
         # A write operation should fail
         # even though the original macaroon allowed it.
         with self.assertRaises(_DischargeRequiredError):
-            ts.do(test_context, [[m.macaroon()]],
+            ts.do(test_context, [[m.macaroon]],
                   Op(entity='e1', action='write'))
 
     def test_duplicate_login_macaroons(self):
@@ -587,7 +573,7 @@ class TestChecker(TestCase):
         checker = Checker(macaroon_opstore=_MacaroonStoreWithError())
         m = pymacaroons.Macaroon(version=pymacaroons.MACAROON_V2)
         with self.assertRaises(ValueError):
-            checker.auth(m).allow(test_context, LOGIN_OP)
+            checker.auth([m]).allow(test_context, LOGIN_OP)
 
 
 class _DischargerLocator(object):
@@ -625,11 +611,12 @@ class _IdService(IdentityClient, ThirdPartyCaveatChecker):
 
     def check_third_party_caveat(self, ctx, info):
         if info.condition != 'is-authenticated-user':
-            raise ValueError('third party condition not recognized')
+            raise CaveatNotRecognizedError('third party condition not '
+                                           'recognized')
 
         username = ctx.get(_DISCHARGE_USER_KEY, '')
         if username == '':
-            return ValueError('no current user')
+            return ThirdPartyCaveatCheckFailed('no current user')
         self._test._discharges.append(
             _DischargeRecord(location=self._location, user=username))
         return [checkers.declared_caveat('username', username)]
@@ -687,12 +674,12 @@ class _MacaroonStore(object):
         self._key = key
         self._locator = locator
 
-    def new_macaroon(self, caveats, ns, *ops):
+    def new_macaroon(self, caveats, namespace, *ops):
         root_key, id = self._root_key_store.root_key()
         m_id = {'id': base64.urlsafe_b64encode(id).decode('utf-8'), 'ops': ops}
         data = json.dumps(m_id)
         m = Macaroon(root_key=root_key, id=data, location='',
-                     version=LATEST_BAKERY_VERSION, ns=ns)
+                     version=LATEST_BAKERY_VERSION, namespace=namespace)
         m.add_caveats(caveats, self._key, self._locator)
         return m
 
@@ -724,29 +711,6 @@ class _MacaroonStore(object):
         for op in m_id['ops']:
             ops.append(Op(entity=op[0], action=op[1]))
         return ops, conditions
-
-
-def true_check(ctx, cond, args):
-    # Always succeeds.
-    return None
-
-
-_str_key = checkers.ContextKey('str_check')
-
-
-def str_check(ctx, cond, args):
-    expect = ctx[_str_key]
-    if args != expect:
-        return '{} doesn\'t match {}'.format(cond, expect)
-    return None
-
-
-def test_checker():
-    c = checkers.Checker()
-    c.namespace().register('testns', '')
-    c.register('str', 'testns', str_check)
-    c.register('true', 'testns', true_check)
-    return c
 
 
 class _Service(object):
@@ -793,7 +757,7 @@ class _Service(object):
 
         m = self._store.new_macaroon(None, self._checker.namespace(), *ops)
         for cond in conds:
-            m.macaroon().add_first_party_caveat(cond)
+            m.macaroon.add_first_party_caveat(cond)
         return m
 
     def _discharge_required_error(self, err):

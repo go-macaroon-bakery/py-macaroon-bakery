@@ -1,6 +1,5 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
-
 import base64
 import json
 
@@ -168,7 +167,7 @@ def decode_caveat(key, caveat):
                 'caveat id payload not provided for caveat id {}'.format(
                     caveat))
         return _decode_caveat_v2_v3(first_as_int, key, caveat)
-    raise NotImplementedError('only bakery v1 supported')
+    raise ValueError('unknown version for caveat')
 
 
 def _decode_caveat_v1(key, caveat):

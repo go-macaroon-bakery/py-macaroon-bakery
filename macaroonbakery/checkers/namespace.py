@@ -91,7 +91,7 @@ class Namespace:
         # TODO: If a namespace isn't registered, try to resolve it by
         # resolving it to the latest compatible version that is
         # registered.
-        if cav.namespace == "" or cav.location != "":
+        if cav.namespace == '' or cav.location != '':
             return cav
 
         prefix = self.resolve(cav.namespace)
@@ -106,7 +106,7 @@ class Namespace:
             cav = err_cav
         if prefix != '':
             cav.condition = condition_with_prefix(prefix, cav.condition)
-        cav.namespace = ""
+        cav.namespace = ''
         return cav
 
 
@@ -141,9 +141,27 @@ def deserialize_namespace(data):
     '''
     if isinstance(data, bytes):
         data = data.decode('utf-8')
-    kvs = data.split(' ')
+    kvs = data.split()
     uri_to_prefix = {}
     for kv in kvs:
-        k, v = kv.split(':')
-        uri_to_prefix[k] = v
+        i = kv.rfind(':')
+        if i == -1:
+            raise ValueError('no colon in namespace '
+                             'field {}'.format(repr(kv)))
+        uri, prefix = kv[0:i], kv[i + 1:]
+        if not is_valid_schema_uri(uri):
+            # Currently this can't happen because the only invalid URIs
+            # are those which contain a space
+            raise ValueError(
+                'invalid URI {} in namespace '
+                'field {}'.format(repr(uri), repr(kv)))
+        if not is_valid_prefix(prefix):
+            raise ValueError(
+                'invalid prefix {} in namespace field'
+                ' {}'.format(repr(prefix), repr(kv)))
+        if uri in uri_to_prefix:
+            raise ValueError(
+                'duplicate URI {} in '
+                'namespace {}'.format(repr(uri), repr(data)))
+        uri_to_prefix[uri] = prefix
     return Namespace(uri_to_prefix)

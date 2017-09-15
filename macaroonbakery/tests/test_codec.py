@@ -11,9 +11,10 @@ from nacl.public import PrivateKey
 from macaroonbakery import (
     BAKERY_V1, BAKERY_V2, BAKERY_V3, codec, utils
 )
-from macaroonbakery.bakery import ThirdPartyInfo
 from macaroonbakery import checkers
-from macaroonbakery.third_party import legacy_namespace, ThirdPartyCaveatInfo
+from macaroonbakery.third_party import (
+    legacy_namespace, ThirdPartyCaveatInfo, ThirdPartyInfo
+)
 
 
 class TestCodec(TestCase):

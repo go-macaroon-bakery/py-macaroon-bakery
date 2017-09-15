@@ -1,6 +1,5 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
-
 import base64
 import requests
 from six.moves.http_cookiejar import Cookie

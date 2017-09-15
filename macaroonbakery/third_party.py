@@ -1,6 +1,7 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
 from collections import namedtuple
+
 from macaroonbakery import checkers
 
 
@@ -55,3 +56,12 @@ class ThirdPartyCaveatInfo(namedtuple(
             self.version == other.version and
             self.ns == other.ns
         )
+
+
+class ThirdPartyInfo(namedtuple('ThirdPartyInfo', 'version, public_key')):
+    ''' ThirdPartyInfo holds information on a given third party
+    discharge service.
+    version holds latest the bakery protocol version supported
+    by the discharger.
+    public_key holds the public nacl key of the third party.
+    '''

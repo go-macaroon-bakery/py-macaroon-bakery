@@ -49,10 +49,10 @@ class Checker(FirstPartyCaveatChecker):
     ''' Holds a set of checkers for first party caveats.
     '''
 
-    def __init__(self, ns=None, include_std_checkers=True):
-        if ns is None:
-            ns = Namespace()
-        self._ns = ns
+    def __init__(self, namespace=None, include_std_checkers=True):
+        if namespace is None:
+            namespace = Namespace()
+        self._namespace = namespace
         self._checkers = {}
         if include_std_checkers:
             self.register_std()
@@ -78,7 +78,7 @@ class Checker(FirstPartyCaveatChecker):
     def namespace(self):
         ''' Returns the namespace associated with the Checker.
         '''
-        return self._ns
+        return self._namespace
 
     def info(self):
         ''' Returns information on all the registered checkers.
@@ -104,7 +104,7 @@ class Checker(FirstPartyCaveatChecker):
             raise ValueError('no check function registered for namespace {} '
                              'when registering condition {}'.format(uri, cond))
 
-        prefix = self._ns.resolve(uri)
+        prefix = self._namespace.resolve(uri)
         if prefix is None:
             raise ValueError('no prefix registered for namespace {} when '
                              'registering condition {}'.format(uri, cond))
@@ -131,7 +131,7 @@ class Checker(FirstPartyCaveatChecker):
         If not present already, the standard checkers schema (STD_NAMESPACE) is
         added to the checker's namespace with an empty prefix.
         '''
-        self._ns.register(STD_NAMESPACE, '')
+        self._namespace.register(STD_NAMESPACE, '')
         for cond in _ALL_CHECKERS:
             self.register(cond, STD_NAMESPACE, _ALL_CHECKERS[cond])
 
