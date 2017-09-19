@@ -11,7 +11,14 @@ from setuptools import (
 
 
 PROJECT_NAME = 'macaroonbakery'
-project = __import__(PROJECT_NAME)
+
+VERSION = (0, 0, 3)
+
+
+def get_version():
+    '''Return the macaroon bakery version as a string.'''
+    return '.'.join(map(str, VERSION))
+
 
 with open('README.rst') as readme_file:
     readme = readme_file.read()
@@ -44,7 +51,7 @@ if len(distribution) == 3 and distribution[2] == 'trusty':
 
 setup(
     name=PROJECT_NAME,
-    version=project.get_version(),
+    version=get_version(),
     description='A Python library port for bakery, higher level operation '
                 'to work with macaroons',
     long_description=readme,

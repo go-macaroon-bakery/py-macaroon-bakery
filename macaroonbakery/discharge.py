@@ -5,10 +5,8 @@ from collections import namedtuple
 
 from nacl.encoding import Base64Encoder
 
-from macaroonbakery import checkers, BAKERY_V2
-from macaroonbakery.codec import decode_caveat
-from macaroonbakery.macaroon import Macaroon, ThirdPartyLocator
-from macaroonbakery.error import CaveatNotRecognizedError
+import macaroonbakery
+import macaroonbakery.checkers as checkers
 
 
 def discharge_all(ctx, m, get_discharge, local_key=None):
@@ -91,7 +89,7 @@ class ThirdPartyCaveatChecker(object):
 class _LocalDischargeChecker(ThirdPartyCaveatChecker):
     def check_third_party_caveat(self, ctx, info):
         if info.condition != 'true':
-            raise CaveatNotRecognizedError()
+            raise macaroonbakery.CaveatNotRecognizedError()
         return []
 
 
@@ -126,7 +124,7 @@ def discharge(ctx, id, caveat, key, checker, locator):
         # caveats are added, use that id as the prefix
         # for any more ids.
         caveat_id_prefix = id
-    cav_info = decode_caveat(key, caveat)
+    cav_info = macaroonbakery.decode_caveat(key, caveat)
 
     # Note that we don't check the error - we allow the
     # third party checker to see even caveats that we can't
@@ -143,8 +141,8 @@ def discharge(ctx, id, caveat, key, checker, locator):
     # be stored persistently. Indeed, it would be a problem if
     # we did, because then the macaroon could potentially be used
     # for normal authorization with the third party.
-    m = Macaroon(cav_info.root_key, id, '', cav_info.version,
-                 cav_info.ns)
+    m = macaroonbakery.Macaroon(cav_info.root_key, id, '', cav_info.version,
+                                cav_info.namespace)
     m._caveat_id_prefix = caveat_id_prefix
     if caveats is not None:
         for cav in caveats:
@@ -191,7 +189,7 @@ def _check_need_declared(ctx, cav_info, checker):
     return caveats
 
 
-class _EmptyLocator(ThirdPartyLocator):
+class _EmptyLocator(macaroonbakery.ThirdPartyLocator):
     def third_party_info(self, loc):
         return None
 
@@ -204,6 +202,6 @@ def local_third_party_caveat(key, version):
     '''
     encoded_key = key.encode(Base64Encoder).decode('utf-8')
     loc = 'local {}'.format(encoded_key)
-    if version >= BAKERY_V2:
+    if version >= macaroonbakery.BAKERY_V2:
         loc = 'local {} {}'.format(version, encoded_key)
     return checkers.Caveat(location=loc, condition='')

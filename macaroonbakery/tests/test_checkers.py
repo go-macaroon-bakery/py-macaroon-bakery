@@ -7,8 +7,7 @@ import six
 import pytz
 from pymacaroons import Macaroon, MACAROON_V2
 
-from macaroonbakery import checkers
-
+import macaroonbakery.checkers as checkers
 
 # A frozen time for the tests.
 NOW = datetime(
@@ -327,12 +326,15 @@ class TestCheckers(TestCase):
         ]
         infos = checker.info()
         self.assertEqual(len(infos), len(expect))
+        new_infos = []
         for i, info in enumerate(infos):
             Called.val = ''
             info.check(None, '', '')
             self.assertEqual(Called.val, expect[i].name + ' '
                              + expect[i].ns)
-        self.assertEqual(infos, expect)
+            new_infos.append(checkers.CheckerInfo(ns=info.ns, name=info.name,
+                                                  prefix=info.prefix))
+        self.assertEqual(new_infos, expect)
 
 
 def caveat_with_ns(cav, ns):

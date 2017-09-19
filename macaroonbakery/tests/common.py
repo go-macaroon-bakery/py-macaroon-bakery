@@ -4,14 +4,8 @@ from datetime import datetime, timedelta
 
 import pytz
 
-from macaroonbakery import checkers
-from macaroonbakery.identity import IdentityClient
-from macaroonbakery.discharge import ThirdPartyCaveatChecker
-from macaroonbakery.error import ThirdPartyCaveatCheckFailed
-from macaroonbakery.keys import generate_key
-from macaroonbakery.third_party import ThirdPartyInfo
-from macaroonbakery import LATEST_BAKERY_VERSION
-from macaroonbakery.bakery import Bakery
+import macaroonbakery
+import macaroonbakery.checkers as checkers
 
 
 class _StoppedClock(object):
@@ -57,12 +51,13 @@ def true_check(ctx, cond, args):
     return None
 
 
-class OneIdentity(IdentityClient):
+class OneIdentity(macaroonbakery.IdentityClient):
     '''An IdentityClient implementation that always returns a single identity
     from declared_identity, allowing allow(LOGIN_OP) to work even when there
     are no declaration caveats (this is mostly to support the legacy tests
     which do their own checking of declaration caveats).
     '''
+
     def identity_from_context(self, ctx):
         return None, None
 
@@ -78,7 +73,7 @@ class _NoOne(object):
         return ''
 
 
-class ThirdPartyStrcmpChecker(ThirdPartyCaveatChecker):
+class ThirdPartyStrcmpChecker(macaroonbakery.ThirdPartyCaveatChecker):
     def __init__(self, str):
         self.str = str
 
@@ -87,12 +82,12 @@ class ThirdPartyStrcmpChecker(ThirdPartyCaveatChecker):
         if isinstance(cav_info.condition, bytes):
             condition = cav_info.condition.decode('utf-8')
         if condition != self.str:
-            raise ThirdPartyCaveatCheckFailed(
+            raise macaroonbakery.ThirdPartyCaveatCheckFailed(
                 '{} doesn\'t match {}'.format(condition, self.str))
         return []
 
 
-class ThirdPartyCheckerWithCaveats(ThirdPartyCaveatChecker):
+class ThirdPartyCheckerWithCaveats(macaroonbakery.ThirdPartyCaveatChecker):
     def __init__(self, cavs=None):
         if cavs is None:
             cavs = []
@@ -102,7 +97,7 @@ class ThirdPartyCheckerWithCaveats(ThirdPartyCaveatChecker):
         return self.cavs
 
 
-class ThirdPartyCaveatCheckerEmpty(ThirdPartyCaveatChecker):
+class ThirdPartyCaveatCheckerEmpty(macaroonbakery.ThirdPartyCaveatChecker):
     def check_third_party_caveat(self, ctx, cav_info):
         return []
 
@@ -112,10 +107,14 @@ def new_bakery(location, locator=None):
     # key pair, and registers the key with the given locator if provided.
     #
     # It uses test_checker to check first party caveats.
-    key = generate_key()
+    key = macaroonbakery.generate_key()
     if locator is not None:
         locator.add_info(location,
-                         ThirdPartyInfo(public_key=key.public_key,
-                                        version=LATEST_BAKERY_VERSION))
-    return Bakery(key=key, checker=test_checker(), location=location,
-                  identity_client=OneIdentity(), locator=locator)
+                         macaroonbakery.ThirdPartyInfo(
+                             public_key=key.public_key,
+                             version=macaroonbakery.LATEST_BAKERY_VERSION))
+    return macaroonbakery.Bakery(key=key,
+                                 checker=test_checker(),
+                                 location=location,
+                                 identity_client=OneIdentity(),
+                                 locator=locator)

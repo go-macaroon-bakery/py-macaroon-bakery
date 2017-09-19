@@ -2,7 +2,7 @@
 # Licensed under the LGPLv3, see LICENCE file for details.
 from unittest import TestCase
 
-from macaroonbakery import checkers
+import macaroonbakery.checkers as checkers
 
 
 class TestNamespace(TestCase):
@@ -23,7 +23,7 @@ class TestNamespace(TestCase):
         ]
         for test in tests:
             ns = checkers.Namespace(test[1])
-            data = ns.serialize()
+            data = ns.serialize_text()
             self.assertEquals(data, test[2])
             self.assertEquals(str(ns), test[2].decode('utf-8'))
 

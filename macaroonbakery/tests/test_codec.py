@@ -8,13 +8,10 @@ import six
 from nacl.encoding import Base64Encoder
 from nacl.public import PrivateKey
 
-from macaroonbakery import (
-    BAKERY_V1, BAKERY_V2, BAKERY_V3, codec, utils
-)
-from macaroonbakery import checkers
-from macaroonbakery.third_party import (
-    legacy_namespace, ThirdPartyCaveatInfo, ThirdPartyInfo
-)
+import macaroonbakery
+from macaroonbakery import utils
+from macaroonbakery import codec
+import macaroonbakery.checkers as checkers
 
 
 class TestCodec(TestCase):
@@ -23,68 +20,73 @@ class TestCodec(TestCase):
         self.tp_key = nacl.public.PrivateKey.generate()
 
     def test_v1_round_trip(self):
-        tp_info = ThirdPartyInfo(version=BAKERY_V1,
-                                 public_key=self.tp_key.public_key)
-        cid = codec.encode_caveat('is-authenticated-user',
-                                  b'a random string',
-                                  tp_info,
-                                  self.fp_key,
-                                  None)
-
-        res = codec.decode_caveat(self.tp_key, cid)
-        self.assertEquals(res, ThirdPartyCaveatInfo(
+        tp_info = macaroonbakery.ThirdPartyInfo(
+            version=macaroonbakery.BAKERY_V1,
+            public_key=self.tp_key.public_key)
+        cid = macaroonbakery.encode_caveat(
+            'is-authenticated-user',
+            b'a random string',
+            tp_info,
+            self.fp_key,
+            None)
+        res = macaroonbakery.decode_caveat(self.tp_key, cid)
+        self.assertEquals(res, macaroonbakery.ThirdPartyCaveatInfo(
             first_party_public_key=self.fp_key.public_key,
             root_key=b'a random string',
             condition='is-authenticated-user',
             caveat=cid,
             third_party_key_pair=self.tp_key,
-            version=BAKERY_V1,
-            ns=legacy_namespace()
+            version=macaroonbakery.BAKERY_V1,
+            namespace=macaroonbakery.legacy_namespace()
         ))
 
     def test_v2_round_trip(self):
-        tp_info = ThirdPartyInfo(version=BAKERY_V2,
-                                 public_key=self.tp_key.public_key)
-        cid = codec.encode_caveat('is-authenticated-user',
-                                  b'a random string',
-                                  tp_info,
-                                  self.fp_key,
-                                  None)
-        res = codec.decode_caveat(self.tp_key, cid)
-        self.assertEquals(res, ThirdPartyCaveatInfo(
+        tp_info = macaroonbakery.ThirdPartyInfo(
+            version=macaroonbakery.BAKERY_V2,
+            public_key=self.tp_key.public_key)
+        cid = macaroonbakery.encode_caveat(
+            'is-authenticated-user',
+            b'a random string',
+            tp_info,
+            self.fp_key,
+            None)
+        res = macaroonbakery.decode_caveat(self.tp_key, cid)
+        self.assertEquals(res, macaroonbakery.ThirdPartyCaveatInfo(
             first_party_public_key=self.fp_key.public_key,
             root_key=b'a random string',
             condition='is-authenticated-user',
             caveat=cid,
             third_party_key_pair=self.tp_key,
-            version=BAKERY_V2,
-            ns=legacy_namespace()
+            version=macaroonbakery.BAKERY_V2,
+            namespace=macaroonbakery.legacy_namespace()
         ))
 
     def test_v3_round_trip(self):
-        tp_info = ThirdPartyInfo(version=BAKERY_V3,
-                                 public_key=self.tp_key.public_key)
+        tp_info = macaroonbakery.ThirdPartyInfo(
+            version=macaroonbakery.BAKERY_V3,
+            public_key=self.tp_key.public_key)
         ns = checkers.Namespace()
         ns.register('testns', 'x')
-        cid = codec.encode_caveat('is-authenticated-user',
-                                  b'a random string',
-                                  tp_info,
-                                  self.fp_key,
-                                  ns)
-        res = codec.decode_caveat(self.tp_key, cid)
-        self.assertEquals(res, ThirdPartyCaveatInfo(
+        cid = macaroonbakery.encode_caveat(
+            'is-authenticated-user',
+            b'a random string',
+            tp_info,
+            self.fp_key,
+            ns)
+        res = macaroonbakery.decode_caveat(self.tp_key, cid)
+        self.assertEquals(res, macaroonbakery.ThirdPartyCaveatInfo(
             first_party_public_key=self.fp_key.public_key,
             root_key=b'a random string',
             condition='is-authenticated-user',
             caveat=cid,
             third_party_key_pair=self.tp_key,
-            version=BAKERY_V3,
-            ns=ns
+            version=macaroonbakery.BAKERY_V3,
+            namespace=ns
         ))
 
     def test_empty_caveat_id(self):
         with self.assertRaises(ValueError) as context:
-            codec.decode_caveat(self.tp_key, b'')
+            macaroonbakery.decode_caveat(self.tp_key, b'')
         self.assertTrue('empty third party caveat' in str(context.exception))
 
     def test_decode_caveat_v1_from_go(self):
@@ -93,8 +95,10 @@ class TestCodec(TestCase):
         fp_key = PrivateKey(base64.b64decode(
             'KXpsoJ9ujZYi/O2Cca6kaWh65MSawzy79LWkrjOfzcs='))
         fp_key.encode(Base64Encoder)
+        root_key = base64.b64decode('vDxEmWZEkgiNEFlJ+8ruXe3qDSLf1H+o')
         # This caveat has been generated from the go code
         # to check the compatibilty
+
         encrypted_cav = six.b(
             'eyJUaGlyZFBhcnR5UHVibGljS2V5IjoiOFA3R1ZZc3BlWlN4c'
             '3hFdmJsSVFFSTFqdTBTSWl0WlIrRFdhWE40cmxocz0iLCJGaX'
@@ -105,15 +109,15 @@ class TestCodec(TestCase):
             'BORldUUExGdjVla1dWUjA4Uk1sbGJhc3c4VGdFbkhzM0laeVo'
             '0V2lEOHhRUWdjU3ljOHY4eUt4dEhxejVEczJOYmh1ZDJhUFdt'
             'UTVMcVlNWitmZ2FNaTAxdE9DIn0=')
-        cav = codec.decode_caveat(tp_key, encrypted_cav)
-        self.assertEquals(cav, ThirdPartyCaveatInfo(
+        cav = macaroonbakery.decode_caveat(tp_key, encrypted_cav)
+        self.assertEquals(cav, macaroonbakery.ThirdPartyCaveatInfo(
             condition='caveat condition',
             first_party_public_key=fp_key.public_key,
             third_party_key_pair=tp_key,
-            root_key=b'random',
+            root_key=root_key,
             caveat=encrypted_cav,
-            version=BAKERY_V1,
-            ns=legacy_namespace()
+            version=macaroonbakery.BAKERY_V1,
+            namespace=macaroonbakery.legacy_namespace()
         ))
 
     def test_decode_caveat_v2_from_go(self):
@@ -121,6 +125,7 @@ class TestCodec(TestCase):
             'TSpvLpQkRj+T3JXnsW2n43n5zP/0X4zn0RvDiWC3IJ0='))
         fp_key = PrivateKey(base64.b64decode(
             'KXpsoJ9ujZYi/O2Cca6kaWh65MSawzy79LWkrjOfzcs='))
+        root_key = base64.b64decode('wh0HSM65wWHOIxoGjgJJOFvQKn2jJFhC')
         # This caveat has been generated from the go code
         # to check the compatibilty
         encrypted_cav = base64.urlsafe_b64decode(
@@ -128,15 +133,15 @@ class TestCodec(TestCase):
                 'AvD-xlUf2MdGMgtu7OKRQnCP1OQJk6PKeFWRK26WIBA6DNwKGIHq9xGcHS9IZ'
                 'Lh0cL6D9qpeKI0mXmCPfnwRQDuVYC8y5gVWd-oCGZaj5TGtk3byp2Vnw6ojmt'
                 'sULDhY59YA_J_Y0ATkERO5T9ajoRWBxU2OXBoX6bImXA')))
-        cav = codec.decode_caveat(tp_key, encrypted_cav)
-        self.assertEquals(cav, ThirdPartyCaveatInfo(
+        cav = macaroonbakery.decode_caveat(tp_key, encrypted_cav)
+        self.assertEqual(cav, macaroonbakery.ThirdPartyCaveatInfo(
             condition='third party condition',
             first_party_public_key=fp_key.public_key,
             third_party_key_pair=tp_key,
-            root_key=b'random',
+            root_key=root_key,
             caveat=encrypted_cav,
-            version=BAKERY_V2,
-            ns=legacy_namespace()
+            version=macaroonbakery.BAKERY_V2,
+            namespace=macaroonbakery.legacy_namespace()
         ))
 
     def test_decode_caveat_v3_from_go(self):
@@ -144,6 +149,7 @@ class TestCodec(TestCase):
             'TSpvLpQkRj+T3JXnsW2n43n5zP/0X4zn0RvDiWC3IJ0='))
         fp_key = PrivateKey(base64.b64decode(
             'KXpsoJ9ujZYi/O2Cca6kaWh65MSawzy79LWkrjOfzcs='))
+        root_key = base64.b64decode(b'oqOXI3/Mz/pKjCuFOt2eYxb7ndLq66GY')
         # This caveat has been generated from the go code
         # to check the compatibilty
         encrypted_cav = base64.urlsafe_b64decode(
@@ -151,15 +157,15 @@ class TestCodec(TestCase):
                 'A_D-xlUf2MdGMgtu7OKRQnCP1OQJk6PKeFWRK26WIBA6DNwKGNLeFSkD2M-8A'
                 'EYvmgVH95GWu7T7caKxKhhOQFcEKgnXKJvYXxz1zin4cZc4Q6C7gVqA-J4_j3'
                 '1LX4VKxymqG62UGPo78wOv0_fKjr3OI6PPJOYOQgBMclemlRF2')))
-        cav = codec.decode_caveat(tp_key, encrypted_cav)
-        self.assertEquals(cav, ThirdPartyCaveatInfo(
+        cav = macaroonbakery.decode_caveat(tp_key, encrypted_cav)
+        self.assertEquals(cav, macaroonbakery.ThirdPartyCaveatInfo(
             condition='third party condition',
             first_party_public_key=fp_key.public_key,
             third_party_key_pair=tp_key,
-            root_key=b'random',
+            root_key=root_key,
             caveat=encrypted_cav,
-            version=BAKERY_V3,
-            ns=legacy_namespace()
+            version=macaroonbakery.BAKERY_V3,
+            namespace=macaroonbakery.legacy_namespace()
         ))
 
     def test_encode_decode_varint(self):
@@ -174,10 +180,10 @@ class TestCodec(TestCase):
         for test in tests:
             data = bytearray()
             expected = bytearray()
-            codec.encode_uvarint(test[0], data)
+            macaroonbakery.encode_uvarint(test[0], data)
             for v in test[1]:
                 expected.append(v)
             self.assertEquals(data, expected)
-            val = codec._decode_uvarint(bytes(data))
+            val = codec.decode_uvarint(bytes(data))
             self.assertEquals(test[0], val[0])
             self.assertEquals(len(test[1]), val[1])

@@ -1,12 +1,13 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
 from unittest import TestCase
-from macaroonbakery import store
+
+import macaroonbakery
 
 
 class TestOven(TestCase):
     def test_mem_store(self):
-        st = store.MemoryKeyStore()
+        st = macaroonbakery.MemoryKeyStore()
         key = st.get(b'x')
         self.assertIsNone(key)
         key = st.get(b'0')
