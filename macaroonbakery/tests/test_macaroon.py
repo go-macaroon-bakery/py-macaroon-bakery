@@ -186,7 +186,7 @@ class TestMacaroon(TestCase):
         ns = checkers.Namespace()
         ns.register("someuri", "x")
         m = macaroonbakery.Macaroon(
-            root_key=b'rootkey',id=b'some id', location='here',
+            root_key=b'rootkey', id=b'some id', location='here',
             version=macaroonbakery.LATEST_BAKERY_VERSION, namespace=ns)
         m.add_caveat(checkers.Caveat(condition='something',
                                      namespace='someuri'))
