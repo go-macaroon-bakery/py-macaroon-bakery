@@ -45,7 +45,7 @@ class TestOven(TestCase):
         )
         for about, ops, expected in canonical_ops_tests:
             new_ops = copy.copy(ops)
-            canonical_ops = macaroonbakery.canonical_ops(*new_ops)
+            canonical_ops = macaroonbakery.canonical_ops(new_ops)
             self.assertEquals(canonical_ops, expected)
             # Verify that the original array isn't changed.
             self.assertEquals(new_ops, ops)
@@ -57,10 +57,10 @@ class TestOven(TestCase):
                macaroonbakery.Op('one', 'write'),
                macaroonbakery.Op('two', 'read')]
         m = test_oven.macaroon(macaroonbakery.LATEST_BAKERY_VERSION, AGES,
-                               None, *ops)
+                               None, ops)
         got_ops, conds = test_oven.macaroon_ops([m.macaroon])
         self.assertEquals(len(conds), 1)  # time-before caveat.
-        self.assertEquals(macaroonbakery.canonical_ops(*got_ops), ops)
+        self.assertEquals(macaroonbakery.canonical_ops(got_ops), ops)
 
     def test_multiple_ops_in_id(self):
         test_oven = macaroonbakery.Oven()
@@ -68,20 +68,20 @@ class TestOven(TestCase):
                macaroonbakery.Op('one', 'write'),
                macaroonbakery.Op('two', 'read')]
         m = test_oven.macaroon(macaroonbakery.LATEST_BAKERY_VERSION, AGES,
-                               None, *ops)
+                               None, ops)
         got_ops, conds = test_oven.macaroon_ops([m.macaroon])
         self.assertEquals(len(conds), 1)  # time-before caveat.
-        self.assertEquals(macaroonbakery.canonical_ops(*got_ops), ops)
+        self.assertEquals(macaroonbakery.canonical_ops(got_ops), ops)
 
     def test_multiple_ops_in_id_with_version1(self):
         test_oven = macaroonbakery.Oven()
         ops = [macaroonbakery.Op('one', 'read'),
                macaroonbakery.Op('one', 'write'),
                macaroonbakery.Op('two', 'read')]
-        m = test_oven.macaroon(macaroonbakery.BAKERY_V1, AGES, None, *ops)
+        m = test_oven.macaroon(macaroonbakery.BAKERY_V1, AGES, None, ops)
         got_ops, conds = test_oven.macaroon_ops([m.macaroon])
         self.assertEquals(len(conds), 1)  # time-before caveat.
-        self.assertEquals(macaroonbakery.canonical_ops(*got_ops), ops)
+        self.assertEquals(macaroonbakery.canonical_ops(got_ops), ops)
 
     def test_huge_number_of_ops_gives_small_macaroon(self):
         test_oven = macaroonbakery.Oven(
@@ -92,11 +92,11 @@ class TestOven(TestCase):
                                          action='action{}'.format(i)))
 
         m = test_oven.macaroon(macaroonbakery.LATEST_BAKERY_VERSION, AGES,
-                               None, *ops)
+                               None, ops)
         got_ops, conds = test_oven.macaroon_ops([m.macaroon])
         self.assertEquals(len(conds), 1)  # time-before caveat.
-        self.assertEquals(macaroonbakery.canonical_ops(*got_ops),
-                          macaroonbakery.canonical_ops(*ops))
+        self.assertEquals(macaroonbakery.canonical_ops(got_ops),
+                          macaroonbakery.canonical_ops(ops))
 
         data = m.serialize_json()
         self.assertLess(len(data), 300)
@@ -110,10 +110,10 @@ class TestOven(TestCase):
                macaroonbakery.Op('two', 'read')]
 
         m = test_oven.macaroon(macaroonbakery.LATEST_BAKERY_VERSION, AGES,
-                               None, *ops)
+                               None, ops)
         got_ops, conds = test_oven.macaroon_ops([m.macaroon])
-        self.assertEquals(macaroonbakery.canonical_ops(*got_ops),
-                          macaroonbakery.canonical_ops(*ops))
+        self.assertEquals(macaroonbakery.canonical_ops(got_ops),
+                          macaroonbakery.canonical_ops(ops))
 
         # Make another macaroon containing the same ops in a different order.
         ops = [macaroonbakery.Op('one', 'write'),
@@ -121,5 +121,5 @@ class TestOven(TestCase):
                macaroonbakery.Op('one', 'read'),
                macaroonbakery.Op('two', 'read')]
         test_oven.macaroon(macaroonbakery.LATEST_BAKERY_VERSION, AGES, None,
-                           *ops)
+                           ops)
         self.assertEquals(len(st._store), 1)

@@ -3,10 +3,8 @@
 import base64
 from unittest import TestCase
 
-import nacl.utils
+import nacl.public
 import six
-from nacl.encoding import Base64Encoder
-from nacl.public import PrivateKey
 
 import macaroonbakery
 from macaroonbakery import utils
@@ -16,8 +14,8 @@ import macaroonbakery.checkers as checkers
 
 class TestCodec(TestCase):
     def setUp(self):
-        self.fp_key = nacl.public.PrivateKey.generate()
-        self.tp_key = nacl.public.PrivateKey.generate()
+        self.fp_key = macaroonbakery.generate_key()
+        self.tp_key = macaroonbakery.generate_key()
 
     def test_v1_round_trip(self):
         tp_info = macaroonbakery.ThirdPartyInfo(
@@ -85,16 +83,17 @@ class TestCodec(TestCase):
         ))
 
     def test_empty_caveat_id(self):
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(macaroonbakery.VerificationError) as context:
             macaroonbakery.decode_caveat(self.tp_key, b'')
         self.assertTrue('empty third party caveat' in str(context.exception))
 
     def test_decode_caveat_v1_from_go(self):
-        tp_key = PrivateKey(base64.b64decode(
-            'TSpvLpQkRj+T3JXnsW2n43n5zP/0X4zn0RvDiWC3IJ0='))
-        fp_key = PrivateKey(base64.b64decode(
-            'KXpsoJ9ujZYi/O2Cca6kaWh65MSawzy79LWkrjOfzcs='))
-        fp_key.encode(Base64Encoder)
+        tp_key = macaroonbakery.PrivateKey(
+            nacl.public.PrivateKey(base64.b64decode(
+                'TSpvLpQkRj+T3JXnsW2n43n5zP/0X4zn0RvDiWC3IJ0=')))
+        fp_key = macaroonbakery.PrivateKey(
+            nacl.public.PrivateKey(base64.b64decode(
+                'KXpsoJ9ujZYi/O2Cca6kaWh65MSawzy79LWkrjOfzcs=')))
         root_key = base64.b64decode('vDxEmWZEkgiNEFlJ+8ruXe3qDSLf1H+o')
         # This caveat has been generated from the go code
         # to check the compatibilty
@@ -121,10 +120,12 @@ class TestCodec(TestCase):
         ))
 
     def test_decode_caveat_v2_from_go(self):
-        tp_key = PrivateKey(base64.b64decode(
-            'TSpvLpQkRj+T3JXnsW2n43n5zP/0X4zn0RvDiWC3IJ0='))
-        fp_key = PrivateKey(base64.b64decode(
-            'KXpsoJ9ujZYi/O2Cca6kaWh65MSawzy79LWkrjOfzcs='))
+        tp_key = macaroonbakery.PrivateKey(nacl.public.PrivateKey(
+            base64.b64decode(
+                'TSpvLpQkRj+T3JXnsW2n43n5zP/0X4zn0RvDiWC3IJ0=')))
+        fp_key = macaroonbakery.PrivateKey(
+            nacl.public.PrivateKey(base64.b64decode(
+                'KXpsoJ9ujZYi/O2Cca6kaWh65MSawzy79LWkrjOfzcs=')))
         root_key = base64.b64decode('wh0HSM65wWHOIxoGjgJJOFvQKn2jJFhC')
         # This caveat has been generated from the go code
         # to check the compatibilty
@@ -145,10 +146,12 @@ class TestCodec(TestCase):
         ))
 
     def test_decode_caveat_v3_from_go(self):
-        tp_key = PrivateKey(base64.b64decode(
-            'TSpvLpQkRj+T3JXnsW2n43n5zP/0X4zn0RvDiWC3IJ0='))
-        fp_key = PrivateKey(base64.b64decode(
-            'KXpsoJ9ujZYi/O2Cca6kaWh65MSawzy79LWkrjOfzcs='))
+        tp_key = macaroonbakery.PrivateKey(
+            nacl.public.PrivateKey(base64.b64decode(
+                'TSpvLpQkRj+T3JXnsW2n43n5zP/0X4zn0RvDiWC3IJ0=')))
+        fp_key = macaroonbakery.PrivateKey(nacl.public.PrivateKey(
+            base64.b64decode(
+                'KXpsoJ9ujZYi/O2Cca6kaWh65MSawzy79LWkrjOfzcs=')))
         root_key = base64.b64decode(b'oqOXI3/Mz/pKjCuFOt2eYxb7ndLq66GY')
         # This caveat has been generated from the go code
         # to check the compatibilty

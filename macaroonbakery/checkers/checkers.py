@@ -19,6 +19,11 @@ from macaroonbakery.checkers.conditions import (
 from macaroonbakery.checkers.utils import condition_with_prefix
 
 
+class RegisterError(Exception):
+    '''Raised when a condition cannot be registered with a Checker.'''
+    pass
+
+
 class FirstPartyCaveatChecker(object):
     '''Used to check first party caveats for validity with respect to
     information in the provided context.
@@ -91,7 +96,7 @@ class Checker(FirstPartyCaveatChecker):
     def register(self, cond, uri, check):
         ''' Registers the given condition(string) in the given namespace
         uri (string) to be checked with the given check function.
-        The check function check a caveat by passing an auth context, a cond
+        The check function checks a caveat by passing an auth context, a cond
         parameter(string) that holds the caveat condition including any
         namespace prefix and an arg parameter(string) that hold any additional
         caveat argument text. It will return any error as string otherwise
@@ -101,24 +106,26 @@ class Checker(FirstPartyCaveatChecker):
         if the condition has already been registered.
         '''
         if check is None:
-            raise ValueError('no check function registered for namespace {} '
-                             'when registering condition {}'.format(uri, cond))
+            raise RegisterError(
+                'no check function registered for namespace {} when '
+                'registering condition {}'.format(uri, cond))
 
         prefix = self._namespace.resolve(uri)
         if prefix is None:
-            raise ValueError('no prefix registered for namespace {} when '
-                             'registering condition {}'.format(uri, cond))
+            raise RegisterError('no prefix registered for namespace {} when '
+                                'registering condition {}'.format(uri, cond))
 
         if prefix == '' and cond.find(':') >= 0:
-            raise ValueError('caveat condition {} in namespace {} contains a '
-                             'colon but its prefix is empty'.format(cond, uri))
+            raise RegisterError(
+                'caveat condition {} in namespace {} contains a colon but its'
+                ' prefix is empty'.format(cond, uri))
 
         full_cond = condition_with_prefix(prefix, cond)
         info = self._checkers.get(full_cond)
         if info is not None:
-            raise ValueError('checker for {} (namespace {}) already registered'
-                             ' in namespace {}'.format(full_cond, uri,
-                                                       info.ns))
+            raise RegisterError(
+                'checker for {} (namespace {}) already registered in '
+                'namespace {}'.format(full_cond, uri, info.ns))
         self._checkers[full_cond] = CheckerInfo(
             check=check,
             ns=uri,

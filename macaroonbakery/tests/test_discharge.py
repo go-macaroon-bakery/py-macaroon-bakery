@@ -3,7 +3,9 @@
 import unittest
 
 from pymacaroons import MACAROON_V1, Macaroon
-from pymacaroons.exceptions import MacaroonInvalidSignatureException
+from pymacaroons.exceptions import (
+    MacaroonInvalidSignatureException, MacaroonUnmetCaveatException
+)
 
 import macaroonbakery
 import macaroonbakery.checkers as checkers
@@ -19,13 +21,14 @@ class TestDischarge(unittest.TestCase):
         '''
         oc = common.new_bakery('bakerytest')
         primary = oc.oven.macaroon(macaroonbakery.LATEST_BAKERY_VERSION,
-                                   common.ages, None, macaroonbakery.LOGIN_OP)
+                                   common.ages, None,
+                                   [macaroonbakery.LOGIN_OP])
         self.assertEqual(primary.macaroon.location, 'bakerytest')
         primary.add_caveat(checkers.Caveat(condition='str something',
                                            namespace='testns'),
                            oc.oven.key, oc.oven.locator)
-        oc.checker.auth([primary.macaroon]).allow(
-            common.str_context('something'), macaroonbakery.LOGIN_OP)
+        oc.checker.auth([[primary.macaroon]]).allow(
+            common.str_context('something'), [macaroonbakery.LOGIN_OP])
 
     def test_macaroon_paper_fig6(self):
         ''' Implements an example flow as described in the macaroons paper:
@@ -50,7 +53,7 @@ class TestDischarge(unittest.TestCase):
         # ts creates a macaroon.
         ts_macaroon = ts.oven.macaroon(macaroonbakery.LATEST_BAKERY_VERSION,
                                        common.ages,
-                                       None, macaroonbakery.LOGIN_OP)
+                                       None, [macaroonbakery.LOGIN_OP])
 
         # ts somehow sends the macaroon to fs which adds a third party caveat
         # to be discharged by bs.
@@ -70,7 +73,8 @@ class TestDischarge(unittest.TestCase):
         d = macaroonbakery.discharge_all(common.test_context, ts_macaroon,
                                          get_discharge)
 
-        ts.checker.auth(d).allow(common.test_context, macaroonbakery.LOGIN_OP)
+        ts.checker.auth([d]).allow(common.test_context,
+                                   [macaroonbakery.LOGIN_OP])
 
     def test_discharge_with_version1_macaroon(self):
         locator = macaroonbakery.ThirdPartyStore()
@@ -79,7 +83,7 @@ class TestDischarge(unittest.TestCase):
 
         # ts creates a old-version macaroon.
         ts_macaroon = ts.oven.macaroon(macaroonbakery.BAKERY_V1, common.ages,
-                                       None, macaroonbakery.LOGIN_OP)
+                                       None, [macaroonbakery.LOGIN_OP])
         ts_macaroon.add_caveat(checkers.Caveat(condition='something',
                                                location='bs-loc'),
                                ts.oven.key, ts.oven.locator)
@@ -101,7 +105,8 @@ class TestDischarge(unittest.TestCase):
         d = macaroonbakery.discharge_all(common.test_context, ts_macaroon,
                                          get_discharge)
 
-        ts.checker.auth(d).allow(common.test_context, macaroonbakery.LOGIN_OP)
+        ts.checker.auth([d]).allow(common.test_context,
+                                   [macaroonbakery.LOGIN_OP])
 
         for m in d:
             self.assertEqual(m.version, MACAROON_V1)
@@ -116,10 +121,9 @@ class TestDischarge(unittest.TestCase):
         root_key_store.get(id)
         m = Macaroon(key=key, version=MACAROON_V1, location='',
                      identifier=id + b'-deadl00f')
-        b.checker.auth(*[[m]]).allow(common.test_context,
-                                     macaroonbakery.LOGIN_OP)
+        b.checker.auth([[m]]).allow(common.test_context,
+                                    [macaroonbakery.LOGIN_OP])
 
-    @unittest.skip('waiting for fix on pymacaroons')
     def test_macaroon_paper_fig6_fails_without_discharges(self):
         ''' Runs a similar test as test_macaroon_paper_fig6 without the client
         discharging the third party caveats.
@@ -132,7 +136,7 @@ class TestDischarge(unittest.TestCase):
         # ts creates a macaroon.
         ts_macaroon = ts.oven.macaroon(macaroonbakery.LATEST_BAKERY_VERSION,
                                        common.ages, None,
-                                       macaroonbakery.LOGIN_OP)
+                                       [macaroonbakery.LOGIN_OP])
 
         # ts somehow sends the macaroon to fs which adds a third party
         # caveat to be discharged by as.
@@ -141,8 +145,14 @@ class TestDischarge(unittest.TestCase):
                                fs.oven.key, fs.oven.locator)
 
         # client makes request to ts
-        ts.checker.auth([ts_macaroon.macaroon]).allow(common.test_context,
-                                                      macaroonbakery.LOGIN_OP)
+        try:
+            ts.checker.auth([[ts_macaroon.macaroon]]).allow(
+                common.test_context,
+                macaroonbakery.LOGIN_OP
+            )
+            self.fail('macaroon unmet should be raised')
+        except MacaroonUnmetCaveatException:
+            pass
 
     def test_macaroon_paper_fig6_fails_with_binding_on_tampered_sig(self):
         ''' Runs a similar test as test_macaroon_paper_fig6 with the discharge
@@ -155,7 +165,7 @@ class TestDischarge(unittest.TestCase):
         # ts creates a macaroon.
         ts_macaroon = ts.oven.macaroon(macaroonbakery.LATEST_BAKERY_VERSION,
                                        common.ages, None,
-                                       macaroonbakery.LOGIN_OP)
+                                       [macaroonbakery.LOGIN_OP])
         # ts somehow sends the macaroon to fs which adds a third party caveat
         # to be discharged by as.
         ts_macaroon.add_caveat(checkers.Caveat(condition='user==bob',
@@ -181,8 +191,8 @@ class TestDischarge(unittest.TestCase):
 
         # client makes request to ts.
         with self.assertRaises(MacaroonInvalidSignatureException) as exc:
-            ts.checker.auth(d).allow(common.test_context,
-                                     macaroonbakery.LOGIN_OP)
+            ts.checker.auth([d]).allow(common.test_context,
+                                       macaroonbakery.LOGIN_OP)
         self.assertEqual('Signatures do not match', exc.exception.args[0])
 
     def test_need_declared(self):
@@ -198,7 +208,7 @@ class TestDischarge(unittest.TestCase):
                     checkers.Caveat(location='third', condition='something'),
                     ['foo', 'bar']
                 )
-            ], macaroonbakery.LOGIN_OP)
+            ], [macaroonbakery.LOGIN_OP])
 
         # The client asks for a discharge macaroon for each third party caveat.
         def get_discharge(ctx, cav, payload):
@@ -221,7 +231,7 @@ class TestDischarge(unittest.TestCase):
         # Make sure the macaroons actually check out correctly
         # when provided with the declared checker.
         ctx = checkers.context_with_declared(common.test_context, declared)
-        first_party.checker.auth(d).allow(ctx, macaroonbakery.LOGIN_OP)
+        first_party.checker.auth([d]).allow(ctx, [macaroonbakery.LOGIN_OP])
 
         # Try again when the third party does add a required declaration.
 
@@ -247,7 +257,7 @@ class TestDischarge(unittest.TestCase):
         })
 
         ctx = checkers.context_with_declared(common.test_context, declared)
-        first_party.checker.auth(d).allow(ctx, macaroonbakery.LOGIN_OP)
+        first_party.checker.auth([d]).allow(ctx, [macaroonbakery.LOGIN_OP])
 
         # Try again, but this time pretend a client is sneakily trying
         # to add another 'declared' attribute to alter the declarations.
@@ -274,8 +284,8 @@ class TestDischarge(unittest.TestCase):
         })
 
         with self.assertRaises(macaroonbakery.AuthInitError) as exc:
-            first_party.checker.auth(d).allow(common.test_context,
-                                              macaroonbakery.LOGIN_OP)
+            first_party.checker.auth([d]).allow(common.test_context,
+                                                macaroonbakery.LOGIN_OP)
         self.assertEqual('cannot authorize login macaroon: caveat '
                          '"declared foo a" not satisfied: got foo=null, '
                          'expected "a"', exc.exception.args[0])
@@ -296,7 +306,7 @@ class TestDischarge(unittest.TestCase):
                 checkers.need_declared_caveat(
                     checkers.Caveat(location='third', condition='y'),
                     ['bar', 'baz']),
-            ], macaroonbakery.LOGIN_OP)
+            ], [macaroonbakery.LOGIN_OP])
 
         # The client asks for a discharge macaroon for each third party caveat.
         # Since no declarations are added by the discharger,
@@ -315,7 +325,7 @@ class TestDischarge(unittest.TestCase):
             'baz': '',
         })
         ctx = checkers.context_with_declared(common.test_context, declared)
-        first_party.checker.auth(d).allow(ctx, macaroonbakery.LOGIN_OP)
+        first_party.checker.auth([d]).allow(ctx, [macaroonbakery.LOGIN_OP])
 
         # If they return conflicting values, the discharge fails.
         # The client asks for a discharge macaroon for each third party caveat.
@@ -345,8 +355,8 @@ class TestDischarge(unittest.TestCase):
             'baz': 'bazval',
         })
         with self.assertRaises(macaroonbakery.AuthInitError) as exc:
-            first_party.checker.auth(d).allow(common.test_context,
-                                              macaroonbakery.LOGIN_OP)
+            first_party.checker.auth([d]).allow(common.test_context,
+                                                macaroonbakery.LOGIN_OP)
         self.assertEqual('cannot authorize login macaroon: caveat "declared '
                          'foo fooval1" not satisfied: got foo=null, expected '
                          '"fooval1"', exc.exception.args[0])
@@ -361,7 +371,7 @@ class TestDischarge(unittest.TestCase):
                                       common.ages, [
                                           checkers.Caveat(location='third',
                                                           condition='true')],
-                                      macaroonbakery.LOGIN_OP)
+                                      [macaroonbakery.LOGIN_OP])
 
         # Acquire the discharge macaroon, but don't bind it to the original.
         class M:
@@ -379,13 +389,12 @@ class TestDischarge(unittest.TestCase):
         self.assertIsNotNone(M.unbound)
 
         # Make sure it cannot be used as a normal macaroon in the third party.
-        with self.assertRaises(ValueError) as exc:
-            third_party.checker.auth([M.unbound]).allow(
-                common.test_context, macaroonbakery.LOGIN_OP)
+        with self.assertRaises(macaroonbakery.AuthInitError) as exc:
+            third_party.checker.auth([[M.unbound]]).allow(
+                common.test_context, [macaroonbakery.LOGIN_OP])
         self.assertEqual('no operations found in macaroon',
                          exc.exception.args[0])
 
-    @unittest.skip('waiting for fix on pymacaroons')
     def test_third_party_discharge_macaroon_ids_are_small(self):
         locator = macaroonbakery.ThirdPartyStore()
         bakeries = {
@@ -397,7 +406,7 @@ class TestDischarge(unittest.TestCase):
 
         ts_macaroon = ts.oven.macaroon(macaroonbakery.LATEST_BAKERY_VERSION,
                                        common.ages,
-                                       None, macaroonbakery.LOGIN_OP)
+                                       None, [macaroonbakery.LOGIN_OP])
         ts_macaroon.add_caveat(checkers.Caveat(condition='something',
                                                location='as1-loc'),
                                ts.oven.key, ts.oven.locator)
@@ -425,10 +434,12 @@ class TestDischarge(unittest.TestCase):
 
         d = macaroonbakery.discharge_all(common.test_context, ts_macaroon,
                                          get_discharge)
-        ts.checker.auth(d).allow(common.test_context, macaroonbakery.LOGIN_OP)
+        ts.checker.auth([d]).allow(common.test_context,
+                                   [macaroonbakery.LOGIN_OP])
 
         for i, m in enumerate(d):
-            for j, cav in enumerate(m.caveats()):
-                if cav.VerificationId is not None and len(cav.id) > 3:
+            for j, cav in enumerate(m.caveats):
+                if (cav.verification_key_id is not None and
+                        len(cav.caveat_id) > 3):
                     self.fail('caveat id on caveat {} of macaroon {} '
                               'is too big ({})'.format(j, i, cav.id))

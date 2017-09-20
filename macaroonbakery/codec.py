@@ -4,8 +4,7 @@ import base64
 import json
 
 import six
-from nacl.encoding import Base64Encoder
-from nacl.public import Box, PublicKey
+import nacl.public
 
 import macaroonbakery
 import macaroonbakery.checkers as checkers
@@ -40,38 +39,36 @@ def encode_caveat(condition, root_key, third_party_info, key, ns):
     if (third_party_info.version == macaroonbakery.BAKERY_V2 or
             third_party_info.version == macaroonbakery.BAKERY_V3):
         return _encode_caveat_v2_v3(third_party_info.version, condition,
-                                    root_key, third_party_info.public_key, key,
-                                    ns)
+                                    root_key, third_party_info.public_key,
+                                    key, ns)
     raise NotImplementedError('only bakery v1, v2, v3 supported')
 
 
 def _encode_caveat_v1(condition, root_key, third_party_pub_key, key):
     '''Create a JSON-encoded third-party caveat.
 
-    The third_party_pub_key key represents the public key of the third party
+    The third_party_pub_key key represents the PublicKey of the third party
     we're encrypting the caveat for; the key is the public/private key pair of
     the party that's adding the caveat.
 
     @param condition string
     @param root_key bytes
-    @param third_party_pub_key nacl public key
-    @param key nacl private key
+    @param third_party_pub_key (PublicKey)
+    @param key (PrivateKey)
     @return a base64 encoded bytes
     '''
     plain_data = json.dumps({
         'RootKey': base64.b64encode(root_key).decode('ascii'),
         'Condition': condition
     })
-    box = Box(key, third_party_pub_key)
+    box = nacl.public.Box(key.key, third_party_pub_key.key)
 
     encrypted = box.encrypt(six.b(plain_data))
-    nonce = encrypted[0:Box.NONCE_SIZE]
-    encrypted = encrypted[Box.NONCE_SIZE:]
+    nonce = encrypted[0:nacl.public.Box.NONCE_SIZE]
+    encrypted = encrypted[nacl.public.Box.NONCE_SIZE:]
     return base64.b64encode(six.b(json.dumps({
-        'ThirdPartyPublicKey': third_party_pub_key.encode(
-            Base64Encoder).decode('ascii'),
-        'FirstPartyPublicKey': key.public_key.encode(
-            Base64Encoder).decode('ascii'),
+        'ThirdPartyPublicKey': third_party_pub_key.encode().decode('ascii'),
+        'FirstPartyPublicKey': key.public_key.encode().decode('ascii'),
         'Nonce': base64.b64encode(nonce).decode('ascii'),
         'Id': base64.b64encode(encrypted).decode('ascii')
     })))
@@ -106,13 +103,13 @@ def _encode_caveat_v2_v3(version, condition, root_key, third_party_pub_key,
         ns_data = ns.serialize_text()
     data = bytearray()
     data.append(version)
-    data.extend(third_party_pub_key.encode()[:_PUBLIC_KEY_PREFIX_LEN])
-    data.extend(key.public_key.encode()[:])
+    data.extend(third_party_pub_key.encode(raw=True)[:_PUBLIC_KEY_PREFIX_LEN])
+    data.extend(key.public_key.encode(raw=True)[:])
     secret = _encode_secret_part_v2_v3(version, condition, root_key, ns_data)
-    box = Box(key, third_party_pub_key)
+    box = nacl.public.Box(key.key, third_party_pub_key.key)
     encrypted = box.encrypt(secret)
-    nonce = encrypted[0:Box.NONCE_SIZE]
-    encrypted = encrypted[Box.NONCE_SIZE:]
+    nonce = encrypted[0:nacl.public.Box.NONCE_SIZE]
+    encrypted = encrypted[nacl.public.Box.NONCE_SIZE:]
     data.extend(nonce[:])
     data.extend(encrypted)
     return bytes(data)
@@ -149,7 +146,7 @@ def decode_caveat(key, caveat):
     @return ThirdPartyCaveatInfo
     '''
     if len(caveat) == 0:
-        raise ValueError('empty third party caveat')
+        raise macaroonbakery.VerificationError('empty third party caveat')
 
     first = caveat[:1]
     if first == b'e':
@@ -163,11 +160,11 @@ def decode_caveat(key, caveat):
                 and first_as_int == macaroonbakery.BAKERY_V3):
             # If it has the version 3 caveat tag and it's too short, it's
             # almost certainly an id, not an encrypted payload.
-            raise ValueError(
+            raise macaroonbakery.VerificationError(
                 'caveat id payload not provided for caveat id {}'.format(
                     caveat))
         return _decode_caveat_v2_v3(first_as_int, key, caveat)
-    raise ValueError('unknown version for caveat')
+    raise macaroonbakery.VerificationError('unknown version for caveat')
 
 
 def _decode_caveat_v1(key, caveat):
@@ -179,8 +176,9 @@ def _decode_caveat_v1(key, caveat):
 
     data = base64.b64decode(caveat).decode('utf-8')
     wrapper = json.loads(data)
-    tp_public_key = PublicKey(base64.b64decode(wrapper['ThirdPartyPublicKey']))
-    if key.public_key != tp_public_key:
+    tp_public_key = nacl.public.PublicKey(
+        base64.b64decode(wrapper['ThirdPartyPublicKey']))
+    if key.public_key.key != tp_public_key:
         raise Exception('public key mismatch')  # TODO
 
     if wrapper.get('FirstPartyPublicKey', None) is None:
@@ -190,16 +188,17 @@ def _decode_caveat_v1(key, caveat):
     secret = base64.b64decode(wrapper.get('Id'))
     nonce = base64.b64decode(wrapper.get('Nonce'))
 
-    fp_public_key = PublicKey(base64.b64decode(
+    fp_public_key = nacl.public.PublicKey(base64.b64decode(
         wrapper.get('FirstPartyPublicKey')))
 
-    box = Box(key, fp_public_key)
+    box = nacl.public.Box(key.key, fp_public_key)
     c = box.decrypt(secret, nonce)
     record = json.loads(c.decode('utf-8'))
-    fp_key = PublicKey(base64.b64decode(wrapper.get('FirstPartyPublicKey')))
+    fp_key = nacl.public.PublicKey(
+        base64.b64decode(wrapper.get('FirstPartyPublicKey')))
     return macaroonbakery.ThirdPartyCaveatInfo(
         condition=record.get('Condition'),
-        first_party_public_key=fp_key,
+        first_party_public_key=macaroonbakery.PublicKey(fp_key),
         third_party_key_pair=key,
         root_key=base64.b64decode(record.get('RootKey')),
         caveat=caveat,
@@ -212,27 +211,27 @@ def _decode_caveat_v2_v3(version, key, caveat):
     '''Decodes a version 2 or version 3 caveat.
     '''
     if (len(caveat) < 1 + _PUBLIC_KEY_PREFIX_LEN +
-            _KEY_LEN + Box.NONCE_SIZE + 16):
-        raise ValueError('caveat id too short')
+            _KEY_LEN + nacl.public.Box.NONCE_SIZE + 16):
+        raise macaroonbakery.VerificationError('caveat id too short')
     original_caveat = caveat
     caveat = caveat[1:]  # skip version (already checked)
 
     pk_prefix = caveat[:_PUBLIC_KEY_PREFIX_LEN]
     caveat = caveat[_PUBLIC_KEY_PREFIX_LEN:]
-    if key.public_key.encode()[:_PUBLIC_KEY_PREFIX_LEN] != pk_prefix:
-        raise ValueError('public key mismatch')
+    if key.public_key.encode(raw=True)[:_PUBLIC_KEY_PREFIX_LEN] != pk_prefix:
+        raise macaroonbakery.VerificationError('public key mismatch')
 
     first_party_pub = caveat[:_KEY_LEN]
     caveat = caveat[_KEY_LEN:]
-    nonce = caveat[:Box.NONCE_SIZE]
-    caveat = caveat[Box.NONCE_SIZE:]
-    fp_public_key = PublicKey(first_party_pub)
-    box = Box(key, fp_public_key)
+    nonce = caveat[:nacl.public.Box.NONCE_SIZE]
+    caveat = caveat[nacl.public.Box.NONCE_SIZE:]
+    fp_public_key = nacl.public.PublicKey(first_party_pub)
+    box = nacl.public.Box(key.key, fp_public_key)
     data = box.decrypt(caveat, nonce)
     root_key, condition, ns = _decode_secret_part_v2_v3(version, data)
     return macaroonbakery.ThirdPartyCaveatInfo(
         condition=condition.decode('utf-8'),
-        first_party_public_key=fp_public_key,
+        first_party_public_key=macaroonbakery.PublicKey(fp_public_key),
         third_party_key_pair=key,
         root_key=root_key,
         caveat=original_caveat,
@@ -243,11 +242,11 @@ def _decode_caveat_v2_v3(version, key, caveat):
 
 def _decode_secret_part_v2_v3(version, data):
     if len(data) < 1:
-        raise ValueError('secret part too short')
+        raise macaroonbakery.VerificationError('secret part too short')
     got_version = six.byte2int(data[:1])
     data = data[1:]
     if version != got_version:
-        raise ValueError(
+        raise macaroonbakery.VerificationError(
             'unexpected secret part version, got {} want {}'.format(
                 got_version, version))
     root_key_length, read = decode_uvarint(data)

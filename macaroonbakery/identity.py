@@ -97,7 +97,7 @@ class IdentityClient(object):
         OK to return all zero values when there's
         no identity found and no third party to address caveats to.
         :param: ctx an AuthContext
-        :return: an Identity
+        :return: an Identity and array of caveats
         '''
         raise NotImplementedError('identity_from_context method must be '
                                   'defined in subclass')

@@ -23,12 +23,13 @@ from macaroonbakery.checker import (
 )
 from macaroonbakery.error import (
     ThirdPartyCaveatCheckFailed, CaveatNotRecognizedError, AuthInitError,
-    PermissionDenied, IdentityError, DischargeRequiredError, VerificationError
+    PermissionDenied, IdentityError, DischargeRequiredError, VerificationError,
+    ThirdPartyInfoNotFound
 )
 from macaroonbakery.identity import (
     Identity, ACLIdentity, SimpleIdentity, IdentityClient, NoIdentities
 )
-from macaroonbakery.keys import generate_key
+from macaroonbakery.keys import generate_key, PrivateKey, PublicKey
 from macaroonbakery.store import MemoryOpsStore, MemoryKeyStore
 from macaroonbakery.third_party import (
     ThirdPartyCaveatInfo, ThirdPartyInfo, legacy_namespace
@@ -52,6 +53,7 @@ __all__ = [
     'AuthInitError',
     'Authorizer',
     'AuthorizerFunc',
+    'Bakery',
     'BAKERY_V0',
     'BAKERY_V1',
     'BAKERY_V2',
@@ -76,11 +78,15 @@ __all__ = [
     'Op',
     'Oven',
     'PermissionDenied',
+    'PrivateKey',
+    'PublicKey',
+    'NoIdentities',
     'SimpleIdentity',
     'ThirdPartyCaveatCheckFailed',
     'ThirdPartyCaveatChecker',
     'ThirdPartyCaveatInfo',
     'ThirdPartyInfo',
+    'ThirdPartyInfoNotFound',
     'ThirdPartyLocator',
     'ThirdPartyStore',
     'VERSION',

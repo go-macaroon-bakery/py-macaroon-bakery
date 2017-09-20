@@ -3,8 +3,6 @@
 import abc
 from collections import namedtuple
 
-from nacl.encoding import Base64Encoder
-
 import macaroonbakery
 import macaroonbakery.checkers as checkers
 
@@ -129,7 +127,10 @@ def discharge(ctx, id, caveat, key, checker, locator):
     # Note that we don't check the error - we allow the
     # third party checker to see even caveats that we can't
     # understand.
-    cond, arg = checkers.parse_caveat(cav_info.condition)
+    try:
+        cond, arg = checkers.parse_caveat(cav_info.condition)
+    except ValueError as exc:
+        raise macaroonbakery.VerificationError(exc.args[0])
 
     if cond == checkers.COND_NEED_DECLARED:
         cav_info = cav_info._replace(condition=arg.encode('utf-8'))
@@ -154,15 +155,16 @@ def _check_need_declared(ctx, cav_info, checker):
     arg = cav_info.condition.decode('utf-8')
     i = arg.find(' ')
     if i <= 0:
-        raise ValueError(
+        raise macaroonbakery.VerificationError(
             'need-declared caveat requires an argument, got %q'.format(arg))
     need_declared = arg[0:i].split(',')
     for d in need_declared:
         if d == '':
-            raise ValueError('need-declared caveat with empty required '
-                             'attribute')
+            raise macaroonbakery.VerificationError('need-declared caveat with '
+                                                   'empty required attribute')
     if len(need_declared) == 0:
-        raise ValueError('need-declared caveat with no required attributes')
+        raise macaroonbakery.VerificationError('need-declared caveat with no '
+                                               'required attributes')
     cav_info = cav_info._replace(condition=arg[i + 1:].encode('utf-8'))
     caveats = checker.check_third_party_caveat(ctx, cav_info)
     declared = {}
@@ -179,7 +181,8 @@ def _check_need_declared(ctx, cav_info, checker):
             continue
         parts = arg.split()
         if len(parts) != 2:
-            raise ValueError('declared caveat has no value')
+            raise macaroonbakery.VerificationError('declared caveat has no '
+                                                   'value')
         declared[parts[0]] = True
     # Add empty declarations for everything mentioned in need-declared
     # that was not actually declared.
@@ -197,10 +200,10 @@ class _EmptyLocator(macaroonbakery.ThirdPartyLocator):
 def local_third_party_caveat(key, version):
     ''' Returns a third-party caveat that, when added to a macaroon with
     add_caveat, results in a caveat with the location "local", encrypted with
-    the given public key.
+    the given PublicKey.
     This can be automatically discharged by discharge_all passing a local key.
     '''
-    encoded_key = key.encode(Base64Encoder).decode('utf-8')
+    encoded_key = key.encode().decode('utf-8')
     loc = 'local {}'.format(encoded_key)
     if version >= macaroonbakery.BAKERY_V2:
         loc = 'local {} {}'.format(version, encoded_key)

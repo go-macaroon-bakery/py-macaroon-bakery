@@ -64,7 +64,7 @@ class Oven:
             my_store = macaroonbakery.MemoryKeyStore()
             self.root_keystore_for_ops = lambda x: my_store
 
-    def macaroon(self, version, expiry, caveats, *ops):
+    def macaroon(self, version, expiry, caveats, ops):
         ''' Takes a macaroon with the given version from the oven,
         associates it with the given operations and attaches the given caveats.
         There must be at least one operation specified.
@@ -77,10 +77,10 @@ class Oven:
             raise ValueError('cannot mint a macaroon associated '
                              'with no operations')
 
-        ops = canonical_ops(*ops)
+        ops = canonical_ops(ops)
         root_key, storage_id = self.root_keystore_for_ops(ops).root_key()
 
-        id = self._new_macaroon_id(storage_id, expiry, *ops)
+        id = self._new_macaroon_id(storage_id, expiry, ops)
 
         id_bytes = six.int2byte(macaroonbakery.LATEST_BAKERY_VERSION) + \
             id.SerializeToString()
@@ -97,23 +97,23 @@ class Oven:
         m.add_caveats(caveats, self.key, self.locator)
         return m
 
-    def _new_macaroon_id(self, storage_id, expiry, *ops):
+    def _new_macaroon_id(self, storage_id, expiry, ops):
         nonce = os.urandom(16)
         if len(ops) == 1 or self.ops_store is None:
             return id_pb2.MacaroonId(
                 nonce=nonce,
                 storageId=storage_id,
-                ops=_macaroon_id_ops(*ops))
+                ops=_macaroon_id_ops(ops))
         # We've got several operations and a multi-op store, so use the store.
         # TODO use the store only if the encoded macaroon id exceeds some size?
-        entity = self.ops_entity(*ops)
-        self.ops_store.put_ops(entity, expiry, *ops)
+        entity = self.ops_entity(ops)
+        self.ops_store.put_ops(entity, expiry, ops)
         return id_pb2.MacaroonId(
             nonce=nonce,
             storageId=storage_id,
             ops=[id_pb2.Op(entity=entity, actions=['*'])])
 
-    def ops_entity(self, *ops):
+    def ops_entity(self, ops):
         ''' Returns a new multi-op entity name string that represents
         all the given operations and caveats. It returns the same value
         regardless of the ordering of the operations. It assumes that the
@@ -147,7 +147,8 @@ class Oven:
         storage_id, ops = _decode_macaroon_id(macaroons[0].identifier_bytes)
         root_key = self.root_keystore_for_ops(ops).get(storage_id)
         if root_key is None:
-            raise ValueError('macaroon not found in storage')
+            raise macaroonbakery.VerificationError(
+                'macaroon key not found in storage')
         v = Verifier()
         conditions = []
 
@@ -201,9 +202,11 @@ def _decode_macaroon_id(id):
         try:
             id1 = id_pb2.MacaroonId.FromString(id[1:])
         except google.protobuf.message.DecodeError:
-            raise ValueError('no operations found in macaroon')
+            raise macaroonbakery.VerificationError(
+                'no operations found in macaroon')
         if len(id1.ops) == 0 or len(id1.ops[0].actions) == 0:
-            raise ValueError('no operations found in macaroon')
+            raise macaroonbakery.VerificationError(
+                'no operations found in macaroon')
 
         ops = []
         for op in id1.ops:
@@ -228,18 +231,17 @@ def _is_lower_case_hex_char(b):
     return False
 
 
-def canonical_ops(*ops):
+def canonical_ops(ops):
     ''' Returns the given operations array sorted with duplicates removed.
 
     @param ops checker.Ops
     @return: checker.Ops
     '''
-
     new_ops = sorted(set(ops), key=lambda x: (x.entity, x.action))
     return new_ops
 
 
-def _macaroon_id_ops(*ops):
+def _macaroon_id_ops(ops):
     '''Return operations suitable for serializing as part of a MacaroonId.
 
     It assumes that ops has been canonicalized and that there's at least
