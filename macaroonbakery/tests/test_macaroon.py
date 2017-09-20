@@ -181,3 +181,22 @@ class TestMacaroon(TestCase):
         self.assertEqual(len(m.macaroon.caveats), 2)
         self.assertEqual(len(m1.macaroon.caveats), 1)
         self.assertNotEqual(m._caveat_data, m1._caveat_data)
+
+    def test_json_deserialize_from_go(self):
+        ns = checkers.Namespace()
+        ns.register("someuri", "x")
+        m = macaroonbakery.Macaroon(
+            root_key=b'rootkey',id=b'some id', location='here',
+            version=macaroonbakery.LATEST_BAKERY_VERSION, namespace=ns)
+        m.add_caveat(checkers.Caveat(condition='something',
+                                     namespace='someuri'))
+        data = '{"m":{"c":[{"i":"x:something"}],"l":"here","i":"some id",' \
+               '"s64":"c8edRIupArSrY-WZfa62pgZFD8VjDgqho9U2PlADe-E"},"v":3,' \
+               '"ns":"someuri:x"}'
+        m_go = macaroonbakery.Macaroon.deserialize_json(data)
+
+        self.assertEqual(m.macaroon.signature_bytes,
+                         m_go.macaroon.signature_bytes)
+        self.assertEqual(m.macaroon.version, m_go.macaroon.version)
+        self.assertEqual(len(m_go.macaroon.caveats), 1)
+        self.assertEqual(m.namespace, m_go.namespace)
