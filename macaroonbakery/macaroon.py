@@ -6,7 +6,6 @@ import json
 import logging
 import os
 
-import nacl.public
 import pymacaroons
 from pymacaroons.serializers import json_serializer
 
@@ -168,7 +167,7 @@ class Macaroon(object):
             'v': self._version,
         }
         if self._namespace is not None:
-            serialized['ns'] = self._namespace._uri_to_prefix
+            serialized['ns'] = self._namespace.serialize_text().decode('utf-8')
         caveat_data = {}
         for id in self._caveat_data:
             key = base64.b64encode(id).decode('utf-8')
@@ -204,7 +203,7 @@ class Macaroon(object):
             raise ValueError(
                 'underlying macaroon has inconsistent version; '
                 'got {} want {}'.format(m.version, macaroon_version(version)))
-        namespace = serialized.get('ns')
+        namespace = checkers.deserialize_namespace(serialized.get('ns'))
         cdata = serialized.get('cdata', {})
         caveat_data = {}
         for id64 in cdata:
@@ -212,7 +211,7 @@ class Macaroon(object):
             data = utils.raw_b64decode(cdata[id64])
             caveat_data[id] = data
         macaroon = Macaroon(root_key=None, id=None,
-                            namespace=checkers.Namespace(namespace),
+                            namespace=namespace,
                             version=version)
         macaroon._caveat_data = caveat_data
         macaroon._macaroon = m
@@ -366,10 +365,7 @@ def _parse_local_location(loc):
             return None
         fields = fields[1:]
     if len(fields) == 1:
-        key = macaroonbakery.PublicKey(
-            nacl.public.PublicKey(fields[0],
-                                  encoder=nacl.encoding.Base64Encoder)
-        )
+        key = macaroonbakery.PublicKey.deserialize(fields[0])
         return macaroonbakery.ThirdPartyInfo(public_key=key,
                                              version=v)
     return None
