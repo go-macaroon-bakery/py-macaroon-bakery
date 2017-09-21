@@ -16,7 +16,7 @@ def legacy_namespace():
 class ThirdPartyCaveatInfo(namedtuple(
     'ThirdPartyCaveatInfo',
     'condition, first_party_public_key, third_party_key_pair, root_key, '
-        'caveat, version, namespace')):
+        'caveat, version, id, namespace')):
     '''ThirdPartyCaveatInfo holds the information decoded from
     a third party caveat id.
 
@@ -37,6 +37,10 @@ class ThirdPartyCaveatInfo(namedtuple(
 
     :param: version holds the version that was used to encode
     the caveat id.
+
+    :param: id holds the id of the third party caveat (the id that the
+    discharge macaroon should be given). This will differ from Caveat
+    when the caveat information is encoded separately.
 
     :param: namespace object that holds the namespace of the first party
     that created the macaroon, as encoded by the party that added the

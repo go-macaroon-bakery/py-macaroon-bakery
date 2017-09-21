@@ -14,11 +14,14 @@ from macaroonbakery.checkers.declared import (
 )
 from macaroonbakery.checkers.operation import context_with_operations
 from macaroonbakery.checkers.namespace import Namespace, deserialize_namespace
-from macaroonbakery.checkers.time import context_with_clock
+from macaroonbakery.checkers.time import (
+    context_with_clock, macaroons_expiry_time
+)
 from macaroonbakery.checkers.checkers import (
     Checker, CheckerInfo, RegisterError
 )
 from macaroonbakery.checkers.auth_context import AuthContext, ContextKey
+from macaroonbakery.checkers.utils import condition_with_prefix
 
 __all__ = [
     'AuthContext',
@@ -36,6 +39,7 @@ __all__ = [
     'Namespace',
     'RegisterError',
     'allow_caveat',
+    'condition_with_prefix',
     'context_with_declared',
     'context_with_operations',
     'context_with_clock',
@@ -44,6 +48,7 @@ __all__ = [
     'deserialize_namespace',
     'infer_declared',
     'infer_declared_from_conditions',
+    'macaroons_expiry_time',
     'need_declared_caveat',
     'parse_caveat',
     'time_before_caveat',

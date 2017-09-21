@@ -8,6 +8,9 @@ import os
 
 import google
 from pymacaroons import MACAROON_V2, Verifier
+from pymacaroons.exceptions import (
+    MacaroonUnmetCaveatException, MacaroonInvalidSignatureException
+)
 import six
 
 import macaroonbakery
@@ -158,7 +161,13 @@ class Oven:
             conditions.append(condition)
             return True
         v.satisfy_general(validator)
-        v.verify(macaroons[0], root_key, macaroons[1:])
+        try:
+            v.verify(macaroons[0], root_key, macaroons[1:])
+        except (MacaroonUnmetCaveatException,
+                MacaroonInvalidSignatureException) as exc:
+            raise macaroonbakery.VerificationError(
+                'verification failed: {}'.format(exc.args[0]))
+
         if (self.ops_store is not None
             and len(ops) == 1
                 and ops[0].entity.startswith('multi-')):

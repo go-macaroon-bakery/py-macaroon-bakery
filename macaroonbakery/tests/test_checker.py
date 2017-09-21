@@ -597,11 +597,11 @@ class TestChecker(TestCase):
         checker = macaroonbakery.Checker(
             macaroon_opstore=_MacaroonStoreWithError())
         m = pymacaroons.Macaroon(version=pymacaroons.MACAROON_V2)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(macaroonbakery.AuthInitError):
             checker.auth([m]).allow(test_context, [macaroonbakery.LOGIN_OP])
 
 
-class _DischargerLocator(object):
+class _DischargerLocator(macaroonbakery.ThirdPartyLocator):
     def __init__(self, dischargers=None):
         if dischargers is None:
             dischargers = {}

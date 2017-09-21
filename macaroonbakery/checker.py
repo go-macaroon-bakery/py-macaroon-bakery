@@ -115,7 +115,9 @@ class AuthChecker(object):
             try:
                 ops, conditions = self.parent._macaroon_opstore.macaroon_ops(
                     ms)
-            except macaroonbakery.VerificationError as exc:
+            except macaroonbakery.VerificationError:
+                raise
+            except Exception as exc:
                 self._init_errors.append(exc.args[0])
                 continue
 

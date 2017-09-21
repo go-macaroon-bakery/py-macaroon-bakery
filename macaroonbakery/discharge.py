@@ -123,7 +123,16 @@ def discharge(ctx, id, caveat, key, checker, locator):
         # for any more ids.
         caveat_id_prefix = id
     cav_info = macaroonbakery.decode_caveat(key, caveat)
-
+    cav_info = macaroonbakery.ThirdPartyCaveatInfo(
+        condition=cav_info.condition,
+        first_party_public_key=cav_info.first_party_public_key,
+        third_party_key_pair=cav_info.third_party_key_pair,
+        root_key=cav_info.root_key,
+        caveat=cav_info.caveat,
+        version=cav_info.version,
+        id=id,
+        namespace=cav_info.namespace
+    )
     # Note that we don't check the error - we allow the
     # third party checker to see even caveats that we can't
     # understand.
