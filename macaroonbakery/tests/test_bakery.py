@@ -90,6 +90,32 @@ def first_407_then_200(url, request):
         return request.hooks['response'][0](resp)
 
 
+@urlmatch(netloc='example.com:8000', path='.*/someprotecteurl')
+def first_407_then_200_with_port(url, request):
+    if request.headers.get('cookie', '').startswith('macaroon-'):
+        return {
+            'status_code': 200,
+            'content': {
+                'Value': 'some value'
+            }
+        }
+    else:
+        resp = response(status_code=407,
+                        content={
+                            'Info': {
+                                'Macaroon': json_macaroon,
+                                'MacaroonPath': '/',
+                                'CookieNameSuffix': 'test'
+                            },
+                            'Message': 'verification failed: no macaroon '
+                                       'cookies in request',
+                            'Code': 'macaroon discharge required'
+                        },
+                        headers={'Content-Type': 'application/json'},
+                        request=request)
+        return request.hooks['response'][0](resp)
+
+
 @urlmatch(path='.*/someprotecteurl')
 def valid_200(url, request):
     return {
@@ -163,4 +189,14 @@ class TestBakery(TestCase):
                                             cookies=jar))
                     resp.raise_for_status()
         mock_open.assert_called_once_with(u'http://example.com/visit', new=1)
+        assert 'macaroon-test' in jar.keys()
+
+    def test_netloc_with_port(self):
+        jar = requests.cookies.RequestsCookieJar()
+        with HTTMock(first_407_then_200_with_port):
+            with HTTMock(discharge_200):
+                resp = requests.get('http://example.com:8000/someprotecteurl',
+                                    cookies=jar,
+                                    auth=httpbakery.BakeryAuth(cookies=jar))
+        resp.raise_for_status()
         assert 'macaroon-test' in jar.keys()
