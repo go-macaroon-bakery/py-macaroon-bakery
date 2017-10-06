@@ -168,6 +168,15 @@ def wait_after_401(url, request):
 
 
 class TestBakery(TestCase):
+
+    def assert_cookie_security(self, jar, name, secure):
+        for cookie in jar:
+            if cookie.name == name:
+                assert cookie.secure == secure
+                break
+        else:
+            assert False, 'no cookie named {} found in jar'.format(name)
+
     def test_discharge(self):
         jar = requests.cookies.RequestsCookieJar()
         with HTTMock(first_407_then_200):
@@ -177,6 +186,7 @@ class TestBakery(TestCase):
                                     auth=httpbakery.BakeryAuth(cookies=jar))
         resp.raise_for_status()
         assert 'macaroon-test' in jar.keys()
+        self.assert_cookie_security(jar, 'macaroon-test', secure=False)
 
     @patch('webbrowser.open')
     def test_407_then_401_on_discharge(self, mock_open):
@@ -191,7 +201,7 @@ class TestBakery(TestCase):
         mock_open.assert_called_once_with(u'http://example.com/visit', new=1)
         assert 'macaroon-test' in jar.keys()
 
-    def test_netloc_with_port(self):
+    def test_cookie_with_port(self):
         jar = requests.cookies.RequestsCookieJar()
         with HTTMock(first_407_then_200_with_port):
             with HTTMock(discharge_200):
@@ -200,3 +210,14 @@ class TestBakery(TestCase):
                                     auth=httpbakery.BakeryAuth(cookies=jar))
         resp.raise_for_status()
         assert 'macaroon-test' in jar.keys()
+
+    def test_secure_cookie_for_https(self):
+        jar = requests.cookies.RequestsCookieJar()
+        with HTTMock(first_407_then_200_with_port):
+            with HTTMock(discharge_200):
+                resp = requests.get('https://example.com:8000/someprotecteurl',
+                                    cookies=jar,
+                                    auth=httpbakery.BakeryAuth(cookies=jar))
+        resp.raise_for_status()
+        assert 'macaroon-test' in jar.keys()
+        self.assert_cookie_security(jar, 'macaroon-test', secure=True)
