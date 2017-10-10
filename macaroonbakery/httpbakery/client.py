@@ -118,18 +118,21 @@ def _prepare_discharge_hook(req, key, jar, visit_page):
             name = 'macaroon-' + info['CookieNameSuffix']
         else:
             name = 'macaroon-' + discharges[0].signature
+        domain = parsed_url.hostname or parsed_url.netloc
+        port = str(parsed_url.port) if parsed_url.port is not None else None
+        secure = parsed_url.scheme == 'https'
         cookie = Cookie(
             version=0,
             name=name,
             value=all_macaroons,
-            port=None,
-            port_specified=False,
-            domain=parsed_url[1],
+            port=port,
+            port_specified=port is not None,
+            domain=domain,
             domain_specified=True,
             domain_initial_dot=False,
-            path=parsed_url[2],
+            path=parsed_url.path,
             path_specified=True,
-            secure=False,
+            secure=secure,
             expires=None,
             discard=False,
             comment=None,
