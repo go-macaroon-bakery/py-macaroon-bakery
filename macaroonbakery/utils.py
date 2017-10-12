@@ -24,7 +24,8 @@ def serialize_macaroon_string(macaroon):
     @param macaroon object to be serialized.
     @return a string serialization form of the macaroon.
     '''
-    return macaroon.serialize(json_serializer.JsonSerializer())
+    a = macaroon.serialize(json_serializer.JsonSerializer())
+    return a
 
 
 def add_base64_padding(b):
@@ -53,7 +54,7 @@ def remove_base64_padding(b):
 def raw_b64decode(s):
     '''Base64 decode with added padding with urlsafe or not.
 
-    @param s string decode
+    @param s bytes decode
     @return bytes decoded
     '''
     if '_' or '-' in s:
@@ -65,7 +66,7 @@ def raw_b64decode(s):
 def raw_urlsafe_b64decode(s):
     '''Base64 decode with added padding and convertion to bytes.
 
-    @param s string decode
+    @param s bytes decode
     @return bytes decoded
     '''
     return base64.urlsafe_b64decode(add_base64_padding(
@@ -75,7 +76,7 @@ def raw_urlsafe_b64decode(s):
 def raw_urlsafe_b64encode(b):
     '''Base64 encode with padding removed.
 
-    @param s string decode
+    @param s bytes decode
     @return bytes decoded
     '''
     return remove_base64_padding(base64.urlsafe_b64encode(b))
@@ -87,3 +88,5 @@ def visit_page_with_browser(visit_url):
     @param visit_url: where to prove your identity.
     '''
     webbrowser.open(visit_url, new=1)
+    print('Opening an authorization web page in your browser.')
+    print('If it does not open, please open this URL:\n', visit_url, '\n')

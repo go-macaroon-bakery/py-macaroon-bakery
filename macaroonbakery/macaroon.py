@@ -12,6 +12,7 @@ from pymacaroons.serializers import json_serializer
 import macaroonbakery
 import macaroonbakery.checkers as checkers
 from macaroonbakery import utils
+from macaroonbakery import legacy_namespace
 
 
 log = logging.getLogger(__name__)
@@ -178,13 +179,12 @@ class Macaroon(object):
         return serialized
 
     @classmethod
-    def deserialize_json(cls, serialized_json):
-        serialized = json.loads(serialized_json)
+    def from_dict(cls, serialized):
         json_macaroon = serialized.get('m')
         if json_macaroon is None:
             # Try the v1 format if we don't have a macaroon filed
             m = pymacaroons.Macaroon.deserialize(
-                serialized_json, json_serializer.JsonSerializer())
+                json.dumps(serialized), json_serializer.JsonSerializer())
             macaroon = Macaroon(root_key=None, id=None,
                                 namespace=macaroonbakery.legacy_namespace(),
                                 version=_bakery_version(m.version))
@@ -214,6 +214,20 @@ class Macaroon(object):
                             namespace=namespace,
                             version=version)
         macaroon._caveat_data = caveat_data
+        macaroon._macaroon = m
+        return macaroon
+
+    @classmethod
+    def deserialize_json(cls, serialized_json):
+        serialized = json.loads(serialized_json)
+        return Macaroon.from_dict(serialized)
+
+    @classmethod
+    def deserialize_legacy(cls, serialized):
+        m = pymacaroons.Macaroon.deserialize(serialized)
+        macaroon = Macaroon(root_key=None, id=None,
+                            namespace=legacy_namespace(),
+                            version=_bakery_version(m.version))
         macaroon._macaroon = m
         return macaroon
 

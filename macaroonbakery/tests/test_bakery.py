@@ -215,9 +215,10 @@ class TestBakery(TestCase):
         jar = requests.cookies.RequestsCookieJar()
         with HTTMock(first_407_then_200_with_port):
             with HTTMock(discharge_200):
-                resp = requests.get('https://example.com:8000/someprotecteurl',
-                                    cookies=jar,
-                                    auth=httpbakery.BakeryAuth(cookies=jar))
+                resp = requests.get(
+                    'https://example.com:8000/someprotecteurl',
+                    cookies=jar,
+                    auth=httpbakery.BakeryAuth(cookies=jar))
         resp.raise_for_status()
         assert 'macaroon-test' in jar.keys()
         self.assert_cookie_security(jar, 'macaroon-test', secure=True)

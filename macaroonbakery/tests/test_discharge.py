@@ -3,12 +3,10 @@
 import unittest
 
 from pymacaroons import MACAROON_V1, Macaroon
-from pymacaroons.exceptions import (
-    MacaroonInvalidSignatureException, MacaroonUnmetCaveatException
-)
 
 import macaroonbakery
 import macaroonbakery.checkers as checkers
+from macaroonbakery.error import VerificationError
 from macaroonbakery.tests import common
 
 
@@ -151,7 +149,7 @@ class TestDischarge(unittest.TestCase):
                 macaroonbakery.LOGIN_OP
             )
             self.fail('macaroon unmet should be raised')
-        except MacaroonUnmetCaveatException:
+        except VerificationError:
             pass
 
     def test_macaroon_paper_fig6_fails_with_binding_on_tampered_sig(self):
@@ -190,10 +188,11 @@ class TestDischarge(unittest.TestCase):
             d[i + 1] = tampered_macaroon.prepare_for_request(dm)
 
         # client makes request to ts.
-        with self.assertRaises(MacaroonInvalidSignatureException) as exc:
+        with self.assertRaises(VerificationError) as exc:
             ts.checker.auth([d]).allow(common.test_context,
                                        macaroonbakery.LOGIN_OP)
-        self.assertEqual('Signatures do not match', exc.exception.args[0])
+        self.assertEqual('verification failed: Signatures do not match',
+                         exc.exception.args[0])
 
     def test_need_declared(self):
         locator = macaroonbakery.ThirdPartyStore()
@@ -389,7 +388,7 @@ class TestDischarge(unittest.TestCase):
         self.assertIsNotNone(M.unbound)
 
         # Make sure it cannot be used as a normal macaroon in the third party.
-        with self.assertRaises(macaroonbakery.AuthInitError) as exc:
+        with self.assertRaises(macaroonbakery.VerificationError) as exc:
             third_party.checker.auth([[M.unbound]]).allow(
                 common.test_context, [macaroonbakery.LOGIN_OP])
         self.assertEqual('no operations found in macaroon',

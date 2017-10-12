@@ -4,6 +4,8 @@ from six.moves.urllib.parse import urlparse
 import requests
 
 import macaroonbakery
+from macaroonbakery.httpbakery.error import BAKERY_PROTOCOL_HEADER
+from macaroonbakery import LATEST_BAKERY_VERSION
 
 
 class ThirdPartyLocator(macaroonbakery.ThirdPartyLocator):
@@ -30,11 +32,17 @@ class ThirdPartyLocator(macaroonbakery.ThirdPartyLocator):
         if info is not None:
             return info
         url_endpoint = '/discharge/info'
-        resp = requests.get(loc + url_endpoint)
+        headers = {
+            BAKERY_PROTOCOL_HEADER: str(LATEST_BAKERY_VERSION)
+        }
+        resp = requests.get(url=loc + url_endpoint, headers=headers)
         status_code = resp.status_code
         if status_code == 404:
             url_endpoint = '/publickey'
-            resp = requests.get(loc + url_endpoint)
+            headers = {
+                BAKERY_PROTOCOL_HEADER: str(LATEST_BAKERY_VERSION)
+            }
+            resp = requests.get(url=loc + url_endpoint, headers=headers)
             status_code = resp.status_code
         if status_code != 200:
             raise macaroonbakery.ThirdPartyInfoNotFound(

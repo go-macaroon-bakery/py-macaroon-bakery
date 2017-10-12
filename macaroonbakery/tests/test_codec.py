@@ -35,6 +35,7 @@ class TestCodec(TestCase):
             caveat=cid,
             third_party_key_pair=self.tp_key,
             version=macaroonbakery.BAKERY_V1,
+            id=None,
             namespace=macaroonbakery.legacy_namespace()
         ))
 
@@ -56,6 +57,7 @@ class TestCodec(TestCase):
             caveat=cid,
             third_party_key_pair=self.tp_key,
             version=macaroonbakery.BAKERY_V2,
+            id=None,
             namespace=macaroonbakery.legacy_namespace()
         ))
 
@@ -79,6 +81,7 @@ class TestCodec(TestCase):
             caveat=cid,
             third_party_key_pair=self.tp_key,
             version=macaroonbakery.BAKERY_V3,
+            id=None,
             namespace=ns
         ))
 
@@ -116,6 +119,7 @@ class TestCodec(TestCase):
             root_key=root_key,
             caveat=encrypted_cav,
             version=macaroonbakery.BAKERY_V1,
+            id=None,
             namespace=macaroonbakery.legacy_namespace()
         ))
 
@@ -142,6 +146,7 @@ class TestCodec(TestCase):
             root_key=root_key,
             caveat=encrypted_cav,
             version=macaroonbakery.BAKERY_V2,
+            id=None,
             namespace=macaroonbakery.legacy_namespace()
         ))
 
@@ -168,6 +173,7 @@ class TestCodec(TestCase):
             root_key=root_key,
             caveat=encrypted_cav,
             version=macaroonbakery.BAKERY_V3,
+            id=None,
             namespace=macaroonbakery.legacy_namespace()
         ))
 

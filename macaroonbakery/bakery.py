@@ -8,15 +8,19 @@ from macaroonbakery.discharge import discharge
 from macaroonbakery.checkers import checkers
 from macaroonbakery.oven import Oven
 from macaroonbakery.checker import Checker
+from macaroonbakery.authorizer import ClosedAuthorizer
+from macaroonbakery import LATEST_BAKERY_VERSION
 
 
 ERR_INTERACTION_REQUIRED = 'interaction required'
 ERR_DISCHARGE_REQUIRED = 'macaroon discharge required'
 TIME_OUT = 30
-DEFAULT_PROTOCOL_VERSION = {'Bakery-Protocol-Version': '1'}
 MAX_DISCHARGE_RETRIES = 3
 
 NONCE_LEN = 24
+DEFAULT_PROTOCOL_VERSION = {
+    'Bakery-Protocol-Version': LATEST_BAKERY_VERSION
+}
 
 
 # A named tuple composed of the visit_url and wait_url coming from the error
@@ -165,7 +169,7 @@ class Bakery(object):
     '''
     def __init__(self, location=None, locator=None, ops_store=None, key=None,
                  identity_client=None, checker=None, root_key_store=None,
-                 authorizer=None):
+                 authorizer=ClosedAuthorizer()):
         '''Returns a new Bakery instance which combines an Oven with a
         Checker for the convenience of callers that wish to use both
         together.
