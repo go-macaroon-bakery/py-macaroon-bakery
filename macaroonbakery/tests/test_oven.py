@@ -56,7 +56,7 @@ class TestOven(TestCase):
         ops = [bakery.Op('one', 'read'),
                bakery.Op('one', 'write'),
                bakery.Op('two', 'read')]
-        m = test_oven.macaroon(bakery.LATEST_BAKERY_VERSION, AGES,
+        m = test_oven.macaroon(bakery.LATEST_VERSION, AGES,
                                None, ops)
         got_ops, conds = test_oven.macaroon_ops([m.macaroon])
         self.assertEquals(len(conds), 1)  # time-before caveat.
@@ -67,7 +67,7 @@ class TestOven(TestCase):
         ops = [bakery.Op('one', 'read'),
                bakery.Op('one', 'write'),
                bakery.Op('two', 'read')]
-        m = test_oven.macaroon(bakery.LATEST_BAKERY_VERSION, AGES,
+        m = test_oven.macaroon(bakery.LATEST_VERSION, AGES,
                                None, ops)
         got_ops, conds = test_oven.macaroon_ops([m.macaroon])
         self.assertEquals(len(conds), 1)  # time-before caveat.
@@ -78,7 +78,7 @@ class TestOven(TestCase):
         ops = [bakery.Op('one', 'read'),
                bakery.Op('one', 'write'),
                bakery.Op('two', 'read')]
-        m = test_oven.macaroon(bakery.BAKERY_V1, AGES, None, ops)
+        m = test_oven.macaroon(bakery.VERSION_1, AGES, None, ops)
         got_ops, conds = test_oven.macaroon_ops([m.macaroon])
         self.assertEquals(len(conds), 1)  # time-before caveat.
         self.assertEquals(bakery.canonical_ops(got_ops), ops)
@@ -90,7 +90,7 @@ class TestOven(TestCase):
         for i in range(30000):
             ops.append(bakery.Op(entity='entity' + str(i), action='action' + str(i)))
 
-        m = test_oven.macaroon(bakery.LATEST_BAKERY_VERSION, AGES,
+        m = test_oven.macaroon(bakery.LATEST_VERSION, AGES,
                                None, ops)
         got_ops, conds = test_oven.macaroon_ops([m.macaroon])
         self.assertEquals(len(conds), 1)  # time-before caveat.
@@ -108,7 +108,7 @@ class TestOven(TestCase):
                bakery.Op('one', 'write'),
                bakery.Op('two', 'read')]
 
-        m = test_oven.macaroon(bakery.LATEST_BAKERY_VERSION, AGES,
+        m = test_oven.macaroon(bakery.LATEST_VERSION, AGES,
                                None, ops)
         got_ops, conds = test_oven.macaroon_ops([m.macaroon])
         self.assertEquals(bakery.canonical_ops(got_ops),
@@ -119,6 +119,6 @@ class TestOven(TestCase):
                bakery.Op('one', 'read'),
                bakery.Op('one', 'read'),
                bakery.Op('two', 'read')]
-        test_oven.macaroon(bakery.LATEST_BAKERY_VERSION, AGES, None,
+        test_oven.macaroon(bakery.LATEST_VERSION, AGES, None,
                            ops)
         self.assertEquals(len(st._store), 1)

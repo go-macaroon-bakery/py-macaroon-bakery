@@ -589,7 +589,7 @@ class _DischargerLocator(bakery.ThirdPartyLocator):
             return None
         return bakery.ThirdPartyInfo(
             public_key=d._key.public_key,
-            version=bakery.LATEST_BAKERY_VERSION,
+            version=bakery.LATEST_VERSION,
         )
 
     def __setitem__(self, key, item):
@@ -693,7 +693,7 @@ class _MacaroonStore(object):
         data = json.dumps(m_id)
         m = bakery.Macaroon(
             root_key=root_key, id=data, location='',
-            version=bakery.LATEST_BAKERY_VERSION,
+            version=bakery.LATEST_VERSION,
             namespace=namespace)
         m.add_caveats(caveats, self._key, self._locator)
         return m

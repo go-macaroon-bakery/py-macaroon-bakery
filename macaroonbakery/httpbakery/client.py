@@ -124,7 +124,7 @@ class Client:
                 b'=').decode('utf-8')
         target = relative_url(cav.location, 'discharge')
         headers = {
-            BAKERY_PROTOCOL_HEADER: str(bakery.LATEST_BAKERY_VERSION)
+            BAKERY_PROTOCOL_HEADER: str(bakery.LATEST_VERSION)
         }
         return self.request('POST', target, data=req, headers=headers)
 
@@ -204,7 +204,7 @@ class _BakeryAuth:
         self._client = client
 
     def __call__(self, req):
-        req.headers[BAKERY_PROTOCOL_HEADER] = str(bakery.LATEST_BAKERY_VERSION)
+        req.headers[BAKERY_PROTOCOL_HEADER] = str(bakery.LATEST_VERSION)
         hook = _prepare_discharge_hook(req.copy(), self._client)
         req.register_hook(event='response', hook=hook)
         return req
@@ -284,7 +284,7 @@ def _prepare_discharge_hook(req, client):
         req.headers.pop('Cookie', None)
         req.prepare_cookies(req._cookies)
         req.headers[BAKERY_PROTOCOL_HEADER] = \
-            str(bakery.LATEST_BAKERY_VERSION)
+            str(bakery.LATEST_VERSION)
         with requests.Session() as s:
             return s.send(req)
     return hook
@@ -341,7 +341,7 @@ def _wait_for_macaroon(wait_url):
     ''' Returns a macaroon from a legacy wait endpoint.
     '''
     headers = {
-        BAKERY_PROTOCOL_HEADER: str(bakery.LATEST_BAKERY_VERSION)
+        BAKERY_PROTOCOL_HEADER: str(bakery.LATEST_VERSION)
     }
     resp = requests.get(url=wait_url, headers=headers)
     if resp.status_code != 200:
@@ -368,7 +368,7 @@ def _legacy_get_interaction_methods(u):
     response as a dict.
     '''
     headers = {
-        BAKERY_PROTOCOL_HEADER: str(bakery.LATEST_BAKERY_VERSION),
+        BAKERY_PROTOCOL_HEADER: str(bakery.LATEST_VERSION),
         'Accept': 'application/json'
     }
     resp = requests.get(url=u, headers=headers)

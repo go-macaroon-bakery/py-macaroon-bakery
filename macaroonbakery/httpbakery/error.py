@@ -77,21 +77,21 @@ def request_version(req_headers):
     version is used, which is OK because versions are backwardly compatible.
 
     @param req_headers: the request headers as a dict.
-    @return: bakery protocol version (for example macaroonbakery.BAKERY_V1)
+    @return: bakery protocol version (for example macaroonbakery.VERSION_1)
     '''
     vs = req_headers.get(BAKERY_PROTOCOL_HEADER)
     if vs is None:
         # No header - use backward compatibility mode.
-        return bakery.BAKERY_V1
+        return bakery.VERSION_1
     try:
         x = int(vs)
     except ValueError:
         # Badly formed header - use backward compatibility mode.
-        return bakery.BAKERY_V1
-    if x > bakery.LATEST_BAKERY_VERSION:
+        return bakery.VERSION_1
+    if x > bakery.LATEST_VERSION:
         # Later version than we know about - use the
         # latest version that we can.
-        return bakery.LATEST_BAKERY_VERSION
+        return bakery.LATEST_VERSION
     return x
 
 
@@ -108,7 +108,7 @@ class Error(namedtuple('Error', 'code, message, version, info')):
         message = serialized.get('Message')
         info = ErrorInfo.from_dict(serialized.get('Info'))
         return Error(code=code, message=message, info=info,
-                     version=bakery.LATEST_BAKERY_VERSION)
+                     version=bakery.LATEST_VERSION)
 
     def interaction_method(self, kind, x):
         ''' Checks whether the error is an InteractionRequired error

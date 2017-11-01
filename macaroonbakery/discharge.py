@@ -220,6 +220,6 @@ def local_third_party_caveat(key, version):
     '''
     encoded_key = key.encode().decode('utf-8')
     loc = 'local {}'.format(encoded_key)
-    if version >= bakery.BAKERY_V2:
+    if version >= bakery.VERSION_2:
         loc = 'local {} {}'.format(version, encoded_key)
     return checkers.Caveat(location=loc, condition='')

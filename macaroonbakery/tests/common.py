@@ -112,7 +112,7 @@ def new_bakery(location, locator=None):
         locator.add_info(location,
                          bakery.ThirdPartyInfo(
                              public_key=key.public_key,
-                             version=bakery.LATEST_BAKERY_VERSION))
+                             version=bakery.LATEST_VERSION))
     return bakery.Bakery(
         key=key,
         checker=test_checker(),

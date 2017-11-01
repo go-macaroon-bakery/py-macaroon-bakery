@@ -18,7 +18,7 @@ class TestCodec(TestCase):
 
     def test_v1_round_trip(self):
         tp_info = bakery.ThirdPartyInfo(
-            version=bakery.BAKERY_V1,
+            version=bakery.VERSION_1,
             public_key=self.tp_key.public_key)
         cid = bakery.encode_caveat(
             'is-authenticated-user',
@@ -33,14 +33,14 @@ class TestCodec(TestCase):
             condition='is-authenticated-user',
             caveat=cid,
             third_party_key_pair=self.tp_key,
-            version=bakery.BAKERY_V1,
+            version=bakery.VERSION_1,
             id=None,
             namespace=bakery.legacy_namespace()
         ))
 
     def test_v2_round_trip(self):
         tp_info = bakery.ThirdPartyInfo(
-            version=bakery.BAKERY_V2,
+            version=bakery.VERSION_2,
             public_key=self.tp_key.public_key)
         cid = bakery.encode_caveat(
             'is-authenticated-user',
@@ -55,14 +55,14 @@ class TestCodec(TestCase):
             condition='is-authenticated-user',
             caveat=cid,
             third_party_key_pair=self.tp_key,
-            version=bakery.BAKERY_V2,
+            version=bakery.VERSION_2,
             id=None,
             namespace=bakery.legacy_namespace()
         ))
 
     def test_v3_round_trip(self):
         tp_info = bakery.ThirdPartyInfo(
-            version=bakery.BAKERY_V3,
+            version=bakery.VERSION_3,
             public_key=self.tp_key.public_key)
         ns = checkers.Namespace()
         ns.register('testns', 'x')
@@ -79,7 +79,7 @@ class TestCodec(TestCase):
             condition='is-authenticated-user',
             caveat=cid,
             third_party_key_pair=self.tp_key,
-            version=bakery.BAKERY_V3,
+            version=bakery.VERSION_3,
             id=None,
             namespace=ns
         ))
@@ -117,7 +117,7 @@ class TestCodec(TestCase):
             third_party_key_pair=tp_key,
             root_key=root_key,
             caveat=encrypted_cav,
-            version=bakery.BAKERY_V1,
+            version=bakery.VERSION_1,
             id=None,
             namespace=bakery.legacy_namespace()
         ))
@@ -144,7 +144,7 @@ class TestCodec(TestCase):
             third_party_key_pair=tp_key,
             root_key=root_key,
             caveat=encrypted_cav,
-            version=bakery.BAKERY_V2,
+            version=bakery.VERSION_2,
             id=None,
             namespace=bakery.legacy_namespace()
         ))
@@ -171,7 +171,7 @@ class TestCodec(TestCase):
             third_party_key_pair=tp_key,
             root_key=root_key,
             caveat=encrypted_cav,
-            version=bakery.BAKERY_V3,
+            version=bakery.VERSION_3,
             id=None,
             namespace=bakery.legacy_namespace()
         ))

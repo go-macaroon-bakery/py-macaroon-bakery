@@ -18,7 +18,7 @@ class TestDischargeAll(unittest.TestCase):
         root_key = b'root key'
         m = bakery.Macaroon(
             root_key=root_key, id=b'id0', location='loc0',
-            version=bakery.LATEST_BAKERY_VERSION,
+            version=bakery.LATEST_VERSION,
             namespace=common.test_checker().namespace())
         ms = bakery.discharge_all(m, no_discharge(self))
         self.assertEqual(len(ms), 1)
@@ -31,7 +31,7 @@ class TestDischargeAll(unittest.TestCase):
         root_key = b'root key'
         m0 = bakery.Macaroon(
             root_key=root_key, id=b'id0', location='loc0',
-            version=bakery.LATEST_BAKERY_VERSION)
+            version=bakery.LATEST_VERSION)
 
         class State(object):
             total_required = 40
@@ -57,7 +57,7 @@ class TestDischargeAll(unittest.TestCase):
                 root_key='root key {}'.format(
                     cav.caveat_id.decode('utf-8')).encode('utf-8'),
                 id=cav.caveat_id, location='',
-                version=bakery.LATEST_BAKERY_VERSION)
+                version=bakery.LATEST_VERSION)
 
             add_caveats(m)
             return m
@@ -106,7 +106,7 @@ class TestDischargeAll(unittest.TestCase):
         root_key = b'root key'
         m0 = bakery.Macaroon(
             root_key=root_key, id=b'id0', location='ts-loc',
-            version=bakery.LATEST_BAKERY_VERSION)
+            version=bakery.LATEST_VERSION)
 
         m0.add_caveat(checkers. Caveat(location=add_bakery(),
                                        condition='something'),
@@ -136,11 +136,11 @@ class TestDischargeAll(unittest.TestCase):
     def test_discharge_all_local_discharge(self):
         oc = common.new_bakery('ts', None)
         client_key = bakery.generate_key()
-        m = oc.oven.macaroon(bakery.LATEST_BAKERY_VERSION, common.ages,
+        m = oc.oven.macaroon(bakery.LATEST_VERSION, common.ages,
                              [
                                  bakery.local_third_party_caveat(
                                      client_key.public_key,
-                                     bakery.LATEST_BAKERY_VERSION)
+                                     bakery.LATEST_VERSION)
                              ], [bakery.LOGIN_OP])
         ms = bakery.discharge_all(m, no_discharge(self), client_key)
         oc.checker.auth([ms]).allow(common.test_context,
@@ -149,9 +149,9 @@ class TestDischargeAll(unittest.TestCase):
     def test_discharge_all_local_discharge_version1(self):
         oc = common.new_bakery('ts', None)
         client_key = bakery.generate_key()
-        m = oc.oven.macaroon(bakery.BAKERY_V1, common.ages, [
+        m = oc.oven.macaroon(bakery.VERSION_1, common.ages, [
             bakery.local_third_party_caveat(
-                client_key.public_key, bakery.BAKERY_V1)
+                client_key.public_key, bakery.VERSION_1)
         ], [bakery.LOGIN_OP])
         ms = bakery.discharge_all(m, no_discharge(self), client_key)
         oc.checker.auth([ms]).allow(common.test_context,
