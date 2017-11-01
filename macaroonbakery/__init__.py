@@ -1,59 +1,92 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
 
-from __future__ import unicode_literals
-try:
-    import urllib3.contrib.pyopenssl
-except ImportError:
-    pass
-else:
-    urllib3.contrib.pyopenssl.inject_into_urllib3()
-
 from macaroonbakery.versions import (
-    LATEST_BAKERY_VERSION, BAKERY_V3, BAKERY_V2, BAKERY_V1, BAKERY_V0
+    BAKERY_V0,
+    BAKERY_V1,
+    BAKERY_V2,
+    BAKERY_V3,
+    LATEST_BAKERY_VERSION,
 )
 from macaroonbakery.authorizer import (
-    ClosedAuthorizer, EVERYONE, AuthorizerFunc, Authorizer, ACLAuthorizer
+    ACLAuthorizer,
+    Authorizer,
+    AuthorizerFunc,
+    ClosedAuthorizer,
+    EVERYONE,
 )
 from macaroonbakery.codec import (
-    encode_caveat, decode_caveat, encode_uvarint
+    decode_caveat,
+    encode_caveat,
+    encode_uvarint,
 )
 from macaroonbakery.checker import (
-    Op, LOGIN_OP, AuthInfo, AuthChecker, Checker
+    AuthChecker,
+    AuthInfo,
+    Checker,
+    LOGIN_OP,
+    Op,
 )
 from macaroonbakery.error import (
-    ThirdPartyCaveatCheckFailed, CaveatNotRecognizedError, AuthInitError,
-    PermissionDenied, IdentityError, DischargeRequiredError, VerificationError,
-    ThirdPartyInfoNotFound
+    AuthInitError,
+    CaveatNotRecognizedError,
+    DischargeRequiredError,
+    IdentityError,
+    PermissionDenied,
+    ThirdPartyCaveatCheckFailed,
+    ThirdPartyInfoNotFound,
+    VerificationError,
 )
 from macaroonbakery.identity import (
-    Identity, ACLIdentity, SimpleIdentity, IdentityClient, NoIdentities
+    ACLIdentity,
+    Identity,
+    IdentityClient,
+    NoIdentities,
+    SimpleIdentity,
 )
-from macaroonbakery.keys import generate_key, PrivateKey, PublicKey
-from macaroonbakery.store import MemoryOpsStore, MemoryKeyStore
+from macaroonbakery.keys import (
+    generate_key,
+    PrivateKey,
+    PublicKey,
+)
+from macaroonbakery.store import (
+    MemoryOpsStore,
+    MemoryKeyStore,
+)
 from macaroonbakery.third_party import (
-    ThirdPartyCaveatInfo, ThirdPartyInfo, legacy_namespace
+    ThirdPartyCaveatInfo,
+    ThirdPartyInfo,
+    legacy_namespace,
 )
 from macaroonbakery.macaroon import (
-    Macaroon, MacaroonJSONDecoder, MacaroonJSONEncoder, ThirdPartyStore,
-    ThirdPartyLocator, macaroon_version
+    Macaroon,
+    MacaroonJSONDecoder,
+    MacaroonJSONEncoder,
+    ThirdPartyLocator,
+    ThirdPartyStore,
+    macaroon_version,
 )
 from macaroonbakery.discharge import (
-    discharge_all, discharge, local_third_party_caveat, ThirdPartyCaveatChecker
+    ThirdPartyCaveatChecker,
+    discharge,
+    discharge_all,
+    local_third_party_caveat,
 )
-from macaroonbakery.oven import Oven, canonical_ops
+from macaroonbakery.oven import (
+    Oven,
+    canonical_ops,
+)
 from macaroonbakery.bakery import Bakery
-
+from macaroonbakery.utils import b64decode
 
 __all__ = [
-    'ACLIdentity',
     'ACLAuthorizer',
+    'ACLIdentity',
     'AuthChecker',
     'AuthInfo',
     'AuthInitError',
     'Authorizer',
     'AuthorizerFunc',
-    'Bakery',
     'BAKERY_V0',
     'BAKERY_V1',
     'BAKERY_V2',
@@ -80,7 +113,6 @@ __all__ = [
     'PermissionDenied',
     'PrivateKey',
     'PublicKey',
-    'NoIdentities',
     'SimpleIdentity',
     'ThirdPartyCaveatCheckFailed',
     'ThirdPartyCaveatChecker',
@@ -91,6 +123,7 @@ __all__ = [
     'ThirdPartyStore',
     'VERSION',
     'VerificationError',
+    'b64decode',
     'canonical_ops',
     'decode_caveat',
     'discharge',

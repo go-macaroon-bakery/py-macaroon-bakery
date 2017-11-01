@@ -2,12 +2,12 @@
 # Licensed under the LGPLv3, see LICENCE file for details.
 from unittest import TestCase
 
-import macaroonbakery
+import macaroonbakery as bakery
 
 
 class TestOven(TestCase):
     def test_mem_store(self):
-        st = macaroonbakery.MemoryKeyStore()
+        st = bakery.MemoryKeyStore()
 
         key, id = st.root_key()
         self.assertEqual(len(key), 24)

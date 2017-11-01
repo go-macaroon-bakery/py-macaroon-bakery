@@ -35,7 +35,7 @@ def macaroons_expiry_time(ns, ms):
     for m in ms:
         et = expiry_time(ns, m.caveats)
         if et is not None and (t is None or et < t):
-                t = et
+            t = et
     return t
 
 
