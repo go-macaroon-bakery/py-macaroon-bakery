@@ -32,7 +32,7 @@ class ThirdPartyLocator(bakery.ThirdPartyLocator):
             return info
         url_endpoint = '/discharge/info'
         headers = {
-            BAKERY_PROTOCOL_HEADER: str(bakery.LATEST_BAKERY_VERSION)
+            BAKERY_PROTOCOL_HEADER: str(bakery.LATEST_VERSION)
         }
         resp = requests.get(url=loc + url_endpoint, headers=headers)
         status_code = resp.status_code
@@ -52,7 +52,7 @@ class ThirdPartyLocator(bakery.ThirdPartyLocator):
             raise bakery.ThirdPartyInfoNotFound(
                 'no public key found in /discharge/info')
         idm_pk = bakery.PublicKey.deserialize(pk)
-        version = json_resp.get('Version', bakery.BAKERY_V1)
+        version = json_resp.get('Version', bakery.VERSION_1)
         self._cache[loc] = bakery.ThirdPartyInfo(
             version=version,
             public_key=idm_pk

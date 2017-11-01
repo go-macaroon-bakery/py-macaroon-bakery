@@ -85,7 +85,7 @@ class Oven:
 
         id = self._new_macaroon_id(storage_id, expiry, ops)
 
-        id_bytes = six.int2byte(bakery.LATEST_BAKERY_VERSION) + \
+        id_bytes = six.int2byte(bakery.LATEST_VERSION) + \
             id.SerializeToString()
 
         if bakery.macaroon_version(version) < MACAROON_V2:
@@ -209,10 +209,10 @@ def _decode_macaroon_id(id):
     # creating macaroons to make all macaroons unique even if
     # they're using the same root key.
     first = six.byte2int(id[:1])
-    if first == bakery.BAKERY_V2:
+    if first == bakery.VERSION_2:
         # Skip the UUID at the start of the id.
         storage_id = id[1 + 16:]
-    if first == bakery.BAKERY_V3:
+    if first == bakery.VERSION_3:
         try:
             id1 = id_pb2.MacaroonId.FromString(id[1:])
         except google.protobuf.message.DecodeError:

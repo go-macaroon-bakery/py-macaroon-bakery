@@ -120,7 +120,7 @@ class TestAgents(TestCase):
                 if loc == 'http://0.3.2.1':
                     return bakery.ThirdPartyInfo(
                         public_key=discharge_key.public_key,
-                        version=bakery.LATEST_BAKERY_VERSION,
+                        version=bakery.LATEST_VERSION,
                     )
         d = _DischargerLocator()
         server_key = bakery.generate_key()
@@ -141,7 +141,7 @@ class TestAgents(TestCase):
                     checkers.Caveat(location='http://0.3.2.1', condition='is-ok')
                 ]
                 m = server_bakery.oven.macaroon(
-                    version=bakery.LATEST_BAKERY_VERSION,
+                    version=bakery.LATEST_VERSION,
                     expiry=datetime.utcnow() + timedelta(days=1),
                     caveats=caveats, ops=test_ops)
                 content, headers = httpbakery.discharge_required_response(
@@ -187,7 +187,7 @@ class TestAgents(TestCase):
         def login(url, request):
             b = bakery.Bakery(key=discharge_key)
             m = b.oven.macaroon(
-                version=bakery.LATEST_BAKERY_VERSION,
+                version=bakery.LATEST_VERSION,
                 expiry=datetime.utcnow() + timedelta(days=1),
                 caveats=[bakery.local_third_party_caveat(
                     key.public_key,
@@ -230,7 +230,7 @@ class TestAgents(TestCase):
                 if loc == 'http://0.3.2.1':
                     return bakery.ThirdPartyInfo(
                         public_key=discharge_key.public_key,
-                        version=bakery.LATEST_BAKERY_VERSION,
+                        version=bakery.LATEST_VERSION,
                     )
         d = _DischargerLocator()
         server_key = bakery.generate_key()
@@ -252,7 +252,7 @@ class TestAgents(TestCase):
                                     condition='is-ok')
                 ]
                 m = server_bakery.oven.macaroon(
-                    version=bakery.LATEST_BAKERY_VERSION,
+                    version=bakery.LATEST_VERSION,
                     expiry=datetime.utcnow() + timedelta(days=1),
                     caveats=caveats, ops=test_ops)
                 content, headers = httpbakery.discharge_required_response(
@@ -338,7 +338,7 @@ class TestAgents(TestCase):
             if len(ms) == 0:
                 b = bakery.Bakery(key=discharge_key)
                 m = b.oven.macaroon(
-                    version=bakery.LATEST_BAKERY_VERSION,
+                    version=bakery.LATEST_VERSION,
                     expiry=datetime.utcnow() + timedelta(days=1),
                     caveats=[bakery.local_third_party_caveat(
                         public_key,

@@ -33,11 +33,11 @@ def encode_caveat(condition, root_key, third_party_info, key, ns):
     @param ns not used yet
     @return bytes
     '''
-    if third_party_info.version == bakery.BAKERY_V1:
+    if third_party_info.version == bakery.VERSION_1:
         return _encode_caveat_v1(condition, root_key,
                                  third_party_info.public_key, key)
-    if (third_party_info.version == bakery.BAKERY_V2 or
-            third_party_info.version == bakery.BAKERY_V3):
+    if (third_party_info.version == bakery.VERSION_2 or
+            third_party_info.version == bakery.VERSION_3):
         return _encode_caveat_v2_v3(third_party_info.version, condition,
                                     root_key, third_party_info.public_key,
                                     key, ns)
@@ -99,7 +99,7 @@ def _encode_caveat_v2_v3(version, condition, root_key, third_party_pub_key,
         condition [rest of encrypted part]
     '''
     ns_data = bytearray()
-    if version >= bakery.BAKERY_V3:
+    if version >= bakery.VERSION_3:
         ns_data = ns.serialize_text()
     data = bytearray()
     data.append(version)
@@ -131,7 +131,7 @@ def _encode_secret_part_v2_v3(version, condition, root_key, ns):
     data.append(version)
     encode_uvarint(len(root_key), data)
     data.extend(root_key)
-    if version >= bakery.BAKERY_V3:
+    if version >= bakery.VERSION_3:
         encode_uvarint(len(ns), data)
         data.extend(ns)
     data.extend(condition.encode('utf-8'))
@@ -154,10 +154,10 @@ def decode_caveat(key, caveat):
         # encoded JSON object.
         return _decode_caveat_v1(key, caveat)
     first_as_int = six.byte2int(first)
-    if (first_as_int == bakery.BAKERY_V2 or
-            first_as_int == bakery.BAKERY_V3):
+    if (first_as_int == bakery.VERSION_2 or
+            first_as_int == bakery.VERSION_3):
         if (len(caveat) < _VERSION3_CAVEAT_MIN_LEN
-                and first_as_int == bakery.BAKERY_V3):
+                and first_as_int == bakery.VERSION_3):
             # If it has the version 3 caveat tag and it's too short, it's
             # almost certainly an id, not an encrypted payload.
             raise bakery.VerificationError(
@@ -203,7 +203,7 @@ def _decode_caveat_v1(key, caveat):
         root_key=base64.b64decode(record.get('RootKey')),
         caveat=caveat,
         id=None,
-        version=bakery.BAKERY_V1,
+        version=bakery.VERSION_1,
         namespace=bakery.legacy_namespace()
     )
 
@@ -255,7 +255,7 @@ def _decode_secret_part_v2_v3(version, data):
     data = data[read:]
     root_key = data[:root_key_length]
     data = data[root_key_length:]
-    if version >= bakery.BAKERY_V3:
+    if version >= bakery.VERSION_3:
         namespace_length, read = decode_uvarint(data)
         data = data[read:]
         ns_data = data[:namespace_length]

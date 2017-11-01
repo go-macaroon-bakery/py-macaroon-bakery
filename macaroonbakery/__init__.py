@@ -2,11 +2,11 @@
 # Licensed under the LGPLv3, see LICENCE file for details.
 
 from macaroonbakery.versions import (
-    BAKERY_V0,
-    BAKERY_V1,
-    BAKERY_V2,
-    BAKERY_V3,
-    LATEST_BAKERY_VERSION,
+    VERSION_0,
+    VERSION_1,
+    VERSION_2,
+    VERSION_3,
+    LATEST_VERSION,
 )
 from macaroonbakery.authorizer import (
     ACLAuthorizer,
@@ -87,10 +87,10 @@ __all__ = [
     'AuthInitError',
     'Authorizer',
     'AuthorizerFunc',
-    'BAKERY_V0',
-    'BAKERY_V1',
-    'BAKERY_V2',
-    'BAKERY_V3',
+    'VERSION_0',
+    'VERSION_1',
+    'VERSION_2',
+    'VERSION_3',
     'Bakery',
     'CaveatNotRecognizedError',
     'Checker',
@@ -100,7 +100,7 @@ __all__ = [
     'Identity',
     'IdentityClient',
     'IdentityError',
-    'LATEST_BAKERY_VERSION',
+    'LATEST_VERSION',
     'LOGIN_OP',
     'Macaroon',
     'MacaroonJSONDecoder',

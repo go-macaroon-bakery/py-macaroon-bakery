@@ -36,7 +36,7 @@ class TestClient(TestCase):
             thread = threading.Thread(target=httpd.serve_forever)
             thread.start()
             srv_macaroon = b.oven.macaroon(
-                version=bakery.LATEST_BAKERY_VERSION, expiry=AGES,
+                version=bakery.LATEST_VERSION, expiry=AGES,
                 caveats=None, ops=[TEST_OP])
             self.assertEquals(srv_macaroon.macaroon.location, 'loc')
             client = httpbakery.Client()
@@ -64,7 +64,7 @@ class TestClient(TestCase):
             thread = threading.Thread(target=httpd.serve_forever)
             thread.start()
             srv_macaroon = b.oven.macaroon(
-                version=bakery.LATEST_BAKERY_VERSION,
+                version=bakery.LATEST_VERSION,
                 expiry=AGES, caveats=None, ops=[TEST_OP])
             self.assertEquals(srv_macaroon.macaroon.location, 'loc')
             headers = {
@@ -90,7 +90,7 @@ class TestClient(TestCase):
                 if loc == 'http://1.2.3.4':
                     return bakery.ThirdPartyInfo(
                         public_key=self.key.public_key,
-                        version=bakery.LATEST_BAKERY_VERSION,
+                        version=bakery.LATEST_VERSION,
                     )
 
         d = _DischargerLocator()
@@ -135,7 +135,7 @@ class TestClient(TestCase):
                 if loc == 'http://1.2.3.4':
                     return bakery.ThirdPartyInfo(
                         public_key=self.key.public_key,
-                        version=bakery.LATEST_BAKERY_VERSION,
+                        version=bakery.LATEST_VERSION,
                     )
 
         d = _DischargerLocator()
@@ -146,7 +146,7 @@ class TestClient(TestCase):
             wrong_macaroon = bakery.Macaroon(
                 root_key=b'some key', id=b'xxx',
                 location='some other location',
-                version=bakery.BAKERY_V0)
+                version=bakery.VERSION_0)
             return {
                 'status_code': 200,
                 'content': {
@@ -182,7 +182,7 @@ class TestClient(TestCase):
                 if loc == 'http://1.2.3.4':
                     return bakery.ThirdPartyInfo(
                         public_key=self.key.public_key,
-                        version=bakery.LATEST_BAKERY_VERSION,
+                        version=bakery.LATEST_VERSION,
                     )
 
         def check(cond, arg):
@@ -224,7 +224,7 @@ class TestClient(TestCase):
                 if loc == 'http://1.2.3.4':
                     return bakery.ThirdPartyInfo(
                         public_key=self.key.public_key,
-                        version=bakery.LATEST_BAKERY_VERSION,
+                        version=bakery.LATEST_VERSION,
                     )
         d = _DischargerLocator()
         b = new_bakery('loc', d, None)
@@ -320,7 +320,7 @@ class GetHandler(BaseHTTPRequestHandler):
 
     def _write_discharge_error(self, exc):
         version = httpbakery.request_version(self.headers)
-        if version < bakery.LATEST_BAKERY_VERSION:
+        if version < bakery.LATEST_VERSION:
             self._server_version = version
 
         caveats = []
@@ -333,7 +333,7 @@ class GetHandler(BaseHTTPRequestHandler):
             caveats.extend(self._caveats)
 
         m = self._bakery.oven.macaroon(
-            version=bakery.LATEST_BAKERY_VERSION, expiry=AGES,
+            version=bakery.LATEST_VERSION, expiry=AGES,
             caveats=caveats, ops=[TEST_OP])
 
         content, headers = httpbakery.discharge_required_response(

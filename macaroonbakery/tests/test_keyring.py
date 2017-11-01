@@ -18,14 +18,14 @@ class TestKeyRing(unittest.TestCase):
             return {
                 'status_code': 200,
                 'content': {
-                    'Version': bakery.LATEST_BAKERY_VERSION,
+                    'Version': bakery.LATEST_VERSION,
                     'PublicKey': key.public_key.encode().decode('utf-8')
                 }
             }
 
         expectInfo = bakery.ThirdPartyInfo(
             public_key=key.public_key,
-            version=bakery.LATEST_BAKERY_VERSION
+            version=bakery.LATEST_VERSION
         )
         kr = httpbakery.ThirdPartyLocator(allow_insecure=True)
         with HTTMock(discharge_info):
@@ -40,14 +40,14 @@ class TestKeyRing(unittest.TestCase):
             return {
                 'status_code': 200,
                 'content': {
-                    'Version': bakery.LATEST_BAKERY_VERSION,
+                    'Version': bakery.LATEST_VERSION,
                     'PublicKey': key.public_key.encode().decode('utf-8')
                 }
             }
 
         expectInfo = bakery.ThirdPartyInfo(
             public_key=key.public_key,
-            version=bakery.LATEST_BAKERY_VERSION
+            version=bakery.LATEST_VERSION
         )
         kr = httpbakery.ThirdPartyLocator(allow_insecure=True)
         with HTTMock(discharge_info):
@@ -70,7 +70,7 @@ class TestKeyRing(unittest.TestCase):
 
         expectInfo = bakery.ThirdPartyInfo(
             public_key=key.public_key,
-            version=bakery.BAKERY_V1
+            version=bakery.VERSION_1
         )
         kr = httpbakery.ThirdPartyLocator(allow_insecure=True)
         with HTTMock(discharge_info):
@@ -102,7 +102,7 @@ class TestKeyRing(unittest.TestCase):
 
         expectInfo = bakery.ThirdPartyInfo(
             public_key=key.public_key,
-            version=bakery.BAKERY_V1
+            version=bakery.VERSION_1
         )
         kr = httpbakery.ThirdPartyLocator(allow_insecure=True)
         with HTTMock(discharge_info):

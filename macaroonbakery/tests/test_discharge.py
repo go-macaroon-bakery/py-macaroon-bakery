@@ -17,7 +17,7 @@ class TestDischarge(unittest.TestCase):
         can verify this macaroon as valid.
         '''
         oc = common.new_bakery('bakerytest')
-        primary = oc.oven.macaroon(bakery.LATEST_BAKERY_VERSION,
+        primary = oc.oven.macaroon(bakery.LATEST_VERSION,
                                    common.ages, None,
                                    [bakery.LOGIN_OP])
         self.assertEqual(primary.macaroon.location, 'bakerytest')
@@ -48,7 +48,7 @@ class TestDischarge(unittest.TestCase):
         fs = common.new_bakery('fs-loc', locator)
 
         # ts creates a macaroon.
-        ts_macaroon = ts.oven.macaroon(bakery.LATEST_BAKERY_VERSION,
+        ts_macaroon = ts.oven.macaroon(bakery.LATEST_VERSION,
                                        common.ages,
                                        None, [bakery.LOGIN_OP])
 
@@ -81,7 +81,7 @@ class TestDischarge(unittest.TestCase):
         ts = common.new_bakery('ts-loc', locator)
 
         # ts creates a old-version macaroon.
-        ts_macaroon = ts.oven.macaroon(bakery.BAKERY_V1, common.ages,
+        ts_macaroon = ts.oven.macaroon(bakery.VERSION_1, common.ages,
                                        None, [bakery.LOGIN_OP])
         ts_macaroon.add_caveat(checkers.Caveat(condition='something',
                                                location='bs-loc'),
@@ -137,7 +137,7 @@ class TestDischarge(unittest.TestCase):
         common.new_bakery('as-loc', locator)
 
         # ts creates a macaroon.
-        ts_macaroon = ts.oven.macaroon(bakery.LATEST_BAKERY_VERSION,
+        ts_macaroon = ts.oven.macaroon(bakery.LATEST_VERSION,
                                        common.ages, None,
                                        [bakery.LOGIN_OP])
 
@@ -166,7 +166,7 @@ class TestDischarge(unittest.TestCase):
         ts = common.new_bakery('ts-loc', locator)
 
         # ts creates a macaroon.
-        ts_macaroon = ts.oven.macaroon(bakery.LATEST_BAKERY_VERSION,
+        ts_macaroon = ts.oven.macaroon(bakery.LATEST_VERSION,
                                        common.ages, None,
                                        [bakery.LOGIN_OP])
         # ts somehow sends the macaroon to fs which adds a third party caveat
@@ -209,7 +209,7 @@ class TestDischarge(unittest.TestCase):
         # firstParty mints a macaroon with a third-party caveat addressed
         # to thirdParty with a need-declared caveat.
         m = first_party.oven.macaroon(
-            bakery.LATEST_BAKERY_VERSION, common.ages, [
+            bakery.LATEST_VERSION, common.ages, [
                 checkers.need_declared_caveat(
                     checkers.Caveat(location='third', condition='something'),
                     ['foo', 'bar']
@@ -314,7 +314,7 @@ class TestDischarge(unittest.TestCase):
         # first_party mints a macaroon with two third party caveats
         # with overlapping attributes.
         m = first_party.oven.macaroon(
-            bakery.LATEST_BAKERY_VERSION,
+            bakery.LATEST_VERSION,
             common.ages, [
                 checkers.need_declared_caveat(
                     checkers.Caveat(location='third', condition='x'),
@@ -391,7 +391,7 @@ class TestDischarge(unittest.TestCase):
         third_party = common.new_bakery('third', locator)
 
         # First party mints a macaroon with a 3rd party caveat.
-        m = first_party.oven.macaroon(bakery.LATEST_BAKERY_VERSION,
+        m = first_party.oven.macaroon(bakery.LATEST_VERSION,
                                       common.ages, [
                                           checkers.Caveat(location='third',
                                                           condition='true')],
@@ -432,7 +432,7 @@ class TestDischarge(unittest.TestCase):
         }
         ts = bakeries['ts-loc']
 
-        ts_macaroon = ts.oven.macaroon(bakery.LATEST_BAKERY_VERSION,
+        ts_macaroon = ts.oven.macaroon(bakery.LATEST_VERSION,
                                        common.ages,
                                        None, [bakery.LOGIN_OP])
         ts_macaroon.add_caveat(checkers.Caveat(condition='something',

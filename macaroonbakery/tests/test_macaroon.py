@@ -18,14 +18,14 @@ class TestMacaroon(TestCase):
             b'rootkey',
             b'some id',
             'here',
-            bakery.LATEST_BAKERY_VERSION)
+            bakery.LATEST_VERSION)
         self.assertIsNotNone(m)
         self.assertEquals(m._macaroon.identifier, b'some id')
         self.assertEquals(m._macaroon.location, 'here')
-        self.assertEquals(m.version, bakery.LATEST_BAKERY_VERSION)
+        self.assertEquals(m.version, bakery.LATEST_VERSION)
 
     def test_add_first_party_caveat(self):
-        m = bakery.Macaroon('rootkey', 'some id', 'here', bakery.LATEST_BAKERY_VERSION)
+        m = bakery.Macaroon('rootkey', 'some id', 'here', bakery.LATEST_VERSION)
         m.add_caveat(checkers.Caveat('test_condition'))
         caveats = m.first_party_caveats()
         self.assertEquals(len(caveats), 1)
@@ -35,7 +35,7 @@ class TestMacaroon(TestCase):
         locator = bakery.ThirdPartyStore()
         bs = common.new_bakery('bs-loc', locator)
 
-        lbv = six.int2byte(bakery.LATEST_BAKERY_VERSION)
+        lbv = six.int2byte(bakery.LATEST_VERSION)
         tests = [
             ('no existing id', b'', [], lbv + six.int2byte(0)),
             ('several existing ids', b'', [
@@ -55,7 +55,7 @@ class TestMacaroon(TestCase):
             m = bakery.Macaroon(
                 root_key=b'root key', id=b'id',
                 location='location',
-                version=bakery.LATEST_BAKERY_VERSION)
+                version=bakery.LATEST_VERSION)
             for id in test[2]:
                 m.macaroon.add_third_party_caveat(key=None, key_id=id,
                                                   location='')
@@ -76,7 +76,7 @@ class TestMacaroon(TestCase):
         m = bakery.Macaroon(
             root_key=b'root key', id=b'id',
             location='location',
-            version=bakery.LATEST_BAKERY_VERSION,
+            version=bakery.LATEST_VERSION,
             namespace=ns)
         m.add_caveat(checkers.Caveat(location='bs-loc', condition='something'),
                      bs.oven.key, locator)
@@ -100,10 +100,10 @@ class TestMacaroon(TestCase):
         self.assertEqual(m1._caveat_data, m._caveat_data)
 
     def test_json_version1(self):
-        self._test_json_with_version(bakery.BAKERY_V1)
+        self._test_json_with_version(bakery.VERSION_1)
 
     def test_json_version2(self):
-        self._test_json_with_version(bakery.BAKERY_V2)
+        self._test_json_with_version(bakery.VERSION_2)
 
     def _test_json_with_version(self, version):
         locator = bakery.ThirdPartyStore()
@@ -143,7 +143,7 @@ class TestMacaroon(TestCase):
         with self.assertRaises(ValueError) as exc:
             json.loads(json.dumps({
                 'm': m.serialize(serializer=serializers.JsonSerializer()),
-                'v': bakery.LATEST_BAKERY_VERSION + 1
+                'v': bakery.LATEST_VERSION + 1
             }), cls=bakery.MacaroonJSONDecoder)
         self.assertEqual('unknown bakery version 4', exc.exception.args[0])
 
@@ -153,7 +153,7 @@ class TestMacaroon(TestCase):
             json.loads(json.dumps({
                 'm': json.loads(m.serialize(
                     serializer=serializers.JsonSerializer())),
-                'v': bakery.LATEST_BAKERY_VERSION
+                'v': bakery.LATEST_VERSION
             }), cls=bakery.MacaroonJSONDecoder)
         self.assertEqual('underlying macaroon has inconsistent version; '
                          'got 1 want 2', exc.exception.args[0])
@@ -167,7 +167,7 @@ class TestMacaroon(TestCase):
         m = bakery.Macaroon(
             root_key=b'root key', id=b'id',
             location='location',
-            version=bakery.LATEST_BAKERY_VERSION,
+            version=bakery.LATEST_VERSION,
             namespace=ns)
         m.add_caveat(checkers.Caveat(location='bs-loc', condition='something'),
                      bs.oven.key, locator)
@@ -186,7 +186,7 @@ class TestMacaroon(TestCase):
         ns.register("someuri", "x")
         m = bakery.Macaroon(
             root_key=b'rootkey', id=b'some id', location='here',
-            version=bakery.LATEST_BAKERY_VERSION, namespace=ns)
+            version=bakery.LATEST_VERSION, namespace=ns)
         m.add_caveat(checkers.Caveat(condition='something',
                                      namespace='someuri'))
         data = '{"m":{"c":[{"i":"x:something"}],"l":"here","i":"some id",' \
