@@ -202,6 +202,7 @@ def _decode_caveat_v1(key, caveat):
         third_party_key_pair=key,
         root_key=base64.b64decode(record.get('RootKey')),
         caveat=caveat,
+        id=None,
         version=macaroonbakery.BAKERY_V1,
         namespace=macaroonbakery.legacy_namespace()
     )
@@ -236,6 +237,7 @@ def _decode_caveat_v2_v3(version, key, caveat):
         root_key=root_key,
         caveat=original_caveat,
         version=version,
+        id=None,
         namespace=ns
     )
 

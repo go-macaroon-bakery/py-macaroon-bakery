@@ -31,6 +31,8 @@ class TestNamespace(TestCase):
         ns1 = checkers.deserialize_namespace(data)
         self.assertEquals(ns1, ns)
 
+    # TODO(rogpeppe) add resolve tests
+
     def test_register(self):
         ns = checkers.Namespace(None)
         ns.register('testns', 't')

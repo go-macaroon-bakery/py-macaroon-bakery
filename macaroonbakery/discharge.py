@@ -6,8 +6,10 @@ from collections import namedtuple
 import macaroonbakery
 import macaroonbakery.checkers as checkers
 
+emptyContext = checkers.AuthContext()
 
-def discharge_all(ctx, m, get_discharge, local_key=None):
+
+def discharge_all(m, get_discharge, local_key=None):
     '''Gathers discharge macaroons for all the third party caveats in m
     (and any subsequent caveats required by those) using get_discharge to
     acquire each discharge macaroon.
@@ -46,13 +48,14 @@ def discharge_all(ctx, m, get_discharge, local_key=None):
         need = need[1:]
         if local_key is not None and cav.cav.location == 'local':
             # TODO use a small caveat id.
-            dm = discharge(ctx=ctx, key=local_key,
+            dm = discharge(ctx=emptyContext,
+                           key=local_key,
                            checker=_LocalDischargeChecker(),
                            caveat=cav.encrypted_caveat,
                            id=cav.cav.caveat_id_bytes,
                            locator=_EmptyLocator())
         else:
-            dm = get_discharge(ctx, cav.cav, cav.encrypted_caveat)
+            dm = get_discharge(cav.cav, cav.encrypted_caveat)
         # It doesn't matter that we're invalidating dm here because we're
         # about to throw it away.
         discharge_m = dm.macaroon
@@ -123,7 +126,16 @@ def discharge(ctx, id, caveat, key, checker, locator):
         # for any more ids.
         caveat_id_prefix = id
     cav_info = macaroonbakery.decode_caveat(key, caveat)
-
+    cav_info = macaroonbakery.ThirdPartyCaveatInfo(
+        condition=cav_info.condition,
+        first_party_public_key=cav_info.first_party_public_key,
+        third_party_key_pair=cav_info.third_party_key_pair,
+        root_key=cav_info.root_key,
+        caveat=cav_info.caveat,
+        version=cav_info.version,
+        id=id,
+        namespace=cav_info.namespace
+    )
     # Note that we don't check the error - we allow the
     # third party checker to see even caveats that we can't
     # understand.

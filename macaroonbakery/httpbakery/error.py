@@ -1,11 +1,38 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
+from collections import namedtuple
 import json
 
-import macaroonbakery
+from macaroonbakery import BAKERY_V1, LATEST_BAKERY_VERSION
+from macaroonbakery import Macaroon
+
+ERR_INTERACTION_REQUIRED = 'interaction required'
+ERR_DISCHARGE_REQUIRED = 'macaroon discharge required'
 
 
-def discharged_required_response(macaroon, path, cookie_suffix_name):
+class InteractionMethodNotFound(Exception):
+    '''This is thrown by client-side interaction methods when
+    they find that a given interaction isn't supported by the
+    client for a location'''
+    pass
+
+
+class DischargeError(Exception):
+    '''This is thrown by Client when a third party has refused a discharge'''
+    def __init__(self, msg):
+        super(DischargeError, self).__init__('third party refused discharge: {}'.format(msg))
+
+
+class InteractionError(Exception):
+    '''This is thrown by Client when it fails to deal with an
+    interaction-required error
+    '''
+    def __init__(self, msg):
+        super(InteractionError, self).__init__('cannot start interactive session: {}'.format(msg))
+
+
+def discharge_required_response(macaroon, path, cookie_suffix_name,
+                                message=None):
     ''' Get response content and headers from a discharge macaroons error.
 
     @param macaroon may hold a macaroon that, when discharged, may
@@ -18,17 +45,19 @@ def discharged_required_response(macaroon, path, cookie_suffix_name):
     older clients will always use ("macaroon-" + macaroon.signature() in hex)
     @return content(bytes) and the headers to set on the response(dict).
     '''
+    if message is None:
+        message = 'discharge required'
     content = json.dumps(
         {
             'Code': 'macaroon discharge required',
-            'Message': 'discharge required',
+            'Message': message,
             'Info': {
                 'Macaroon': macaroon.to_dict(),
                 'MacaroonPath': path,
                 'CookieNameSuffix': cookie_suffix_name
             },
         }
-    )
+    ).encode('utf-8')
     return content, {
         'WWW-Authenticate': 'Macaroon',
         'Content-Type': 'application/json'
@@ -54,14 +83,119 @@ def request_version(req_headers):
     vs = req_headers.get(BAKERY_PROTOCOL_HEADER)
     if vs is None:
         # No header - use backward compatibility mode.
-        return macaroonbakery.BAKERY_V1
+        return BAKERY_V1
     try:
         x = int(vs)
     except ValueError:
         # Badly formed header - use backward compatibility mode.
-        return macaroonbakery.BAKERY_V1
-    if x > macaroonbakery.LATEST_BAKERY_VERSION:
+        return BAKERY_V1
+    if x > LATEST_BAKERY_VERSION:
         # Later version than we know about - use the
         # latest version that we can.
-        return macaroonbakery.LATEST_BAKERY_VERSION
+        return LATEST_BAKERY_VERSION
     return x
+
+
+class Error(namedtuple('Error', 'code, message, version, info')):
+    '''This class defines an error value as returned from
+    an httpbakery API.
+    '''
+    @classmethod
+    def from_dict(cls, serialized):
+        '''Create an error from a JSON-deserialized object
+        @param serialized the object holding the serialized error {dict}
+        '''
+        code = serialized.get('Code')
+        message = serialized.get('Message')
+        info = ErrorInfo.from_dict(serialized.get('Info'))
+        return Error(code=code, message=message, info=info,
+                     version=LATEST_BAKERY_VERSION)
+
+    def interaction_method(self, kind, x):
+        ''' Checks whether the error is an InteractionRequired error
+        that implements the method with the given name, and JSON-unmarshals the
+        method-specific data into x by calling its from_dict method
+        with the deserialized JSON object.
+        @param kind The interaction method kind (string).
+        @param x A class with a class method from_dict that returns a new
+        instance of the interaction info for the given kind.
+        @return The result of x.from_dict.
+        '''
+        if self.info is None or self.code != ERR_INTERACTION_REQUIRED:
+            raise InteractionError(
+                'not an interaction-required error (code {})'.format(
+                    self.code)
+            )
+        entry = self.info.interaction_methods.get(kind)
+        if entry is None:
+            raise InteractionMethodNotFound(
+                'interaction method {} not found'.format(kind)
+            )
+        return x.from_dict(entry)
+
+
+class ErrorInfo(
+    namedtuple('ErrorInfo', 'macaroon, macaroon_path, cookie_name_suffix, '
+                            'interaction_methods, visit_url, wait_url')):
+    '''  Holds additional information provided
+    by an error.
+
+    @param macaroon may hold a macaroon that, when
+    discharged, may allow access to a service.
+    This field is associated with the ERR_DISCHARGE_REQUIRED
+    error code.
+
+    @param macaroon_path holds the URL path to be associated
+    with the macaroon. The macaroon is potentially
+    valid for all URLs under the given path.
+    If it is empty, the macaroon will be associated with
+    the original URL from which the error was returned.
+
+    @param cookie_name_suffix holds the desired cookie name suffix to be
+    associated with the macaroon. The actual name used will be
+    ("macaroon-" + cookie_name_suffix). Clients may ignore this field -
+    older clients will always use ("macaroon-" +
+    macaroon.signature() in hex).
+
+    @param visit_url holds a URL that the client should visit
+    in a web browser to authenticate themselves.
+
+    @param wait_url holds a URL that the client should visit
+    to acquire the discharge macaroon. A GET on
+    this URL will block until the client has authenticated,
+    and then it will return the discharge macaroon.
+    '''
+
+    __slots__ = ()
+
+    @classmethod
+    def from_dict(cls, serialized):
+        '''Create a new ErrorInfo object from a JSON deserialized
+        dictionary
+        @param serialized The JSON object {dict}
+        @return ErrorInfo object
+        '''
+        if serialized is None:
+            return None
+        macaroon = serialized.get('Macaroon')
+        if macaroon is not None:
+            macaroon = Macaroon.deserialize_json(macaroon)
+        path = serialized.get('MacaroonPath')
+        cookie_name_suffix = serialized.get('CookieNameSuffix')
+        visit_url = serialized.get('VisitURL')
+        wait_url = serialized.get('WaitURL')
+        interaction_methods = serialized.get('InteractionMethods')
+        return ErrorInfo(macaroon=macaroon, macaroon_path=path,
+                         cookie_name_suffix=cookie_name_suffix,
+                         visit_url=visit_url, wait_url=wait_url,
+                         interaction_methods=interaction_methods)
+
+    def __new__(cls, macaroon=None, macaroon_path=None,
+                cookie_name_suffix=None, interaction_methods=None,
+                visit_url=None, wait_url=None):
+        '''Override the __new__ method so that we can
+        have optional arguments, which namedtuple doesn't
+        allow'''
+        return super(ErrorInfo, cls).__new__(
+            cls, macaroon, macaroon_path, cookie_name_suffix,
+            interaction_methods, visit_url, wait_url)

@@ -20,8 +20,7 @@ class TestDischargeAll(unittest.TestCase):
             root_key=root_key, id=b'id0', location='loc0',
             version=macaroonbakery.LATEST_BAKERY_VERSION,
             namespace=common.test_checker().namespace())
-        ms = macaroonbakery.discharge_all(
-            common.test_context, m, no_discharge(self))
+        ms = macaroonbakery.discharge_all(m, no_discharge(self))
         self.assertEqual(len(ms), 1)
         self.assertEqual(ms[0], m.macaroon)
         v = Verifier()
@@ -52,7 +51,7 @@ class TestDischargeAll(unittest.TestCase):
 
         add_caveats(m0)
 
-        def get_discharge(_, cav, payload):
+        def get_discharge(cav, payload):
             self.assertEqual(payload, None)
             m = macaroonbakery.Macaroon(
                 root_key='root key {}'.format(
@@ -63,8 +62,7 @@ class TestDischargeAll(unittest.TestCase):
             add_caveats(m)
             return m
 
-        ms = macaroonbakery.discharge_all(
-            common.test_context, m0, get_discharge)
+        ms = macaroonbakery.discharge_all(m0, get_discharge)
 
         self.assertEqual(len(ms), 41)
 
@@ -121,14 +119,13 @@ class TestDischargeAll(unittest.TestCase):
             def check_third_party_caveat(self, ctx, info):
                 return checker(ctx, info)
 
-        def get_discharge(ctx, cav, payload):
+        def get_discharge(cav, payload):
             return macaroonbakery.discharge(
-                ctx, cav.caveat_id, payload,
+                common.test_context, cav.caveat_id, payload,
                 bakeries[cav.location].oven.key,
                 ThirdPartyCaveatCheckerF(), locator)
 
-        ms = macaroonbakery.discharge_all(common.test_context, m0,
-                                          get_discharge)
+        ms = macaroonbakery.discharge_all(m0, get_discharge)
 
         self.assertEqual(len(ms), total_discharges_required + 1)
 
@@ -145,8 +142,7 @@ class TestDischargeAll(unittest.TestCase):
                                      client_key.public_key,
                                      macaroonbakery.LATEST_BAKERY_VERSION)
                              ], [macaroonbakery.LOGIN_OP])
-        ms = macaroonbakery.discharge_all(
-            common.test_context, m, no_discharge(self), client_key)
+        ms = macaroonbakery.discharge_all(m, no_discharge(self), client_key)
         oc.checker.auth([ms]).allow(common.test_context,
                                     [macaroonbakery.LOGIN_OP])
 
@@ -157,14 +153,13 @@ class TestDischargeAll(unittest.TestCase):
             macaroonbakery.local_third_party_caveat(
                 client_key.public_key, macaroonbakery.BAKERY_V1)
         ], [macaroonbakery.LOGIN_OP])
-        ms = macaroonbakery.discharge_all(
-            common.test_context, m, no_discharge(self), client_key)
+        ms = macaroonbakery.discharge_all(m, no_discharge(self), client_key)
         oc.checker.auth([ms]).allow(common.test_context,
                                     [macaroonbakery.LOGIN_OP])
 
 
 def no_discharge(test):
-    def get_discharge(ctx, cav, payload):
+    def get_discharge(cav, payload):
         test.fail("get_discharge called unexpectedly")
 
     return get_discharge

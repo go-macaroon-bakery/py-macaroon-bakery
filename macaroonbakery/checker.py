@@ -110,12 +110,14 @@ class AuthChecker(object):
 
     def _init_once(self, ctx):
         self._auth_indexes = {}
-        self._conditions = [None]*len(self._macaroons)
+        self._conditions = [None] * len(self._macaroons)
         for i, ms in enumerate(self._macaroons):
             try:
                 ops, conditions = self.parent._macaroon_opstore.macaroon_ops(
                     ms)
-            except macaroonbakery.VerificationError as exc:
+            except macaroonbakery.VerificationError:
+                raise
+            except Exception as exc:
                 self._init_errors.append(exc.args[0])
                 continue
 
@@ -195,8 +197,8 @@ class AuthChecker(object):
         If an operation was not allowed, an exception will be raised which may
         be DischargeRequiredError holding the operations that remain to
         be authorized in order to allow authorization to proceed.
-        :param: ctx AuthContext
-        :param: ops an array of Op
+        @param ctx AuthContext
+        @param ops an array of Op
         :return: an AuthInfo object.
         '''
         auth_info, _ = self.allow_any(ctx, ops)
@@ -217,8 +219,8 @@ class AuthChecker(object):
 
         The LOGIN_OP operation is treated specially - it is always required if
         present in ops.
-        :param: ctx AuthContext
-        :param: ops an array of Op
+        @param ctx AuthContext
+        @param ops an array of Op
         :return: an AuthInfo object and the auth used as an array of int.
         '''
         authed, used = self._allow_any(ctx, ops)
@@ -233,8 +235,8 @@ class AuthChecker(object):
 
     def _allow_any(self, ctx, ops):
         self._init(ctx)
-        used = [False]*len(self._macaroons)
-        authed = [False]*len(ops)
+        used = [False] * len(self._macaroons)
+        authed = [False] * len(ops)
         num_authed = 0
         errors = []
         for i, op in enumerate(ops):
@@ -269,7 +271,7 @@ class AuthChecker(object):
             return authed, used
         # There are some unauthorized operations.
         need = []
-        need_index = [0]*(len(ops)-num_authed)
+        need_index = [0] * (len(ops) - num_authed)
         for i, ok in enumerate(authed):
             if not ok:
                 need_index[len(need)] = i
@@ -352,11 +354,11 @@ class AuthChecker(object):
 class AuthInfo(namedtuple('AuthInfo', 'identity macaroons')):
     '''AuthInfo information about an authorization decision.
 
-    :param: identity: holds information on the authenticated user as
+    @param identity: holds information on the authenticated user as
     returned identity_client. It may be None after a successful
     authorization if LOGIN_OP access was not required.
 
-    :param: macaroons: holds all the macaroons that were used for the
+    @param macaroons: holds all the macaroons that were used for the
     authorization. Macaroons that were invalid or unnecessary are
     not included.
     '''

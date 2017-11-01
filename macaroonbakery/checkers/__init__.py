@@ -1,24 +1,53 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
 from macaroonbakery.checkers.conditions import (
-    STD_NAMESPACE, COND_DECLARED, COND_TIME_BEFORE, COND_ERROR, COND_ALLOW,
-    COND_DENY, COND_NEED_DECLARED
+    STD_NAMESPACE,
+    COND_DECLARED,
+    COND_TIME_BEFORE,
+    COND_ERROR,
+    COND_ALLOW,
+    COND_DENY,
+    COND_NEED_DECLARED,
 )
 from macaroonbakery.checkers.caveat import (
-    allow_caveat, deny_caveat, declared_caveat, parse_caveat,
-    time_before_caveat, Caveat
+    allow_caveat,
+    deny_caveat,
+    declared_caveat,
+    parse_caveat,
+    time_before_caveat,
+    Caveat,
 )
 from macaroonbakery.checkers.declared import (
-    context_with_declared, infer_declared, infer_declared_from_conditions,
-    need_declared_caveat
+    context_with_declared,
+    infer_declared,
+    infer_declared_from_conditions,
+    need_declared_caveat,
 )
-from macaroonbakery.checkers.operation import context_with_operations
-from macaroonbakery.checkers.namespace import Namespace, deserialize_namespace
-from macaroonbakery.checkers.time import context_with_clock
+from macaroonbakery.checkers.operation import (
+    context_with_operations,
+)
+from macaroonbakery.checkers.namespace import (
+    Namespace,
+    deserialize_namespace
+)
+from macaroonbakery.checkers.time import (
+    context_with_clock,
+    expiry_time,
+    macaroons_expiry_time,
+)
 from macaroonbakery.checkers.checkers import (
-    Checker, CheckerInfo, RegisterError
+    Checker,
+    CheckerInfo,
+    RegisterError,
 )
-from macaroonbakery.checkers.auth_context import AuthContext, ContextKey
+from macaroonbakery.checkers.auth_context import (
+    AuthContext,
+    ContextKey,
+)
+
+from macaroonbakery.checkers.utils import (
+    condition_with_prefix,
+)
 
 __all__ = [
     'AuthContext',
@@ -36,14 +65,17 @@ __all__ = [
     'Namespace',
     'RegisterError',
     'allow_caveat',
+    'condition_with_prefix',
     'context_with_declared',
     'context_with_operations',
     'context_with_clock',
     'declared_caveat',
     'deny_caveat',
     'deserialize_namespace',
+    'expiry_time',
     'infer_declared',
     'infer_declared_from_conditions',
+    'macaroons_expiry_time',
     'need_declared_caveat',
     'parse_caveat',
     'time_before_caveat',

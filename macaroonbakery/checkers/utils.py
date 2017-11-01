@@ -7,7 +7,7 @@ def condition_with_prefix(prefix, condition):
 
     If the prefix is non-empty, a colon is used to separate them.
     '''
-    if prefix == '':
+    if prefix == '' or prefix is None:
         return condition
 
     return prefix + ':' + condition
