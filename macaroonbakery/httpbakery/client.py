@@ -41,7 +41,7 @@ class Client:
     should be passed to requests as is used to initialize
     the client.
     For example:
-        import bakery.httpbakery
+        import macaroonbakery.httpbakery
         client = httpbakery.Client()
         resp = requests.get('some protected url',
                             cookies=client.cookies,
@@ -84,7 +84,7 @@ class Client:
         as an HTTP URL.
         @param cav Third party {pymacaroons.Caveat} to be discharged.
         @param payload External caveat data {bytes}.
-        @return The acquired macaroon {bakery.Macaroon}
+        @return The acquired macaroon {macaroonbakery.Macaroon}
         '''
         resp = self._acquire_discharge_with_token(cav, payload, None)
         # TODO Fabrice what is the other http response possible ??
@@ -197,7 +197,7 @@ class _BakeryAuth:
     def __init__(self, client):
         '''
         @param interaction_methods A list of Interactor implementations.
-        @param key The private key of the client (bakery.PrivateKey)
+        @param key The private key of the client (macaroonbakery.PrivateKey)
         @param cookies storage for the cookies {CookieJar}. It should be the
         same as in the requests cookies.
         '''

@@ -2,7 +2,7 @@
 # Licensed under the LGPLv3, see LICENCE file for details.
 import abc
 
-import macaroonbakery
+import macaroonbakery as bakery
 
 
 # EVERYONE is recognized by ACLAuthorizer as the name of a
@@ -90,7 +90,7 @@ class ACLAuthorizer(Authorizer):
             # Anyone is allowed to do nothing.
             return [], []
         allowed = [False] * len(ops)
-        has_allow = isinstance(identity, macaroonbakery.ACLIdentity)
+        has_allow = isinstance(identity, bakery.ACLIdentity)
         for i, op in enumerate(ops):
             acl = self._get_acl(ctx, op)
             if has_allow:

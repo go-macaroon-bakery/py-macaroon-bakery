@@ -11,7 +11,7 @@ import six
 from six.moves.urllib.parse import urlparse
 from six.moves.urllib.parse import urljoin
 
-import macaroonbakery
+import macaroonbakery as bakery
 import macaroonbakery.utils as utils
 import macaroonbakery.httpbakery as httpbakery
 
@@ -118,8 +118,8 @@ class AgentInteractor(httpbakery.Interactor, httpbakery.LegacyInteractor):
         m = resp.json().get('macaroon')
         if m is None:
             raise httpbakery.InteractionError('no macaroon in response')
-        m = macaroonbakery.Macaroon.from_dict(m)
-        ms = macaroonbakery.discharge_all(m, None, self._auth_info.key)
+        m = bakery.Macaroon.from_dict(m)
+        ms = bakery.discharge_all(m, None, self._auth_info.key)
         b = bytearray()
         for m in ms:
             b.extend(utils.b64decode(m.serialize()))

@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 import pytz
 
-import macaroonbakery
+import macaroonbakery as bakery
 import macaroonbakery.checkers as checkers
 
 
@@ -51,7 +51,7 @@ def true_check(ctx, cond, args):
     return None
 
 
-class OneIdentity(macaroonbakery.IdentityClient):
+class OneIdentity(bakery.IdentityClient):
     '''An IdentityClient implementation that always returns a single identity
     from declared_identity, allowing allow(LOGIN_OP) to work even when there
     are no declaration caveats (this is mostly to support the legacy tests
@@ -73,7 +73,7 @@ class _NoOne(object):
         return ''
 
 
-class ThirdPartyStrcmpChecker(macaroonbakery.ThirdPartyCaveatChecker):
+class ThirdPartyStrcmpChecker(bakery.ThirdPartyCaveatChecker):
     def __init__(self, str):
         self.str = str
 
@@ -82,12 +82,12 @@ class ThirdPartyStrcmpChecker(macaroonbakery.ThirdPartyCaveatChecker):
         if isinstance(cav_info.condition, bytes):
             condition = cav_info.condition.decode('utf-8')
         if condition != self.str:
-            raise macaroonbakery.ThirdPartyCaveatCheckFailed(
+            raise bakery.ThirdPartyCaveatCheckFailed(
                 '{} doesn\'t match {}'.format(condition, self.str))
         return []
 
 
-class ThirdPartyCheckerWithCaveats(macaroonbakery.ThirdPartyCaveatChecker):
+class ThirdPartyCheckerWithCaveats(bakery.ThirdPartyCaveatChecker):
     def __init__(self, cavs=None):
         if cavs is None:
             cavs = []
@@ -97,7 +97,7 @@ class ThirdPartyCheckerWithCaveats(macaroonbakery.ThirdPartyCaveatChecker):
         return self.cavs
 
 
-class ThirdPartyCaveatCheckerEmpty(macaroonbakery.ThirdPartyCaveatChecker):
+class ThirdPartyCaveatCheckerEmpty(bakery.ThirdPartyCaveatChecker):
     def check_third_party_caveat(self, ctx, cav_info):
         return []
 
@@ -107,14 +107,16 @@ def new_bakery(location, locator=None):
     # key pair, and registers the key with the given locator if provided.
     #
     # It uses test_checker to check first party caveats.
-    key = macaroonbakery.generate_key()
+    key = bakery.generate_key()
     if locator is not None:
         locator.add_info(location,
-                         macaroonbakery.ThirdPartyInfo(
+                         bakery.ThirdPartyInfo(
                              public_key=key.public_key,
-                             version=macaroonbakery.LATEST_BAKERY_VERSION))
-    return macaroonbakery.Bakery(key=key,
-                                 checker=test_checker(),
-                                 location=location,
-                                 identity_client=OneIdentity(),
-                                 locator=locator)
+                             version=bakery.LATEST_BAKERY_VERSION))
+    return bakery.Bakery(
+        key=key,
+        checker=test_checker(),
+        location=location,
+        identity_client=OneIdentity(),
+        locator=locator,
+    )

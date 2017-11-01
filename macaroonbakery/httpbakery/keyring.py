@@ -3,12 +3,11 @@
 from six.moves.urllib.parse import urlparse
 import requests
 
-import macaroonbakery
+import macaroonbakery as bakery
 from macaroonbakery.httpbakery.error import BAKERY_PROTOCOL_HEADER
-from macaroonbakery import LATEST_BAKERY_VERSION
 
 
-class ThirdPartyLocator(macaroonbakery.ThirdPartyLocator):
+class ThirdPartyLocator(bakery.ThirdPartyLocator):
     ''' Implements macaroonbakery.ThirdPartyLocator by first looking in the
     backing cache and, if that fails, making an HTTP request to find the
     information associated with the given discharge location.
@@ -25,7 +24,7 @@ class ThirdPartyLocator(macaroonbakery.ThirdPartyLocator):
     def third_party_info(self, loc):
         u = urlparse(loc)
         if u.scheme != 'https' and not self._allow_insecure:
-            raise macaroonbakery.ThirdPartyInfoNotFound(
+            raise bakery.ThirdPartyInfoNotFound(
                 'untrusted discharge URL {}'.format(loc))
         loc = loc.rstrip('/')
         info = self._cache.get(loc)
@@ -33,7 +32,7 @@ class ThirdPartyLocator(macaroonbakery.ThirdPartyLocator):
             return info
         url_endpoint = '/discharge/info'
         headers = {
-            BAKERY_PROTOCOL_HEADER: str(LATEST_BAKERY_VERSION)
+            BAKERY_PROTOCOL_HEADER: str(bakery.LATEST_BAKERY_VERSION)
         }
         resp = requests.get(url=loc + url_endpoint, headers=headers)
         status_code = resp.status_code
@@ -42,19 +41,19 @@ class ThirdPartyLocator(macaroonbakery.ThirdPartyLocator):
             resp = requests.get(url=loc + url_endpoint, headers=headers)
             status_code = resp.status_code
         if status_code != 200:
-            raise macaroonbakery.ThirdPartyInfoNotFound(
+            raise bakery.ThirdPartyInfoNotFound(
                 'unable to get info from {}'.format(url_endpoint))
         json_resp = resp.json()
         if json_resp is None:
-            raise macaroonbakery.ThirdPartyInfoNotFound(
+            raise bakery.ThirdPartyInfoNotFound(
                 'no response from /discharge/info')
         pk = json_resp.get('PublicKey')
         if pk is None:
-            raise macaroonbakery.ThirdPartyInfoNotFound(
+            raise bakery.ThirdPartyInfoNotFound(
                 'no public key found in /discharge/info')
-        idm_pk = macaroonbakery.PublicKey.deserialize(pk)
-        version = json_resp.get('Version', macaroonbakery.BAKERY_V1)
-        self._cache[loc] = macaroonbakery.ThirdPartyInfo(
+        idm_pk = bakery.PublicKey.deserialize(pk)
+        version = json_resp.get('Version', bakery.BAKERY_V1)
+        self._cache[loc] = bakery.ThirdPartyInfo(
             version=version,
             public_key=idm_pk
         )

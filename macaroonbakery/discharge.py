@@ -3,7 +3,7 @@
 import abc
 from collections import namedtuple
 
-import macaroonbakery
+import macaroonbakery as bakery
 import macaroonbakery.checkers as checkers
 
 emptyContext = checkers.AuthContext()
@@ -90,7 +90,7 @@ class ThirdPartyCaveatChecker(object):
 class _LocalDischargeChecker(ThirdPartyCaveatChecker):
     def check_third_party_caveat(self, ctx, info):
         if info.condition != 'true':
-            raise macaroonbakery.CaveatNotRecognizedError()
+            raise bakery.CaveatNotRecognizedError()
         return []
 
 
@@ -125,8 +125,8 @@ def discharge(ctx, id, caveat, key, checker, locator):
         # caveats are added, use that id as the prefix
         # for any more ids.
         caveat_id_prefix = id
-    cav_info = macaroonbakery.decode_caveat(key, caveat)
-    cav_info = macaroonbakery.ThirdPartyCaveatInfo(
+    cav_info = bakery.decode_caveat(key, caveat)
+    cav_info = bakery.ThirdPartyCaveatInfo(
         condition=cav_info.condition,
         first_party_public_key=cav_info.first_party_public_key,
         third_party_key_pair=cav_info.third_party_key_pair,
@@ -142,7 +142,7 @@ def discharge(ctx, id, caveat, key, checker, locator):
     try:
         cond, arg = checkers.parse_caveat(cav_info.condition)
     except ValueError as exc:
-        raise macaroonbakery.VerificationError(exc.args[0])
+        raise bakery.VerificationError(exc.args[0])
 
     if cond == checkers.COND_NEED_DECLARED:
         cav_info = cav_info._replace(condition=arg.encode('utf-8'))
@@ -154,8 +154,13 @@ def discharge(ctx, id, caveat, key, checker, locator):
     # be stored persistently. Indeed, it would be a problem if
     # we did, because then the macaroon could potentially be used
     # for normal authorization with the third party.
-    m = macaroonbakery.Macaroon(cav_info.root_key, id, '', cav_info.version,
-                                cav_info.namespace)
+    m = bakery.Macaroon(
+        cav_info.root_key,
+        id,
+        '',
+        cav_info.version,
+        cav_info.namespace,
+    )
     m._caveat_id_prefix = caveat_id_prefix
     if caveats is not None:
         for cav in caveats:
@@ -167,16 +172,15 @@ def _check_need_declared(ctx, cav_info, checker):
     arg = cav_info.condition.decode('utf-8')
     i = arg.find(' ')
     if i <= 0:
-        raise macaroonbakery.VerificationError(
-            'need-declared caveat requires an argument, got %q'.format(arg))
+        raise bakery.VerificationError(
+            'need-declared caveat requires an argument, got %q'.format(arg),
+        )
     need_declared = arg[0:i].split(',')
     for d in need_declared:
         if d == '':
-            raise macaroonbakery.VerificationError('need-declared caveat with '
-                                                   'empty required attribute')
+            raise bakery.VerificationError('need-declared caveat with empty required attribute')
     if len(need_declared) == 0:
-        raise macaroonbakery.VerificationError('need-declared caveat with no '
-                                               'required attributes')
+        raise bakery.VerificationError('need-declared caveat with no required attributes')
     cav_info = cav_info._replace(condition=arg[i + 1:].encode('utf-8'))
     caveats = checker.check_third_party_caveat(ctx, cav_info)
     declared = {}
@@ -193,8 +197,7 @@ def _check_need_declared(ctx, cav_info, checker):
             continue
         parts = arg.split()
         if len(parts) != 2:
-            raise macaroonbakery.VerificationError('declared caveat has no '
-                                                   'value')
+            raise bakery.VerificationError('declared caveat has no value')
         declared[parts[0]] = True
     # Add empty declarations for everything mentioned in need-declared
     # that was not actually declared.
@@ -204,7 +207,7 @@ def _check_need_declared(ctx, cav_info, checker):
     return caveats
 
 
-class _EmptyLocator(macaroonbakery.ThirdPartyLocator):
+class _EmptyLocator(bakery.ThirdPartyLocator):
     def third_party_info(self, loc):
         return None
 
@@ -217,6 +220,6 @@ def local_third_party_caveat(key, version):
     '''
     encoded_key = key.encode().decode('utf-8')
     loc = 'local {}'.format(encoded_key)
-    if version >= macaroonbakery.BAKERY_V2:
+    if version >= bakery.BAKERY_V2:
         loc = 'local {} {}'.format(version, encoded_key)
     return checkers.Caveat(location=loc, condition='')

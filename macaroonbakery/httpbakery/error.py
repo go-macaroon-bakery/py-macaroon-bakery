@@ -3,8 +3,7 @@
 from collections import namedtuple
 import json
 
-from macaroonbakery import BAKERY_V1, LATEST_BAKERY_VERSION
-from macaroonbakery import Macaroon
+import macaroonbakery as bakery
 
 ERR_INTERACTION_REQUIRED = 'interaction required'
 ERR_DISCHARGE_REQUIRED = 'macaroon discharge required'
@@ -83,16 +82,16 @@ def request_version(req_headers):
     vs = req_headers.get(BAKERY_PROTOCOL_HEADER)
     if vs is None:
         # No header - use backward compatibility mode.
-        return BAKERY_V1
+        return bakery.BAKERY_V1
     try:
         x = int(vs)
     except ValueError:
         # Badly formed header - use backward compatibility mode.
-        return BAKERY_V1
-    if x > LATEST_BAKERY_VERSION:
+        return bakery.BAKERY_V1
+    if x > bakery.LATEST_BAKERY_VERSION:
         # Later version than we know about - use the
         # latest version that we can.
-        return LATEST_BAKERY_VERSION
+        return bakery.LATEST_BAKERY_VERSION
     return x
 
 
@@ -109,7 +108,7 @@ class Error(namedtuple('Error', 'code, message, version, info')):
         message = serialized.get('Message')
         info = ErrorInfo.from_dict(serialized.get('Info'))
         return Error(code=code, message=message, info=info,
-                     version=LATEST_BAKERY_VERSION)
+                     version=bakery.LATEST_BAKERY_VERSION)
 
     def interaction_method(self, kind, x):
         ''' Checks whether the error is an InteractionRequired error
@@ -179,7 +178,7 @@ class ErrorInfo(
             return None
         macaroon = serialized.get('Macaroon')
         if macaroon is not None:
-            macaroon = Macaroon.deserialize_json(macaroon)
+            macaroon = bakery.Macaroon.deserialize_json(macaroon)
         path = serialized.get('MacaroonPath')
         cookie_name_suffix = serialized.get('CookieNameSuffix')
         visit_url = serialized.get('VisitURL')
