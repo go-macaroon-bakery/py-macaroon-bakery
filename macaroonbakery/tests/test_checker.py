@@ -597,11 +597,11 @@ class TestChecker(TestCase):
         checker = macaroonbakery.Checker(
             macaroon_opstore=_MacaroonStoreWithError())
         m = pymacaroons.Macaroon(version=pymacaroons.MACAROON_V2)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(macaroonbakery.AuthInitError):
             checker.auth([m]).allow(test_context, [macaroonbakery.LOGIN_OP])
 
 
-class _DischargerLocator(object):
+class _DischargerLocator(macaroonbakery.ThirdPartyLocator):
     def __init__(self, dischargers=None):
         if dischargers is None:
             dischargers = {}
@@ -638,12 +638,11 @@ class _IdService(macaroonbakery.IdentityClient,
     def check_third_party_caveat(self, ctx, info):
         if info.condition != 'is-authenticated-user':
             raise macaroonbakery.CaveatNotRecognizedError(
-                'third party condition not '
-                'recognized')
+                'third party condition not recognized')
 
         username = ctx.get(_DISCHARGE_USER_KEY, '')
         if username == '':
-            return macaroonbakery.ThirdPartyCaveatCheckFailed(
+            raise macaroonbakery.ThirdPartyCaveatCheckFailed(
                 'no current user')
         self._test._discharges.append(
             _DischargeRecord(location=self._location, user=username))
@@ -676,10 +675,14 @@ class _Discharger(object):
         self._checker = checker
 
     def discharge(self, ctx, cav, payload):
-        return macaroonbakery.discharge(ctx, key=self._key, id=cav.caveat_id,
-                                        caveat=payload,
-                                        checker=self._checker,
-                                        locator=self._locator)
+        return macaroonbakery.discharge(
+            ctx,
+            key=self._key,
+            id=cav.caveat_id,
+            caveat=payload,
+            checker=self._checker,
+            locator=self._locator,
+        )
 
 
 class _OpAuthorizer(macaroonbakery.Authorizer):
@@ -894,14 +897,14 @@ class _Client(object):
         return ms
 
     def _discharge_all(self, ctx, m):
-        def get_discharge(ctx, cav, pay_load):
+        def get_discharge(cav, payload):
             d = self._dischargers.get(cav.location)
             if d is None:
                 raise ValueError('third party discharger '
                                  '{} not found'.format(cav.location))
-            return d.discharge(ctx, cav, pay_load)
+            return d.discharge(ctx, cav, payload)
 
-        return macaroonbakery.discharge_all(ctx, m, get_discharge)
+        return macaroonbakery.discharge_all(m, get_discharge)
 
 
 class _BasicAuthIdService(macaroonbakery.IdentityClient):

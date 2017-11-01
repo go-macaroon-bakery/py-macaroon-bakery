@@ -35,6 +35,7 @@ class TestCodec(TestCase):
             caveat=cid,
             third_party_key_pair=self.tp_key,
             version=macaroonbakery.BAKERY_V1,
+            id=None,
             namespace=macaroonbakery.legacy_namespace()
         ))
 
@@ -56,6 +57,7 @@ class TestCodec(TestCase):
             caveat=cid,
             third_party_key_pair=self.tp_key,
             version=macaroonbakery.BAKERY_V2,
+            id=None,
             namespace=macaroonbakery.legacy_namespace()
         ))
 
@@ -79,6 +81,7 @@ class TestCodec(TestCase):
             caveat=cid,
             third_party_key_pair=self.tp_key,
             version=macaroonbakery.BAKERY_V3,
+            id=None,
             namespace=ns
         ))
 
@@ -116,6 +119,7 @@ class TestCodec(TestCase):
             root_key=root_key,
             caveat=encrypted_cav,
             version=macaroonbakery.BAKERY_V1,
+            id=None,
             namespace=macaroonbakery.legacy_namespace()
         ))
 
@@ -129,11 +133,11 @@ class TestCodec(TestCase):
         root_key = base64.b64decode('wh0HSM65wWHOIxoGjgJJOFvQKn2jJFhC')
         # This caveat has been generated from the go code
         # to check the compatibilty
-        encrypted_cav = base64.urlsafe_b64decode(
-            utils.add_base64_padding(six.b(
-                'AvD-xlUf2MdGMgtu7OKRQnCP1OQJk6PKeFWRK26WIBA6DNwKGIHq9xGcHS9IZ'
-                'Lh0cL6D9qpeKI0mXmCPfnwRQDuVYC8y5gVWd-oCGZaj5TGtk3byp2Vnw6ojmt'
-                'sULDhY59YA_J_Y0ATkERO5T9ajoRWBxU2OXBoX6bImXA')))
+        encrypted_cav = utils.b64decode(
+            'AvD-xlUf2MdGMgtu7OKRQnCP1OQJk6PKeFWRK26WIBA6DNwKGIHq9xGcHS9IZ'
+            'Lh0cL6D9qpeKI0mXmCPfnwRQDuVYC8y5gVWd-oCGZaj5TGtk3byp2Vnw6ojmt'
+            'sULDhY59YA_J_Y0ATkERO5T9ajoRWBxU2OXBoX6bImXA',
+        )
         cav = macaroonbakery.decode_caveat(tp_key, encrypted_cav)
         self.assertEqual(cav, macaroonbakery.ThirdPartyCaveatInfo(
             condition='third party condition',
@@ -142,6 +146,7 @@ class TestCodec(TestCase):
             root_key=root_key,
             caveat=encrypted_cav,
             version=macaroonbakery.BAKERY_V2,
+            id=None,
             namespace=macaroonbakery.legacy_namespace()
         ))
 
@@ -155,11 +160,11 @@ class TestCodec(TestCase):
         root_key = base64.b64decode(b'oqOXI3/Mz/pKjCuFOt2eYxb7ndLq66GY')
         # This caveat has been generated from the go code
         # to check the compatibilty
-        encrypted_cav = base64.urlsafe_b64decode(
-            utils.add_base64_padding(six.b(
-                'A_D-xlUf2MdGMgtu7OKRQnCP1OQJk6PKeFWRK26WIBA6DNwKGNLeFSkD2M-8A'
-                'EYvmgVH95GWu7T7caKxKhhOQFcEKgnXKJvYXxz1zin4cZc4Q6C7gVqA-J4_j3'
-                '1LX4VKxymqG62UGPo78wOv0_fKjr3OI6PPJOYOQgBMclemlRF2')))
+        encrypted_cav = utils.b64decode(
+            'A_D-xlUf2MdGMgtu7OKRQnCP1OQJk6PKeFWRK26WIBA6DNwKGNLeFSkD2M-8A'
+            'EYvmgVH95GWu7T7caKxKhhOQFcEKgnXKJvYXxz1zin4cZc4Q6C7gVqA-J4_j3'
+            '1LX4VKxymqG62UGPo78wOv0_fKjr3OI6PPJOYOQgBMclemlRF2',
+        )
         cav = macaroonbakery.decode_caveat(tp_key, encrypted_cav)
         self.assertEquals(cav, macaroonbakery.ThirdPartyCaveatInfo(
             condition='third party condition',
@@ -168,6 +173,7 @@ class TestCodec(TestCase):
             root_key=root_key,
             caveat=encrypted_cav,
             version=macaroonbakery.BAKERY_V3,
+            id=None,
             namespace=macaroonbakery.legacy_namespace()
         ))
 

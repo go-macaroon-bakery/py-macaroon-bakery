@@ -14,7 +14,7 @@ from httmock import (
     response
 )
 
-from macaroonbakery import httpbakery
+import macaroonbakery.httpbakery as httpbakery
 
 ID_PATH = 'http://example.com/someprotecteurl'
 
@@ -169,8 +169,8 @@ def wait_after_401(url, request):
 
 class TestBakery(TestCase):
 
-    def assert_cookie_security(self, jar, name, secure):
-        for cookie in jar:
+    def assert_cookie_security(self, cookies, name, secure):
+        for cookie in cookies:
             if cookie.name == name:
                 assert cookie.secure == secure
                 break
@@ -178,46 +178,45 @@ class TestBakery(TestCase):
             assert False, 'no cookie named {} found in jar'.format(name)
 
     def test_discharge(self):
-        jar = requests.cookies.RequestsCookieJar()
-        with HTTMock(first_407_then_200):
-            with HTTMock(discharge_200):
+        client = httpbakery.Client()
+        with HTTMock(first_407_then_200), HTTMock(discharge_200):
                 resp = requests.get(ID_PATH,
-                                    cookies=jar,
-                                    auth=httpbakery.BakeryAuth(cookies=jar))
+                                    cookies=client.cookies,
+                                    auth=client.auth())
         resp.raise_for_status()
-        assert 'macaroon-test' in jar.keys()
-        self.assert_cookie_security(jar, 'macaroon-test', secure=False)
+        assert 'macaroon-test' in client.cookies.keys()
+        self.assert_cookie_security(client.cookies, 'macaroon-test', secure=False)
 
     @patch('webbrowser.open')
     def test_407_then_401_on_discharge(self, mock_open):
-        jar = requests.cookies.RequestsCookieJar()
-        with HTTMock(first_407_then_200):
-            with HTTMock(discharge_401):
-                with HTTMock(wait_after_401):
-                    resp = requests.get(ID_PATH,
-                                        auth=httpbakery.BakeryAuth(
-                                            cookies=jar))
-                    resp.raise_for_status()
+        client = httpbakery.Client()
+        with HTTMock(first_407_then_200), HTTMock(discharge_401), HTTMock(wait_after_401):
+                resp = requests.get(
+                    ID_PATH,
+                    cookies=client.cookies,
+                    auth=client.auth(),
+                )
+                resp.raise_for_status()
         mock_open.assert_called_once_with(u'http://example.com/visit', new=1)
-        assert 'macaroon-test' in jar.keys()
+        assert 'macaroon-test' in client.cookies.keys()
 
     def test_cookie_with_port(self):
-        jar = requests.cookies.RequestsCookieJar()
+        client = httpbakery.Client()
         with HTTMock(first_407_then_200_with_port):
             with HTTMock(discharge_200):
                 resp = requests.get('http://example.com:8000/someprotecteurl',
-                                    cookies=jar,
-                                    auth=httpbakery.BakeryAuth(cookies=jar))
+                                    cookies=client.cookies,
+                                    auth=client.auth())
         resp.raise_for_status()
-        assert 'macaroon-test' in jar.keys()
+        assert 'macaroon-test' in client.cookies.keys()
 
     def test_secure_cookie_for_https(self):
-        jar = requests.cookies.RequestsCookieJar()
-        with HTTMock(first_407_then_200_with_port):
-            with HTTMock(discharge_200):
-                resp = requests.get('https://example.com:8000/someprotecteurl',
-                                    cookies=jar,
-                                    auth=httpbakery.BakeryAuth(cookies=jar))
+        client = httpbakery.Client()
+        with HTTMock(first_407_then_200_with_port), HTTMock(discharge_200):
+                resp = requests.get(
+                    'https://example.com:8000/someprotecteurl',
+                    cookies=client.cookies,
+                    auth=client.auth())
         resp.raise_for_status()
-        assert 'macaroon-test' in jar.keys()
-        self.assert_cookie_security(jar, 'macaroon-test', secure=True)
+        assert 'macaroon-test' in client.cookies.keys()
+        self.assert_cookie_security(client.cookies, 'macaroon-test', secure=True)

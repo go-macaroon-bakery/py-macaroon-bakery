@@ -96,7 +96,7 @@ class IdentityClient(object):
         (for example because of a database access error) - it's
         OK to return all zero values when there's
         no identity found and no third party to address caveats to.
-        :param: ctx an AuthContext
+        @param ctx an AuthContext
         :return: an Identity and array of caveats
         '''
         raise NotImplementedError('identity_from_context method must be '
@@ -107,8 +107,8 @@ class IdentityClient(object):
         '''Parses the identity declaration from the given declared attributes.
 
         TODO take the set of first party caveat conditions instead?
-        :param: ctx (AuthContext)
-        :param: declared (dict of string/string)
+        @param ctx (AuthContext)
+        @param declared (dict of string/string)
         :return: an Identity
         '''
         raise NotImplementedError('declared_identity method must be '

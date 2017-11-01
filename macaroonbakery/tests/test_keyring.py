@@ -4,28 +4,28 @@ import unittest
 
 from httmock import urlmatch, HTTMock
 
-import macaroonbakery
-from macaroonbakery import httpbakery
+import macaroonbakery as bakery
+import macaroonbakery.httpbakery as httpbakery
 
 
 class TestKeyRing(unittest.TestCase):
 
     def test_cache_fetch(self):
-        key = macaroonbakery.generate_key()
+        key = bakery.generate_key()
 
         @urlmatch(path='.*/discharge/info')
         def discharge_info(url, request):
             return {
                 'status_code': 200,
                 'content': {
-                    'Version': macaroonbakery.LATEST_BAKERY_VERSION,
+                    'Version': bakery.LATEST_BAKERY_VERSION,
                     'PublicKey': key.public_key.encode().decode('utf-8')
                 }
             }
 
-        expectInfo = macaroonbakery.ThirdPartyInfo(
+        expectInfo = bakery.ThirdPartyInfo(
             public_key=key.public_key,
-            version=macaroonbakery.LATEST_BAKERY_VERSION
+            version=bakery.LATEST_BAKERY_VERSION
         )
         kr = httpbakery.ThirdPartyLocator(allow_insecure=True)
         with HTTMock(discharge_info):
@@ -33,21 +33,21 @@ class TestKeyRing(unittest.TestCase):
         self.assertEqual(info, expectInfo)
 
     def test_cache_norefetch(self):
-        key = macaroonbakery.generate_key()
+        key = bakery.generate_key()
 
         @urlmatch(path='.*/discharge/info')
         def discharge_info(url, request):
             return {
                 'status_code': 200,
                 'content': {
-                    'Version': macaroonbakery.LATEST_BAKERY_VERSION,
+                    'Version': bakery.LATEST_BAKERY_VERSION,
                     'PublicKey': key.public_key.encode().decode('utf-8')
                 }
             }
 
-        expectInfo = macaroonbakery.ThirdPartyInfo(
+        expectInfo = bakery.ThirdPartyInfo(
             public_key=key.public_key,
-            version=macaroonbakery.LATEST_BAKERY_VERSION
+            version=bakery.LATEST_BAKERY_VERSION
         )
         kr = httpbakery.ThirdPartyLocator(allow_insecure=True)
         with HTTMock(discharge_info):
@@ -57,7 +57,7 @@ class TestKeyRing(unittest.TestCase):
         self.assertEqual(info, expectInfo)
 
     def test_cache_fetch_no_version(self):
-        key = macaroonbakery.generate_key()
+        key = bakery.generate_key()
 
         @urlmatch(path='.*/discharge/info')
         def discharge_info(url, request):
@@ -68,9 +68,9 @@ class TestKeyRing(unittest.TestCase):
                 }
             }
 
-        expectInfo = macaroonbakery.ThirdPartyInfo(
+        expectInfo = bakery.ThirdPartyInfo(
             public_key=key.public_key,
-            version=macaroonbakery.BAKERY_V1
+            version=bakery.BAKERY_V1
         )
         kr = httpbakery.ThirdPartyLocator(allow_insecure=True)
         with HTTMock(discharge_info):
@@ -79,11 +79,11 @@ class TestKeyRing(unittest.TestCase):
 
     def test_allow_insecure(self):
         kr = httpbakery.ThirdPartyLocator()
-        with self.assertRaises(macaroonbakery.error.ThirdPartyInfoNotFound):
+        with self.assertRaises(bakery.error.ThirdPartyInfoNotFound):
             kr.third_party_info('http://0.1.2.3/')
 
     def test_fallback(self):
-        key = macaroonbakery.generate_key()
+        key = bakery.generate_key()
 
         @urlmatch(path='.*/discharge/info')
         def discharge_info(url, request):
@@ -100,9 +100,9 @@ class TestKeyRing(unittest.TestCase):
                 }
             }
 
-        expectInfo = macaroonbakery.ThirdPartyInfo(
+        expectInfo = bakery.ThirdPartyInfo(
             public_key=key.public_key,
-            version=macaroonbakery.BAKERY_V1
+            version=bakery.BAKERY_V1
         )
         kr = httpbakery.ThirdPartyLocator(allow_insecure=True)
         with HTTMock(discharge_info):

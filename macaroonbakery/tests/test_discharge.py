@@ -3,12 +3,10 @@
 import unittest
 
 from pymacaroons import MACAROON_V1, Macaroon
-from pymacaroons.exceptions import (
-    MacaroonInvalidSignatureException, MacaroonUnmetCaveatException
-)
 
 import macaroonbakery
 import macaroonbakery.checkers as checkers
+from macaroonbakery.error import VerificationError
 from macaroonbakery.tests import common
 
 
@@ -62,16 +60,15 @@ class TestDischarge(unittest.TestCase):
                                fs.oven.key, fs.oven.locator)
 
         # client asks for a discharge macaroon for each third party caveat
-        def get_discharge(ctx, cav, payload):
+        def get_discharge(cav, payload):
             self.assertEqual(cav.location, 'bs-loc')
-            return macaroonbakery.discharge(ctx, cav.caveat_id_bytes, payload,
+            return macaroonbakery.discharge(common.test_context, cav.caveat_id_bytes, payload,
                                             bs.oven.key,
                                             common.ThirdPartyStrcmpChecker(
                                                 'user==bob'),
                                             bs.oven.locator)
 
-        d = macaroonbakery.discharge_all(common.test_context, ts_macaroon,
-                                         get_discharge)
+        d = macaroonbakery.discharge_all(ts_macaroon, get_discharge)
 
         ts.checker.auth([d]).allow(common.test_context,
                                    [macaroonbakery.LOGIN_OP])
@@ -90,20 +87,19 @@ class TestDischarge(unittest.TestCase):
 
         # client asks for a discharge macaroon for each third party caveat
 
-        def get_discharge(ctx, cav, payload):
+        def get_discharge(cav, payload):
             # Make sure that the caveat id really is old-style.
             try:
                 cav.caveat_id_bytes.decode('utf-8')
             except UnicodeDecodeError:
                 self.fail('caveat id is not utf-8')
-            return macaroonbakery.discharge(ctx, cav.caveat_id_bytes, payload,
+            return macaroonbakery.discharge(common.test_context, cav.caveat_id_bytes, payload,
                                             bs.oven.key,
                                             common.ThirdPartyStrcmpChecker(
                                                 'something'),
                                             bs.oven.locator)
 
-        d = macaroonbakery.discharge_all(common.test_context, ts_macaroon,
-                                         get_discharge)
+        d = macaroonbakery.discharge_all(ts_macaroon, get_discharge)
 
         ts.checker.auth([d]).allow(common.test_context,
                                    [macaroonbakery.LOGIN_OP])
@@ -151,7 +147,7 @@ class TestDischarge(unittest.TestCase):
                 macaroonbakery.LOGIN_OP
             )
             self.fail('macaroon unmet should be raised')
-        except MacaroonUnmetCaveatException:
+        except VerificationError:
             pass
 
     def test_macaroon_paper_fig6_fails_with_binding_on_tampered_sig(self):
@@ -173,16 +169,15 @@ class TestDischarge(unittest.TestCase):
                                ts.oven.key, ts.oven.locator)
 
         # client asks for a discharge macaroon for each third party caveat
-        def get_discharge(ctx, cav, payload):
+        def get_discharge(cav, payload):
             self.assertEqual(cav.location, 'bs-loc')
-            return macaroonbakery.discharge(ctx, cav.caveat_id_bytes, payload,
+            return macaroonbakery.discharge(common.test_context, cav.caveat_id_bytes, payload,
                                             bs.oven.key,
                                             common.ThirdPartyStrcmpChecker(
                                                 'user==bob'),
                                             bs.oven.locator)
 
-        d = macaroonbakery.discharge_all(common.test_context, ts_macaroon,
-                                         get_discharge)
+        d = macaroonbakery.discharge_all(ts_macaroon, get_discharge)
         # client has all the discharge macaroons. For each discharge macaroon
         # bind it to our ts_macaroon and add it to our request.
         tampered_macaroon = Macaroon()
@@ -190,10 +185,11 @@ class TestDischarge(unittest.TestCase):
             d[i + 1] = tampered_macaroon.prepare_for_request(dm)
 
         # client makes request to ts.
-        with self.assertRaises(MacaroonInvalidSignatureException) as exc:
+        with self.assertRaises(VerificationError) as exc:
             ts.checker.auth([d]).allow(common.test_context,
                                        macaroonbakery.LOGIN_OP)
-        self.assertEqual('Signatures do not match', exc.exception.args[0])
+        self.assertEqual('verification failed: Signatures do not match',
+                         exc.exception.args[0])
 
     def test_need_declared(self):
         locator = macaroonbakery.ThirdPartyStore()
@@ -211,14 +207,14 @@ class TestDischarge(unittest.TestCase):
             ], [macaroonbakery.LOGIN_OP])
 
         # The client asks for a discharge macaroon for each third party caveat.
-        def get_discharge(ctx, cav, payload):
-            return macaroonbakery.discharge(ctx, cav.caveat_id_bytes, payload,
+        def get_discharge(cav, payload):
+            return macaroonbakery.discharge(common.test_context, cav.caveat_id_bytes, payload,
                                             third_party.oven.key,
                                             common.ThirdPartyStrcmpChecker(
                                                 'something'),
                                             third_party.oven.locator)
 
-        d = macaroonbakery.discharge_all(common.test_context, m, get_discharge)
+        d = macaroonbakery.discharge_all(m, get_discharge)
 
         # The required declared attributes should have been added
         # to the discharge macaroons.
@@ -236,17 +232,17 @@ class TestDischarge(unittest.TestCase):
         # Try again when the third party does add a required declaration.
 
         # The client asks for a discharge macaroon for each third party caveat.
-        def get_discharge(ctx, cav, payload):
+        def get_discharge(cav, payload):
             checker = common.ThirdPartyCheckerWithCaveats([
                 checkers.declared_caveat('foo', 'a'),
                 checkers.declared_caveat('arble', 'b')
             ])
-            return macaroonbakery.discharge(ctx, cav.caveat_id_bytes, payload,
+            return macaroonbakery.discharge(common.test_context, cav.caveat_id_bytes, payload,
                                             third_party.oven.key,
                                             checker,
                                             third_party.oven.locator)
 
-        d = macaroonbakery.discharge_all(common.test_context, m, get_discharge)
+        d = macaroonbakery.discharge_all(m, get_discharge)
 
         # One attribute should have been added, the other was already there.
         declared = checkers.infer_declared(d, first_party.checker.namespace())
@@ -262,20 +258,20 @@ class TestDischarge(unittest.TestCase):
         # Try again, but this time pretend a client is sneakily trying
         # to add another 'declared' attribute to alter the declarations.
 
-        def get_discharge(ctx, cav, payload):
+        def get_discharge(cav, payload):
             checker = common.ThirdPartyCheckerWithCaveats([
                 checkers.declared_caveat('foo', 'a'),
                 checkers.declared_caveat('arble', 'b'),
             ])
 
             # Sneaky client adds a first party caveat.
-            m = macaroonbakery.discharge(ctx, cav.caveat_id_bytes, payload,
+            m = macaroonbakery.discharge(common.test_context, cav.caveat_id_bytes, payload,
                                          third_party.oven.key, checker,
                                          third_party.oven.locator)
             m.add_caveat(checkers.declared_caveat('foo', 'c'), None, None)
             return m
 
-        d = macaroonbakery.discharge_all(common.test_context, m, get_discharge)
+        d = macaroonbakery.discharge_all(m, get_discharge)
 
         declared = checkers.infer_declared(d, first_party.checker.namespace())
         self.assertEqual(declared, {
@@ -311,13 +307,17 @@ class TestDischarge(unittest.TestCase):
         # The client asks for a discharge macaroon for each third party caveat.
         # Since no declarations are added by the discharger,
 
-        def get_discharge(ctx, cav, payload):
+        def get_discharge(cav, payload):
             return macaroonbakery.discharge(
-                ctx, cav.caveat_id_bytes, payload, third_party.oven.key,
+                common.test_context,
+                cav.caveat_id_bytes,
+                payload,
+                third_party.oven.key,
                 common.ThirdPartyCaveatCheckerEmpty(),
-                third_party.oven.locator)
+                third_party.oven.locator,
+            )
 
-        d = macaroonbakery.discharge_all(common.test_context, m, get_discharge)
+        d = macaroonbakery.discharge_all(m, get_discharge)
         declared = checkers.infer_declared(d, first_party.checker.namespace())
         self.assertEqual(declared, {
             'foo': '',
@@ -341,13 +341,17 @@ class TestDischarge(unittest.TestCase):
                     ]
                 raise common.ThirdPartyCaveatCheckFailed('not matched')
 
-        def get_discharge(ctx, cav, payload):
-            return macaroonbakery.discharge(ctx, cav.caveat_id_bytes, payload,
-                                            third_party.oven.key,
-                                            ThirdPartyCaveatCheckerF(),
-                                            third_party.oven.locator)
+        def get_discharge(cav, payload):
+            return macaroonbakery.discharge(
+                common.test_context,
+                cav.caveat_id_bytes,
+                payload,
+                third_party.oven.key,
+                ThirdPartyCaveatCheckerF(),
+                third_party.oven.locator,
+            )
 
-        d = macaroonbakery.discharge_all(common.test_context, m, get_discharge)
+        d = macaroonbakery.discharge_all(m, get_discharge)
 
         declared = checkers.infer_declared(d, first_party.checker.namespace())
         self.assertEqual(declared, {
@@ -377,19 +381,23 @@ class TestDischarge(unittest.TestCase):
         class M:
             unbound = None
 
-        def get_discharge(ctx, cav, payload):
+        def get_discharge(cav, payload):
             m = macaroonbakery.discharge(
-                ctx, cav.caveat_id_bytes, payload, third_party.oven.key,
+                common.test_context,
+                cav.caveat_id_bytes,
+                payload,
+                third_party.oven.key,
                 common.ThirdPartyStrcmpChecker('true'),
-                third_party.oven.locator)
+                third_party.oven.locator,
+            )
             M.unbound = m.macaroon.copy()
             return m
 
-        macaroonbakery.discharge_all(common.test_context, m, get_discharge)
+        macaroonbakery.discharge_all(m, get_discharge)
         self.assertIsNotNone(M.unbound)
 
         # Make sure it cannot be used as a normal macaroon in the third party.
-        with self.assertRaises(macaroonbakery.AuthInitError) as exc:
+        with self.assertRaises(macaroonbakery.VerificationError) as exc:
             third_party.checker.auth([[M.unbound]]).allow(
                 common.test_context, [macaroonbakery.LOGIN_OP])
         self.assertEqual('no operations found in macaroon',
@@ -424,16 +432,18 @@ class TestDischarge(unittest.TestCase):
                 raise common.ThirdPartyCaveatCheckFailed(
                     'unknown location {}'.format(self._loc))
 
-        def get_discharge(ctx, cav, payload):
+        def get_discharge(cav, payload):
             oven = bakeries[cav.location].oven
-            return macaroonbakery.discharge(ctx, cav.caveat_id_bytes, payload,
-                                            oven.key,
-                                            ThirdPartyCaveatCheckerF(
-                                                cav.location),
-                                            oven.locator)
+            return macaroonbakery.discharge(
+                common.test_context,
+                cav.caveat_id_bytes,
+                payload,
+                oven.key,
+                ThirdPartyCaveatCheckerF(cav.location),
+                oven.locator,
+            )
 
-        d = macaroonbakery.discharge_all(common.test_context, ts_macaroon,
-                                         get_discharge)
+        d = macaroonbakery.discharge_all(ts_macaroon, get_discharge)
         ts.checker.auth([d]).allow(common.test_context,
                                    [macaroonbakery.LOGIN_OP])
 
