@@ -178,7 +178,7 @@ class ErrorInfo(
             return None
         macaroon = serialized.get('Macaroon')
         if macaroon is not None:
-            macaroon = bakery.Macaroon.deserialize_json(macaroon)
+            macaroon = bakery.Macaroon.from_dict(macaroon)
         path = serialized.get('MacaroonPath')
         cookie_name_suffix = serialized.get('CookieNameSuffix')
         visit_url = serialized.get('VisitURL')

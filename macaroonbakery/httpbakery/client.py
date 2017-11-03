@@ -79,6 +79,39 @@ class Client:
         kwargs.setdefault('auth', self.auth())
         return requests.request(method=method, url=url, **kwargs)
 
+    def handle_error(self, error, url):
+        '''Try to resolve the given error, which should be a response
+        to the given URL, by discharging any macaroon contained in
+        it. That is, if error.code is ERR_DISCHARGE_REQUIRED
+        then it will try to discharge err.info.macaroon. If the discharge
+        succeeds, the discharged macaroon will be saved to the client's cookie jar,
+        otherwise an exception will be raised.
+        '''
+        if error.info is None or error.info.macaroon is None:
+            raise BakeryException('unable to read info in discharge error response')
+
+        discharges = bakery.discharge_all(
+            error.info.macaroon,
+            self.acquire_discharge,
+            self._key,
+        )
+        macaroons = '[' + ','.join(map(utils.macaroon_to_json_string, discharges)) + ']'
+        all_macaroons = base64.urlsafe_b64encode(utils.to_bytes(macaroons))
+
+        full_path = relative_url(url, error.info.macaroon_path)
+        if error.info.cookie_name_suffix is not None:
+            name = 'macaroon-' + error.info.cookie_name_suffix
+        else:
+            name = 'macaroon-auth'
+        expires = checkers.macaroons_expiry_time(checkers.Namespace(), discharges)
+        expires = None		# TODO(rogpeppe) remove this line after fixing the tests.
+        self.cookies.set_cookie(utils.cookie(
+            name=name,
+            value=all_macaroons.decode('ascii'),
+            url=full_path,
+            expires=expires,
+        ))
+
     def acquire_discharge(self, cav, payload):
         ''' Request a discharge macaroon from the caveat location
         as an HTTP URL.
@@ -234,49 +267,16 @@ def _prepare_discharge_hook(req, client):
 
         if response.headers.get('Content-Type') != 'application/json':
             return response
-
-        error = response.json()
-        code = error.get('Code')
-        if code != ERR_DISCHARGE_REQUIRED:
+        errorJSON = response.json()
+        if errorJSON.get('Code') != ERR_DISCHARGE_REQUIRED:
             return response
-
+        error = Error.from_dict(errorJSON)
         Retry.count += 1
         if Retry.count >= MAX_DISCHARGE_RETRIES:
             raise BakeryException('too many ({}) discharge requests'.format(
                 Retry.count)
             )
-        info = error.get('Info')
-        if not isinstance(info, dict):
-            raise BakeryException('unable to read info in discharge error response')
-        serialized_macaroon = info.get('Macaroon')
-        if not isinstance(serialized_macaroon, dict):
-            raise BakeryException(
-                'unable to read macaroon in discharge error response')
-
-        macaroon = bakery.Macaroon.from_dict(serialized_macaroon)
-        discharges = bakery.discharge_all(
-            macaroon, client.acquire_discharge, client._key)
-        encoded_discharges = map(utils.macaroon_to_json_string, discharges)
-
-        macaroons = '[' + ','.join(encoded_discharges) + ']'
-        all_macaroons = base64.urlsafe_b64encode(
-            macaroons.encode('utf-8')).decode('ascii')
-
-        full_path = relative_url(req.url,
-                                 info['MacaroonPath'])
-        if info and info.get('CookieNameSuffix'):
-            name = 'macaroon-' + info['CookieNameSuffix']
-        else:
-            name = 'macaroon-' + discharges[0].signature
-        expires = checkers.macaroons_expiry_time(
-            checkers.Namespace(), discharges)
-        expires = None		# TODO(rogpeppe) remove this line after fixing the tests.
-        client.cookies.set_cookie(utils.cookie(
-            name=name,
-            value=all_macaroons,
-            url=full_path,
-            expires=expires,
-        ))
+        client.handle_error(error, req.url)
         # Replace the private _cookies from req as it is a copy of
         # the original cookie jar passed into the requests method and we need
         # to set the cookie for this request.
