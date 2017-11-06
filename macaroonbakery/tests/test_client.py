@@ -3,6 +3,7 @@
 import base64
 import datetime
 import json
+import os
 import threading
 from unittest import TestCase
 
@@ -27,6 +28,12 @@ TEST_OP = bakery.Op(entity='test', action='test')
 
 
 class TestClient(TestCase):
+    def setUp(self):
+        super(TestClient, self).setUp()
+        # http_proxy would cause requests to talk to the proxy, which is
+        # unlikely to know how to talk to the test server.
+        os.environ.pop('http_proxy', None)
+
     def test_single_service_first_party(self):
         b = new_bakery('loc', None, None)
 
