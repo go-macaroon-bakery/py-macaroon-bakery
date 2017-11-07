@@ -6,6 +6,7 @@ import json
 
 import nacl.public
 import nacl.encoding
+import nacl.exceptions
 import requests.cookies
 import six
 from six.moves.urllib.parse import urlparse
@@ -35,8 +36,10 @@ def load_agent_file(filename, cookies=None):
     with open(filename) as f:
         data = json.load(f)
     try:
-        key = nacl.public.PrivateKey(data['key']['private'],
-                                     nacl.encoding.Base64Encoder)
+        key = nacl.public.PrivateKey(
+            data['key']['private'],
+            nacl.encoding.Base64Encoder,
+        )
         if cookies is None:
             cookies = requests.cookies.RequestsCookieJar()
         for agent in data['agents']:
@@ -54,7 +57,7 @@ def load_agent_file(filename, cookies=None):
                                                     path=u.path)
             cookies.set_cookie(cookie)
         return cookies, key
-    except (KeyError, ValueError) as e:
+    except (KeyError, ValueError, nacl.exceptions.TypeError) as e:
         raise AgentFileFormatError('invalid agent file', e)
 
 
