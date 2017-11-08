@@ -118,7 +118,8 @@ class TestExpireTime(TestCase):
         ]
         for test in tests:
             print('test ', test.about)
-            t = checkers.macaroons_expiry_time(checkers.Namespace(), test.macaroons)
+            t = checkers.macaroons_expiry_time(checkers.Namespace(),
+                                               test.macaroons)
             self.assertEqual(t, test.expectTime)
 
 

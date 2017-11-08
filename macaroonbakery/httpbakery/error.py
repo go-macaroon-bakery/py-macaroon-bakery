@@ -19,7 +19,8 @@ class InteractionMethodNotFound(Exception):
 class DischargeError(Exception):
     '''This is thrown by Client when a third party has refused a discharge'''
     def __init__(self, msg):
-        super(DischargeError, self).__init__('third party refused discharge: {}'.format(msg))
+        super(DischargeError, self).__init__(
+            'third party refused discharge: {}'.format(msg))
 
 
 class InteractionError(Exception):
@@ -27,7 +28,8 @@ class InteractionError(Exception):
     interaction-required error
     '''
     def __init__(self, msg):
-        super(InteractionError, self).__init__('cannot start interactive session: {}'.format(msg))
+        super(InteractionError, self).__init__(
+            'cannot start interactive session: {}'.format(msg))
 
 
 def discharge_required_response(macaroon, path, cookie_suffix_name,

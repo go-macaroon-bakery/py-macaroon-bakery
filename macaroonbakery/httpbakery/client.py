@@ -84,18 +84,20 @@ class Client:
         to the given URL, by discharging any macaroon contained in
         it. That is, if error.code is ERR_DISCHARGE_REQUIRED
         then it will try to discharge err.info.macaroon. If the discharge
-        succeeds, the discharged macaroon will be saved to the client's cookie jar,
-        otherwise an exception will be raised.
+        succeeds, the discharged macaroon will be saved to the client's cookie
+        jar, otherwise an exception will be raised.
         '''
         if error.info is None or error.info.macaroon is None:
-            raise BakeryException('unable to read info in discharge error response')
+            raise BakeryException('unable to read info in discharge error '
+                                  'response')
 
         discharges = bakery.discharge_all(
             error.info.macaroon,
             self.acquire_discharge,
             self._key,
         )
-        macaroons = '[' + ','.join(map(utils.macaroon_to_json_string, discharges)) + ']'
+        macaroons = '[' + ','.join(map(utils.macaroon_to_json_string,
+                                       discharges)) + ']'
         all_macaroons = base64.urlsafe_b64encode(utils.to_bytes(macaroons))
 
         full_path = relative_url(url, error.info.macaroon_path)
@@ -103,8 +105,9 @@ class Client:
             name = 'macaroon-' + error.info.cookie_name_suffix
         else:
             name = 'macaroon-auth'
-        expires = checkers.macaroons_expiry_time(checkers.Namespace(), discharges)
-        expires = None		# TODO(rogpeppe) remove this line after fixing the tests.
+        expires = checkers.macaroons_expiry_time(checkers.Namespace(),
+                                                 discharges)
+        expires = None  # TODO: remove this line after fixing the tests.
         self.cookies.set_cookie(utils.cookie(
             name=name,
             value=all_macaroons.decode('ascii'),
@@ -128,7 +131,8 @@ class Client:
             raise DischargeError(cause.message)
         if cause.info is None:
             raise DischargeError(
-                'interaction-required response with no info: {}'.format(resp.json())
+                'interaction-required response with no info: {}'.format(
+                    resp.json())
             )
         loc = cav.location
         if not loc.endswith('/'):
@@ -167,7 +171,8 @@ class Client:
         error response.
         @return DischargeToken, bakery.Macaroon
         '''
-        if self._interaction_methods is None or len(self._interaction_methods) == 0:
+        if (self._interaction_methods is None or
+                len(self._interaction_methods) == 0):
             raise InteractionError('interaction required but not possible')
         # TODO(rogpeppe) make the robust against a wider range of error info.
         if error_info.info.interaction_methods is None and \
@@ -184,7 +189,8 @@ class Client:
             except InteractionMethodNotFound:
                 continue
             if token is None:
-                raise InteractionError('interaction method returned an empty token')
+                raise InteractionError('interaction method returned an empty '
+                                       'token')
             return token, None
 
         raise InteractionError('no supported interaction method')
@@ -195,8 +201,9 @@ class Client:
         method_urls = {
             "interactive": visit_url
         }
-        if len(self._interaction_methods) > 1 or \
-                self._interaction_methods[0].kind() != WEB_BROWSER_INTERACTION_KIND:
+        if (len(self._interaction_methods) > 1 or
+                self._interaction_methods[0].kind() !=
+                WEB_BROWSER_INTERACTION_KIND):
             # We have several possible methods or we only support a non-window
             # method, so we need to fetch the possible methods supported by
             # the discharger.
@@ -345,7 +352,7 @@ def _wait_for_macaroon(wait_url):
     }
     resp = requests.get(url=wait_url, headers=headers)
     if resp.status_code != 200:
-        return InteractionError('cannot get {}'.format(wait_url))
+        raise InteractionError('cannot get {}'.format(wait_url))
 
     return bakery.Macaroon.from_dict(resp.json().get('Macaroon'))
 

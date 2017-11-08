@@ -167,6 +167,17 @@ def wait_after_401(url, request):
     }
 
 
+@urlmatch(path='.*/wait')
+def wait_on_error(url, request):
+    return {
+        'status_code': 500,
+        'content': {
+            'DischargeToken': discharge_token,
+            'Macaroon': discharged_macaroon
+        }
+    }
+
+
 class TestBakery(TestCase):
 
     def assert_cookie_security(self, cookies, name, secure):
@@ -185,12 +196,14 @@ class TestBakery(TestCase):
                                     auth=client.auth())
         resp.raise_for_status()
         assert 'macaroon-test' in client.cookies.keys()
-        self.assert_cookie_security(client.cookies, 'macaroon-test', secure=False)
+        self.assert_cookie_security(client.cookies, 'macaroon-test',
+                                    secure=False)
 
     @patch('webbrowser.open')
     def test_407_then_401_on_discharge(self, mock_open):
         client = httpbakery.Client()
-        with HTTMock(first_407_then_200), HTTMock(discharge_401), HTTMock(wait_after_401):
+        with HTTMock(first_407_then_200), HTTMock(discharge_401), \
+                HTTMock(wait_after_401):
                 resp = requests.get(
                     ID_PATH,
                     cookies=client.cookies,
@@ -199,6 +212,51 @@ class TestBakery(TestCase):
                 resp.raise_for_status()
         mock_open.assert_called_once_with(u'http://example.com/visit', new=1)
         assert 'macaroon-test' in client.cookies.keys()
+
+    @patch('webbrowser.open')
+    def test_407_then_error_on_wait(self, mock_open):
+        client = httpbakery.Client()
+        with HTTMock(first_407_then_200), HTTMock(discharge_401),\
+                HTTMock(wait_on_error):
+            with self.assertRaises(httpbakery.InteractionError) as exc:
+                requests.get(
+                    ID_PATH,
+                    cookies=client.cookies,
+                    auth=client.auth(),
+                )
+        self.assertEqual(str(exc.exception),
+                         'cannot start interactive session: cannot get '
+                         'http://example.com/wait')
+        mock_open.assert_called_once_with(u'http://example.com/visit', new=1)
+
+    def test_407_then_no_interaction_methods(self):
+        client = httpbakery.Client(interaction_methods=[])
+        with HTTMock(first_407_then_200), HTTMock(discharge_401):
+            with self.assertRaises(httpbakery.InteractionError) as exc:
+                requests.get(
+                    ID_PATH,
+                    cookies=client.cookies,
+                    auth=client.auth(),
+                )
+        self.assertEqual(str(exc.exception),
+                         'cannot start interactive session: interaction '
+                         'required but not possible')
+
+    def test_407_then_unknown_interaction_methods(self):
+        class UnknowInteractor(httpbakery.Interactor):
+            def kind(self):
+                return 'unknown'
+        client = httpbakery.Client(interaction_methods=[UnknowInteractor()])
+        with HTTMock(first_407_then_200), HTTMock(discharge_401):
+            with self.assertRaises(httpbakery.InteractionError) as exc:
+                requests.get(
+                    ID_PATH,
+                    cookies=client.cookies,
+                    auth=client.auth(),
+                )
+        self.assertEqual(str(exc.exception),
+                         'cannot start interactive session: no methods '
+                         'supported')
 
     def test_cookie_with_port(self):
         client = httpbakery.Client()
@@ -219,4 +277,5 @@ class TestBakery(TestCase):
                     auth=client.auth())
         resp.raise_for_status()
         assert 'macaroon-test' in client.cookies.keys()
-        self.assert_cookie_security(client.cookies, 'macaroon-test', secure=True)
+        self.assert_cookie_security(client.cookies, 'macaroon-test',
+                                    secure=True)

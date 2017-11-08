@@ -53,7 +53,8 @@ class TestChecker(TestCase):
         client = _Client(locator)
 
         ctx = test_context.with_value(_DISCHARGE_USER_KEY, 'bob')
-        auth_info = client.do(ctx, ts, [bakery.Op(entity='something', action='read')])
+        auth_info = client.do(ctx, ts, [bakery.Op(entity='something',
+                                                  action='read')])
         self.assertEqual(self._discharges,
                          [_DischargeRecord(location='ids', user='bob')])
         self.assertIsNotNone(auth_info)
@@ -98,7 +99,8 @@ class TestChecker(TestCase):
         self.assertIsNotNone(auth_info)
         self.assertIsNone(auth_info.identity)
         self.assertEqual(len(auth_info.macaroons), 1)
-        self.assertEqual(auth_info.macaroons[0][0].identifier_bytes, m[0].identifier_bytes)
+        self.assertEqual(auth_info.macaroons[0][0].identifier_bytes,
+                         m[0].identifier_bytes)
 
     def test_capability_multiple_entities(self):
         locator = _DischargerLocator()
@@ -168,8 +170,10 @@ class TestChecker(TestCase):
         self.assertIsNotNone(auth_info)
         self.assertIsNone(auth_info.identity)
         self.assertEqual(len(auth_info.macaroons), 2)
-        self.assertEqual(auth_info.macaroons[0][0].identifier_bytes, m1[0].identifier_bytes)
-        self.assertEqual(auth_info.macaroons[1][0].identifier_bytes, m2[0].identifier_bytes)
+        self.assertEqual(auth_info.macaroons[0][0].identifier_bytes,
+                         m1[0].identifier_bytes)
+        self.assertEqual(auth_info.macaroons[1][0].identifier_bytes,
+                         m2[0].identifier_bytes)
 
     def test_combine_capabilities(self):
         locator = _DischargerLocator()
@@ -560,8 +564,10 @@ class TestChecker(TestCase):
 
         # Try them the other way around and we should authenticate as alice.
         client3 = _Client(locator)
-        client3.add_macaroon(ts, '1.alice', client2._macaroons[ts.name()]['authn'])
-        client3.add_macaroon(ts, '2.bob', client1._macaroons[ts.name()]['authn'])
+        client3.add_macaroon(ts, '1.alice',
+                             client2._macaroons[ts.name()]['authn'])
+        client3.add_macaroon(ts, '2.bob',
+                             client1._macaroons[ts.name()]['authn'])
 
         auth_info = client3.do(test_context, ts, [bakery.LOGIN_OP])
         self.assertEqual(auth_info.identity.id(), 'alice')
@@ -890,7 +896,8 @@ class _BasicAuthIdService(bakery.IdentityClient):
         return bakery.SimpleIdentity(user), None
 
     def declared_identity(self, ctx, declared):
-        raise bakery.IdentityError('no identity declarations in basic auth id service')
+        raise bakery.IdentityError('no identity declarations in basic auth'
+                                   ' id service')
 
 
 _BASIC_AUTH_KEY = checkers.ContextKey('user-key')
