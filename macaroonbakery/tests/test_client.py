@@ -16,6 +16,7 @@ from httmock import (
     HTTMock,
     urlmatch
 )
+import pytz
 import requests
 from six.moves.urllib.parse import parse_qs
 from six.moves.urllib.request import Request
@@ -25,7 +26,7 @@ import macaroonbakery.httpbakery as httpbakery
 import macaroonbakery.checkers as checkers
 from macaroonbakery import utils
 
-AGES = datetime.datetime.utcnow() + datetime.timedelta(days=1)
+AGES = pytz.UTC.localize(datetime.datetime.utcnow() + datetime.timedelta(days=1))
 TEST_OP = bakery.Op(entity='test', action='test')
 
 
@@ -34,7 +35,7 @@ class TestClient(TestCase):
         b = new_bakery('loc', None, None)
 
         def handler(*args):
-            GetHandler(b, None, None, None, None, *args)
+            GetHandler(b, None, None, None, None, AGES, *args)
         try:
             httpd = HTTPServer(('', 0), handler)
             thread = threading.Thread(target=httpd.serve_forever)
@@ -62,7 +63,7 @@ class TestClient(TestCase):
         b = new_bakery('loc', None, None)
 
         def handler(*args):
-            GetHandler(b, None, None, None, None, *args)
+            GetHandler(b, None, None, None, None, AGES, *args)
         try:
             httpd = HTTPServer(('', 0), handler)
             thread = threading.Thread(target=httpd.serve_forever)
@@ -85,7 +86,7 @@ class TestClient(TestCase):
         finally:
             httpd.shutdown()
 
-    def test_repeated_request_with_body(self):
+    def test_expiry_cookie_is_set(self):
         class _DischargerLocator(bakery.ThirdPartyLocator):
             def __init__(self):
                 self.key = bakery.generate_key()
@@ -113,8 +114,11 @@ class TestClient(TestCase):
                 }
             }
 
+        ages = pytz.UTC.localize(
+            datetime.datetime.utcnow() + datetime.timedelta(days=1))
+
         def handler(*args):
-            GetHandler(b, 'http://1.2.3.4', None, None, None, *args)
+            GetHandler(b, 'http://1.2.3.4', None, None, None, ages, *args)
         try:
             httpd = HTTPServer(('', 0), handler)
             thread = threading.Thread(target=httpd.serve_forever)
@@ -127,7 +131,62 @@ class TestClient(TestCase):
                     cookies=client.cookies,
                     auth=client.auth())
             resp.raise_for_status()
+            m = bakery.Macaroon.from_dict(json.loads(
+                base64.b64decode(client.cookies.get('macaroon-test')))[0])
+            t = bakery.checkers.macaroons_expiry_time(
+                bakery.checkers.Namespace(), [m.macaroon])
+            self.assertEquals(ages, t)
             self.assertEquals(resp.text, 'done')
+        finally:
+            httpd.shutdown()
+
+    def test_expiry_cookie_set_in_past(self):
+        class _DischargerLocator(bakery.ThirdPartyLocator):
+            def __init__(self):
+                self.key = bakery.generate_key()
+
+            def third_party_info(self, loc):
+                if loc == 'http://1.2.3.4':
+                    return bakery.ThirdPartyInfo(
+                        public_key=self.key.public_key,
+                        version=bakery.LATEST_VERSION,
+                    )
+
+        d = _DischargerLocator()
+        b = new_bakery('loc', d, None)
+
+        @urlmatch(path='.*/discharge')
+        def discharge(url, request):
+            qs = parse_qs(request.body)
+            content = {q: qs[q][0] for q in qs}
+            m = httpbakery.discharge(checkers.AuthContext(), content, d.key, d,
+                                     alwaysOK3rd)
+            return {
+                'status_code': 200,
+                'content': {
+                    'Macaroon': m.to_dict()
+                }
+            }
+
+        ages = pytz.UTC.localize(
+            datetime.datetime.utcnow() - datetime.timedelta(days=1))
+
+        def handler(*args):
+            GetHandler(b, 'http://1.2.3.4', None, None, None, ages, *args)
+        try:
+            httpd = HTTPServer(('', 0), handler)
+            thread = threading.Thread(target=httpd.serve_forever)
+            thread.start()
+            client = httpbakery.Client()
+            with HTTMock(discharge):
+                with self.assertRaises(httpbakery.BakeryException) as ctx:
+                    requests.get(
+                        url='http://' + httpd.server_address[0] + ':' +
+                            str(httpd.server_address[1]),
+                        cookies=client.cookies,
+                        auth=client.auth())
+            self.assertEqual(ctx.exception.args[0],
+                             'too many (3) discharge requests')
         finally:
             httpd.shutdown()
 
@@ -160,7 +219,7 @@ class TestClient(TestCase):
             }
 
         def handler(*args):
-            GetHandler(b, 'http://1.2.3.4', None, None, None, *args)
+            GetHandler(b, 'http://1.2.3.4', None, None, None, AGES, *args)
         try:
             httpd = HTTPServer(('', 0), handler)
             thread = threading.Thread(target=httpd.serve_forever)
@@ -204,7 +263,7 @@ class TestClient(TestCase):
                                  ThirdPartyCaveatCheckerF(check))
 
         def handler(*args):
-            GetHandler(b, 'http://1.2.3.4', None, None, None, *args)
+            GetHandler(b, 'http://1.2.3.4', None, None, None, AGES, *args)
         try:
             httpd = HTTPServer(('', 0), handler)
             thread = threading.Thread(target=httpd.serve_forever)
@@ -249,7 +308,7 @@ class TestClient(TestCase):
             }
 
         def handler(*args):
-            GetHandler(b, 'http://1.2.3.4', None, None, None, *args)
+            GetHandler(b, 'http://1.2.3.4', None, None, None, AGES, *args)
 
         try:
             httpd = HTTPServer(('', 0), handler)
@@ -305,7 +364,7 @@ class TestClient(TestCase):
 class GetHandler(BaseHTTPRequestHandler):
     '''A mock HTTP server that serves a GET request'''
     def __init__(self, bakery, auth_location, mutate_error,
-                 caveats, version, *args):
+                 caveats, version, expiry, *args):
         '''
         @param bakery used to check incoming requests and macaroons
         for discharge-required errors.
@@ -316,14 +375,17 @@ class GetHandler(BaseHTTPRequestHandler):
         discharge-required error before responding to the client.
         @param caveats called to get caveats to add to the returned
         macaroon.
-        @param holds the version of the bakery that the
+        @param version holds the version of the bakery that the
         server will purport to serve.
+        @param expiry holds the expiry for the macaroon that will be created
+        in _write_discharge_error
         '''
         self._bakery = bakery
         self._auth_location = auth_location
         self._mutate_error = mutate_error
         self._caveats = caveats
         self._server_version = version
+        self._expiry = expiry
         BaseHTTPRequestHandler.__init__(self, *args)
 
     def do_GET(self):
@@ -361,7 +423,7 @@ class GetHandler(BaseHTTPRequestHandler):
             caveats.extend(self._caveats)
 
         m = self._bakery.oven.macaroon(
-            version=bakery.LATEST_VERSION, expiry=AGES,
+            version=bakery.LATEST_VERSION, expiry=self._expiry,
             caveats=caveats, ops=[TEST_OP])
 
         content, headers = httpbakery.discharge_required_response(

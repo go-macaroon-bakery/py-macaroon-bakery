@@ -105,9 +105,7 @@ class Client:
             name = 'macaroon-' + error.info.cookie_name_suffix
         else:
             name = 'macaroon-auth'
-        expires = checkers.macaroons_expiry_time(checkers.Namespace(),
-                                                 discharges)
-        expires = None  # TODO: remove this line after fixing the tests.
+        expires = checkers.macaroons_expiry_time(checkers.Namespace(), discharges)
         self.cookies.set_cookie(utils.cookie(
             name=name,
             value=all_macaroons.decode('ascii'),
