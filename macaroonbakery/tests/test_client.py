@@ -35,6 +35,7 @@ class TestClient(TestWithFixtures):
         # http_proxy would cause requests to talk to the proxy, which is
         # unlikely to know how to talk to the test server.
         self.useFixture(EnvironmentVariable('http_proxy'))
+        self.useFixture(EnvironmentVariable('HTTP_PROXY'))
 
     def test_single_service_first_party(self):
         b = new_bakery('loc', None, None)
