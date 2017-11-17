@@ -10,16 +10,20 @@ except ImportError:
     from http.server import HTTPServer, BaseHTTPRequestHandler
 import threading
 
+import pymacaroons
+
 from httmock import (
     HTTMock,
     urlmatch
 )
 import requests
 from six.moves.urllib.parse import parse_qs
+from six.moves.urllib.request import Request
 
 import macaroonbakery as bakery
 import macaroonbakery.httpbakery as httpbakery
 import macaroonbakery.checkers as checkers
+from macaroonbakery import utils
 
 AGES = datetime.datetime.utcnow() + datetime.timedelta(days=1)
 TEST_OP = bakery.Op(entity='test', action='test')
@@ -272,6 +276,29 @@ class TestClient(TestCase):
                         auth=client.auth())
         finally:
             httpd.shutdown()
+
+    def test_extract_macaroons_from_request(self):
+        def encode_macaroon(m):
+            macaroons = '[' + utils.macaroon_to_json_string(m) + ']'
+            return base64.urlsafe_b64encode(utils.to_bytes(macaroons)).decode('ascii')
+
+        req = Request('http://example.com')
+        m1 = pymacaroons.Macaroon(version=pymacaroons.MACAROON_V2, identifier='one')
+        req.add_header('Macaroons', encode_macaroon(m1))
+        m2 = pymacaroons.Macaroon(version=pymacaroons.MACAROON_V2, identifier='two')
+        jar = requests.cookies.RequestsCookieJar()
+        jar.set_cookie(utils.cookie(
+            name='macaroon-auth',
+            value=encode_macaroon(m2),
+            url='http://example.com',
+        ))
+        jar.add_cookie_header(req)
+
+        macaroons = httpbakery.extract_macaroons(req)
+        self.assertEquals(len(macaroons), 2)
+        macaroons.sort(key=lambda ms: ms[0].identifier)
+        self.assertEquals(macaroons[0][0].identifier, m1.identifier)
+        self.assertEquals(macaroons[1][0].identifier, m2.identifier)
 
 
 class GetHandler(BaseHTTPRequestHandler):
