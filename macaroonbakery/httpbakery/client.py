@@ -290,11 +290,20 @@ def _prepare_discharge_hook(req, client):
     return hook
 
 
-def extract_macaroons(headers):
+def extract_macaroons(headers_or_request):
     ''' Returns an array of any macaroons found in the given slice of cookies.
-    @param headers: dict of headers
-    @return: An array of array of mpy macaroons
+    If the argument implements a get_header method, that will be used
+    instead of the get method to retrieve headers.
+    @param headers_or_request: dict of headers or a
+    urllib.request.Request-like object.
+    @return: A list of list of mpy macaroons
     '''
+    def get_header(key, default=None):
+        try:
+            return headers_or_request.get_header(key, default)
+        except AttributeError:
+            return headers_or_request.get(key, default)
+
     mss = []
 
     def add_macaroon(data):
@@ -303,22 +312,22 @@ def extract_macaroons(headers):
         ms = [utils.macaroon_from_dict(x) for x in data_as_objs]
         mss.append(ms)
 
-    cookieHeader = headers.get('Cookie')
-    if cookieHeader is not None:
+    cookie_header = get_header('Cookie')
+    if cookie_header is not None:
         cs = SimpleCookie()
         # The cookie might be a unicode object, so convert it
         # to ASCII. This may cause an exception under Python 2.
         # TODO is that a problem?
-        cs.load(str(cookieHeader))
+        cs.load(str(cookie_header))
         for c in cs:
             if c.startswith('macaroon-'):
                 add_macaroon(cs[c].value)
     # Python doesn't make it easy to have multiple values for a
     # key, so split the header instead, which is necessary
-    # for HTTP1.1 compatibility anyway.
-    macaroonHeader = headers.get('Macaroons')
-    if macaroonHeader is not None:
-        for h in macaroonHeader.split(','):
+    # for HTTP1.1 compatibility anyway (see RFC 7230, section 3.2.2)
+    macaroon_header = get_header('Macaroons')
+    if macaroon_header is not None:
+        for h in macaroon_header.split(','):
             add_macaroon(h)
     return mss
 
