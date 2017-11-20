@@ -33,8 +33,7 @@ endif
 
 
 .PHONY: check
-check: setup
-	@tox -e lint
+check: setup lint
 	@tox
 
 .PHONY: clean
@@ -54,7 +53,7 @@ clean:
 
 .PHONY: docs
 docs: setup
-	tox -e docs
+	@tox -e docs
 
 .PHONY: help
 help:
@@ -76,7 +75,7 @@ help:
 
 .PHONY: lint
 lint: setup
-	@$(DEVENV)/bin/flake8 --show-source macaroonbakery --exclude macaroonbakery/internal/id_pb2.py
+	@tox -e lint
 
 .PHONY: release
 release: check

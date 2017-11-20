@@ -93,7 +93,8 @@ class TestAgents(TestCase):
             jv = jv.decode('utf-8')
         data = json.loads(jv)
         self.assertEqual(data['username'], 'user-1')
-        self.assertEqual(data['public_key'], 'YAhRSsth3a36mRYqQGQaLiS4QJax0p356nd+B8x7UQE=')
+        self.assertEqual(data['public_key'],
+                         'YAhRSsth3a36mRYqQGQaLiS4QJax0p356nd+B8x7UQE=')
 
         value = cookies.get('agent-login', domain='2.example.com',
                             path='/discharger')
@@ -102,7 +103,8 @@ class TestAgents(TestCase):
             jv = jv.decode('utf-8')
         data = json.loads(jv)
         self.assertEqual(data['username'], 'user-2')
-        self.assertEqual(data['public_key'], 'YAhRSsth3a36mRYqQGQaLiS4QJax0p356nd+B8x7UQE=')
+        self.assertEqual(data['public_key'],
+                         'YAhRSsth3a36mRYqQGQaLiS4QJax0p356nd+B8x7UQE=')
 
     def test_load_agents_with_bad_key(self):
         with self.assertRaises(agent.AgentFileFormatError):
@@ -138,7 +140,8 @@ class TestAgents(TestCase):
                                 content='done')
             except bakery.PermissionDenied:
                 caveats = [
-                    checkers.Caveat(location='http://0.3.2.1', condition='is-ok')
+                    checkers.Caveat(location='http://0.3.2.1',
+                                    condition='is-ok')
                 ]
                 m = server_bakery.oven.macaroon(
                     version=bakery.LATEST_VERSION,
@@ -333,7 +336,8 @@ class TestAgents(TestCase):
                 if c == 'agent-login':
                     json_cookie = json.loads(
                         base64.b64decode(cs[c].value).decode('utf-8'))
-                    public_key = bakery.PublicKey.deserialize(json_cookie.get('public_key'))
+                    public_key = bakery.PublicKey.deserialize(
+                        json_cookie.get('public_key'))
             ms = httpbakery.extract_macaroons(request.headers)
             if len(ms) == 0:
                 b = bakery.Bakery(key=discharge_key)
@@ -390,7 +394,8 @@ class TestAgents(TestCase):
                 agent.AgentInteractor(
                     agent.AuthInfo(
                         key=key,
-                        agents=[agent.Agent(username='test-user', url=u'http://0.3.2.1')],
+                        agents=[agent.Agent(username='test-user',
+                                            url=u'http://0.3.2.1')],
                     ),
                 ),
             ])

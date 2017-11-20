@@ -157,7 +157,8 @@ class AgentInteractor(httpbakery.Interactor, httpbakery.LegacyInteractor):
             value=base64.urlsafe_b64encode(
                 json.dumps(value).encode('utf-8')).decode('utf-8'),
         ))
-        resp = requests.get(url=visit_url, cookies=client.cookies, auth=client.auth())
+        resp = requests.get(url=visit_url, cookies=client.cookies,
+                            auth=client.auth())
         if resp.status_code != 200:
             raise httpbakery.InteractionError(
                 'cannot acquire agent macaroon: {}'.format(resp.status_code))
@@ -167,7 +168,8 @@ class AgentInteractor(httpbakery.Interactor, httpbakery.LegacyInteractor):
 
 class Agent(namedtuple('Agent', 'url, username')):
     ''' Represents an agent that can be used for agent authentication.
-    @param url holds the URL of the discharger that knows about the agent (string).
+    @param url(string) holds the URL of the discharger that knows about
+    the agent.
     @param username holds the username agent (string).
     '''
 

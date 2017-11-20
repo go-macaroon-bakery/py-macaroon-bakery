@@ -104,7 +104,8 @@ class TestClient(TestCase):
         def discharge(url, request):
             qs = parse_qs(request.body)
             content = {q: qs[q][0] for q in qs}
-            m = httpbakery.discharge(checkers.AuthContext(), content, d.key, d, alwaysOK3rd)
+            m = httpbakery.discharge(checkers.AuthContext(), content, d.key, d,
+                                     alwaysOK3rd)
             return {
                 'status_code': 200,
                 'content': {

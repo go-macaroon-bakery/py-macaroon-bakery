@@ -88,7 +88,8 @@ class TestOven(TestCase):
             ops_store=bakery.MemoryOpsStore())
         ops = []
         for i in range(30000):
-            ops.append(bakery.Op(entity='entity' + str(i), action='action' + str(i)))
+            ops.append(bakery.Op(entity='entity' + str(i),
+                                 action='action' + str(i)))
 
         m = test_oven.macaroon(bakery.LATEST_VERSION, AGES,
                                None, ops)

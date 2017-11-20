@@ -11,7 +11,8 @@ def discharge(ctx, content, key, locator, checker):
     @param content URL and form parameters {dict}
     @param locator Locator used to add third party caveats returned by
     the checker {macaroonbakery.ThirdPartyLocator}
-    @param checker Used to check third party caveats {macaroonbakery.ThirdPartyCaveatChecker}
+    @param checker {macaroonbakery.ThirdPartyCaveatChecker} Used to check third
+    party caveats.
     @return The discharge macaroon {macaroonbakery.Macaroon}
     '''
     id = content.get('id')
