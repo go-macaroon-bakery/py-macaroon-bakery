@@ -29,7 +29,7 @@ json_macaroon = {
         }, {
             u'cid': u'allow read-no-terms write'
         }, {
-            u'cid': u'time-before 2016-07-19T14:29:14.312669464Z'
+            u'cid': u'time-before 2158-07-19T14:29:14.312669464Z'
         }],
     u'location': u'charmstore',
     u'signature': u'52d17cb11f5c84d58441bc0ffd7cc396'
@@ -41,7 +41,7 @@ discharge_token = [{
     u'caveats': [{
         u'cid': u'declared username someone'
     }, {
-        u'cid': u'time-before 2016-08-15T15:55:52.428319076Z'
+        u'cid': u'time-before 2158-08-15T15:55:52.428319076Z'
     }, {
         u'cid': u'origin '
     }],
@@ -57,7 +57,7 @@ discharged_macaroon = {
     }, {
         u'cid': u'declared username someone'
     }, {
-        u'cid': u'time-before 2016-07-19T15:55:52.432439055Z'
+        u'cid': u'time-before 2158-07-19T15:55:52.432439055Z'
     }],
     u'location': u'',
     u'signature': u'3513db5503ab17f9576760cd28'
