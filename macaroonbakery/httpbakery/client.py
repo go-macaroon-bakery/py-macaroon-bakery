@@ -143,10 +143,10 @@ class Client:
         # the token acquired by the interaction method.
         resp = self._acquire_discharge_with_token(cav, payload, token)
         if resp.status_code == 200:
-            return bakery.Macaroon.deserialize_json(
-                resp.json().get('Macaroon'))
+            return bakery.Macaroon.from_dict(resp.json().get('Macaroon'))
         else:
-            raise DischargeError()
+            raise DischargeError(
+                'discharge failed with code {}'.format(resp.status_code))
 
     def _acquire_discharge_with_token(self, cav, payload, token):
         req = {}
