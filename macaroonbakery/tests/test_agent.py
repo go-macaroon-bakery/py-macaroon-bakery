@@ -180,7 +180,7 @@ class TestAgents(TestCase):
                 return {
                     'status_code': 200,
                     'content': {
-                        'Macaroon': m.serialize_json()
+                        'Macaroon': m.to_dict()
                     }
                 }
 
