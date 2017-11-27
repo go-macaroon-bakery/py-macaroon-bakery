@@ -54,6 +54,8 @@ def expiry_time(ns, cavs):
         prefix, COND_TIME_BEFORE)
     t = None
     for cav in cavs:
+        if not cav.first_party():
+            continue
         cav = cav.caveat_id_bytes.decode('utf-8')
         name, rest = parse_caveat(cav)
         if name != time_before_cond:
