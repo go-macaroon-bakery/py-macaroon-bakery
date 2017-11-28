@@ -16,7 +16,6 @@ from httmock import (
     HTTMock,
     urlmatch
 )
-import pytz
 import requests
 from six.moves.urllib.parse import parse_qs
 from six.moves.urllib.request import Request
@@ -26,7 +25,7 @@ import macaroonbakery.httpbakery as httpbakery
 import macaroonbakery.checkers as checkers
 from macaroonbakery import utils
 
-AGES = pytz.UTC.localize(datetime.datetime.utcnow() + datetime.timedelta(days=1))
+AGES = datetime.datetime.utcnow() + datetime.timedelta(days=1)
 TEST_OP = bakery.Op(entity='test', action='test')
 
 
@@ -114,8 +113,7 @@ class TestClient(TestCase):
                 }
             }
 
-        ages = pytz.UTC.localize(
-            datetime.datetime.utcnow() + datetime.timedelta(days=1))
+        ages = datetime.datetime.utcnow() + datetime.timedelta(days=1)
 
         def handler(*args):
             GetHandler(b, 'http://1.2.3.4', None, None, None, ages, *args)
@@ -168,8 +166,7 @@ class TestClient(TestCase):
                 }
             }
 
-        ages = pytz.UTC.localize(
-            datetime.datetime.utcnow() - datetime.timedelta(days=1))
+        ages = datetime.datetime.utcnow() - datetime.timedelta(days=1)
 
         def handler(*args):
             GetHandler(b, 'http://1.2.3.4', None, None, None, ages, *args)

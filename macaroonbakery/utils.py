@@ -1,6 +1,7 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
 import base64
+from datetime import datetime
 import json
 import webbrowser
 import six
@@ -111,17 +112,21 @@ def cookie(
         expires=None):
     '''Return a new Cookie using a slightly more
     friendly API than that provided by six.moves.http_cookiejar
+
     @param name The cookie name {str}
     @param value The cookie value {str}
     @param url The URL path of the cookie {str}
-    @param expires The expiry time of the cookie {datetime}
+    @param expires The expiry time of the cookie {datetime}. If provided,
+        it must be a naive timestamp in UTC.
     '''
     u = urlparse(url)
     domain = u.hostname or u.netloc
     port = str(u.port) if u.port is not None else None
     secure = u.scheme == 'https'
     if expires is not None:
-        expires = expires.strftime("%s")
+        if expires.tzinfo is not None:
+            raise ValueError('Cookie expiration must be a naive datetime')
+        expires = (expires - datetime(1970, 1, 1)).total_seconds()
     return http_cookiejar.Cookie(
         version=0,
         name=name,

@@ -10,7 +10,7 @@ from pymacaroons import Macaroon
 
 import macaroonbakery.checkers as checkers
 
-t1 = pyrfc3339.parse('2017-10-26T16:19:47.441402074Z')
+t1 = pyrfc3339.parse('2017-10-26T16:19:47.441402074Z', produce_naive=True)
 t2 = t1 + timedelta(hours=1)
 t3 = t2 + timedelta(hours=1)
 
