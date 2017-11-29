@@ -61,7 +61,7 @@ def expiry_time(ns, cavs):
         if name != time_before_cond:
             continue
         try:
-            et = pyrfc3339.parse(rest)
+            et = pyrfc3339.parse(rest, utc=True).replace(tzinfo=None)
             if t is None or et < t:
                 t = et
         except ValueError:

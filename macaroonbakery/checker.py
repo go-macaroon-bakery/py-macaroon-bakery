@@ -105,7 +105,7 @@ class AuthChecker(object):
             if not self._executed:
                 self._init_once(ctx)
                 self._executed = True
-        if self._init_errors is not None and len(self._init_errors) > 0:
+        if self._init_errors:
             raise bakery.AuthInitError(self._init_errors[0])
 
     def _init_once(self, ctx):
@@ -391,7 +391,7 @@ class _CaveatSquasher(object):
 
         if cond == checkers.COND_TIME_BEFORE:
             try:
-                et = pyrfc3339.parse(args)
+                et = pyrfc3339.parse(args, utc=True).replace(tzinfo=None)
             except ValueError:
                 # Again, if it doesn't seem valid, leave it alone.
                 return True
