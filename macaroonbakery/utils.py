@@ -2,6 +2,7 @@
 # Licensed under the LGPLv3, see LICENCE file for details.
 import base64
 from datetime import datetime
+import binascii
 import json
 import webbrowser
 import six
@@ -73,14 +74,19 @@ def b64decode(s):
 
     @param s bytes decode
     @return bytes decoded
+    @raises ValueError on failure
     '''
     # add padding if necessary.
     s = to_bytes(s)
-    s = s + b'=' * (-len(s) % 4)
-    if '_' or '-' in s:
-        return base64.urlsafe_b64decode(s)
-    else:
-        return base64.b64decode(s)
+    if not s.endswith(b'='):
+        s = s + b'=' * (-len(s) % 4)
+    try:
+        if '_' or '-' in s:
+            return base64.urlsafe_b64decode(s)
+        else:
+            return base64.b64decode(s)
+    except (TypeError, binascii.Error) as e:
+        raise ValueError(str(e))
 
 
 def raw_urlsafe_b64encode(b):

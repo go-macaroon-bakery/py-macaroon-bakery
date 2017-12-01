@@ -130,7 +130,7 @@ class TestClient(TestCase):
                     auth=client.auth())
             resp.raise_for_status()
             m = bakery.Macaroon.from_dict(json.loads(
-                base64.b64decode(client.cookies.get('macaroon-test')))[0])
+                base64.b64decode(client.cookies.get('macaroon-test')).decode('utf-8'))[0])
             t = bakery.checkers.macaroons_expiry_time(
                 bakery.checkers.Namespace(), [m.macaroon])
             self.assertEquals(ages, t)
