@@ -36,6 +36,13 @@ def macaroon_from_dict(json_macaroon):
                                 json_serializer.JsonSerializer())
 
 
+def macaroon_to_dict(macaroon):
+    '''Turn macaroon into JSON-serializable dict object
+    @param pymacaroons.Macaroon.
+    '''
+    return json.loads(macaroon.serialize(json_serializer.JsonSerializer()))
+
+
 def macaroon_to_json_string(macaroon):
     '''Serialize macaroon object to a JSON-encoded string.
 
