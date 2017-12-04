@@ -3,10 +3,15 @@
 
 from unittest import TestCase
 from datetime import datetime
+from pymacaroons.serializers import json_serializer
+
 import pytz
+import json
 
 import macaroonbakery as bakery
 from macaroonbakery.utils import cookie
+import macaroonbakery as bakery
+import pymacaroons
 
 
 class CookieTest(TestCase):
@@ -58,3 +63,14 @@ class TestB64Decode(TestCase):
                 self.assertEqual(str(e.exception), 'Incorrect padding')
             else:
                 self.assertEqual(bakery.b64decode(test['input']), test['expect'].encode('utf-8'), msg=test['about'])
+
+
+class MacaroonToDictTest(TestCase):
+    def test_macaroon_to_dict(self):
+        m = pymacaroons.Macaroon(
+            key=b'rootkey', identifier=b'some id', location='here', version=2)
+        as_dict = bakery.macaroon_to_dict(m)
+        data = json.dumps(as_dict)
+        m1 = pymacaroons.Macaroon.deserialize(data, json_serializer.JsonSerializer())
+        self.assertEqual(m1.signature, m.signature)
+        pymacaroons.Verifier().verify(m1, b'rootkey')

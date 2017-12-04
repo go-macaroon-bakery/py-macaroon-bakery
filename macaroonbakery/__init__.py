@@ -77,7 +77,10 @@ from macaroonbakery.oven import (
     canonical_ops,
 )
 from macaroonbakery.bakery import Bakery
-from macaroonbakery.utils import b64decode
+from macaroonbakery.utils import (
+    b64decode,
+    macaroon_to_dict,
+)
 
 __all__ = [
     'ACLAuthorizer',
@@ -133,5 +136,6 @@ __all__ = [
     'generate_key',
     'legacy_namespace',
     'local_third_party_caveat',
+    'macaroon_to_dict',
     'macaroon_version',
 ]
