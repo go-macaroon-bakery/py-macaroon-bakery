@@ -10,7 +10,6 @@ import json
 
 import macaroonbakery as bakery
 from macaroonbakery.utils import cookie
-import macaroonbakery as bakery
 import pymacaroons
 
 
