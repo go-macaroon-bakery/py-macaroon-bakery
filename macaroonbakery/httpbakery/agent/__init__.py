@@ -2,7 +2,7 @@
 # Licensed under the LGPLv3, see LICENCE file for details.
 
 from macaroonbakery.httpbakery.agent.agent import (
-    load_agent_file,
+    load_auth_info,
     Agent,
     AgentInteractor,
     AgentFileFormatError,
@@ -13,5 +13,5 @@ __all__ = [
     'AgentFileFormatError',
     'AgentInteractor',
     'AuthInfo',
-    'load_agent_file',
+    'load_auth_info',
 ]

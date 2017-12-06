@@ -7,9 +7,7 @@ import os
 import tempfile
 from unittest import TestCase
 
-import nacl.encoding
 import requests.cookies
-import six
 from six.moves.urllib.parse import parse_qs
 from six.moves.http_cookies import SimpleCookie
 from httmock import (
@@ -44,75 +42,23 @@ class TestAgents(TestCase):
         os.remove(self.bad_key_agent_filename)
         os.remove(self.no_username_agent_filename)
 
-    def test_load_agents(self):
-        cookies, key = agent.load_agent_file(self.agent_filename)
-        self.assertEqual(key.encode(nacl.encoding.Base64Encoder),
-                         b'CqoSgj06Zcgb4/S6RT4DpTjLAfKoznEY3JsShSjKJEU=')
-        self.assertEqual(
-            key.public_key.encode(nacl.encoding.Base64Encoder),
-            b'YAhRSsth3a36mRYqQGQaLiS4QJax0p356nd+B8x7UQE=')
+    def test_load_auth_info(self):
+        auth_info = agent.load_auth_info(self.agent_filename)
+        self.assertEqual(auth_info.key.encode(), b'CqoSgj06Zcgb4/S6RT4DpTjLAfKoznEY3JsShSjKJEU=')
+        self.assertEqual(auth_info.key.public_key.encode(), b'YAhRSsth3a36mRYqQGQaLiS4QJax0p356nd+B8x7UQE=')
+        self.assertEqual(auth_info.agents, [
+            agent.Agent(url='https://1.example.com/', username='user-1'),
+            agent.Agent(url='https://2.example.com/discharger', username='user-2'),
+            agent.Agent(url='http://0.3.2.1', username='test-user'),
+        ])
 
-        value = cookies.get('agent-login', domain='1.example.com')
-        jv = base64.b64decode(value)
-        if six.PY3:
-            jv = jv.decode('utf-8')
-        data = json.loads(jv)
-        self.assertEqual(data['username'], 'user-1')
-        self.assertEqual(data['public_key'],
-                         'YAhRSsth3a36mRYqQGQaLiS4QJax0p356nd+B8x7UQE=')
-
-        value = cookies.get('agent-login', domain='2.example.com',
-                            path='/discharger')
-        jv = base64.b64decode(value)
-        if six.PY3:
-            jv = jv.decode('utf-8')
-        data = json.loads(jv)
-        self.assertEqual(data['username'], 'user-2')
-        self.assertEqual(data['public_key'],
-                         'YAhRSsth3a36mRYqQGQaLiS4QJax0p356nd+B8x7UQE=')
-
-    def test_load_agents_into_cookies(self):
-        cookies = requests.cookies.RequestsCookieJar()
-        c1, key = agent.load_agent_file(
-            self.agent_filename,
-            cookies=cookies,
-        )
-        self.assertEqual(c1, cookies)
-        self.assertEqual(
-            key.encode(nacl.encoding.Base64Encoder),
-            b'CqoSgj06Zcgb4/S6RT4DpTjLAfKoznEY3JsShSjKJEU=',
-        )
-        self.assertEqual(
-            key.public_key.encode(nacl.encoding.Base64Encoder),
-            b'YAhRSsth3a36mRYqQGQaLiS4QJax0p356nd+B8x7UQE=',
-        )
-
-        value = cookies.get('agent-login', domain='1.example.com')
-        jv = base64.b64decode(value)
-        if six.PY3:
-            jv = jv.decode('utf-8')
-        data = json.loads(jv)
-        self.assertEqual(data['username'], 'user-1')
-        self.assertEqual(data['public_key'],
-                         'YAhRSsth3a36mRYqQGQaLiS4QJax0p356nd+B8x7UQE=')
-
-        value = cookies.get('agent-login', domain='2.example.com',
-                            path='/discharger')
-        jv = base64.b64decode(value)
-        if six.PY3:
-            jv = jv.decode('utf-8')
-        data = json.loads(jv)
-        self.assertEqual(data['username'], 'user-2')
-        self.assertEqual(data['public_key'],
-                         'YAhRSsth3a36mRYqQGQaLiS4QJax0p356nd+B8x7UQE=')
-
-    def test_load_agents_with_bad_key(self):
+    def test_load_auth_info_with_bad_key(self):
         with self.assertRaises(agent.AgentFileFormatError):
-            agent.load_agent_file(self.bad_key_agent_filename)
+            agent.load_auth_info(self.bad_key_agent_filename)
 
-    def test_load_agents_with_no_username(self):
+    def test_load_auth_info_with_no_username(self):
         with self.assertRaises(agent.AgentFileFormatError):
-            agent.load_agent_file(self.no_username_agent_filename)
+            agent.load_auth_info(self.no_username_agent_filename)
 
     def test_agent_login(self):
         discharge_key = bakery.generate_key()
@@ -184,7 +130,7 @@ class TestAgents(TestCase):
                     }
                 }
 
-        key = bakery.generate_key()
+        auth_info = agent.load_auth_info(self.agent_filename)
 
         @urlmatch(path='.*/login')
         def login(url, request):
@@ -193,7 +139,7 @@ class TestAgents(TestCase):
                 version=bakery.LATEST_VERSION,
                 expiry=datetime.utcnow() + timedelta(days=1),
                 caveats=[bakery.local_third_party_caveat(
-                    key.public_key,
+                    auth_info.key.public_key,
                     version=httpbakery.request_version(request.headers))],
                 ops=[bakery.Op(entity='agent', action='login')])
             return {
@@ -207,17 +153,7 @@ class TestAgents(TestCase):
                 HTTMock(discharge), \
                 HTTMock(login):
             client = httpbakery.Client(interaction_methods=[
-                agent.AgentInteractor(
-                    agent.AuthInfo(
-                        key=key,
-                        agents=[
-                            agent.Agent(
-                                username='test-user',
-                                url=u'http://0.3.2.1'
-                            )
-                        ],
-                    ),
-                ),
+                agent.AgentInteractor(auth_info),
             ])
             resp = requests.get(
                 'http://0.1.2.3/here',
@@ -419,10 +355,12 @@ agent_file = '''
     }, {
     "url": "https://2.example.com/discharger",
     "username": "user-2"
+  }, {
+    "url": "http://0.3.2.1",
+    "username": "test-user"
   }]
 }
 '''
-
 
 bad_key_agent_file = '''
 {
