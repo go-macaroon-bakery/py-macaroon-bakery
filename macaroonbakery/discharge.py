@@ -5,6 +5,7 @@ from collections import namedtuple
 
 import macaroonbakery as bakery
 import macaroonbakery.checkers as checkers
+import macaroonbakery.error as error
 
 emptyContext = checkers.AuthContext()
 
@@ -46,7 +47,11 @@ def discharge_all(m, get_discharge, local_key=None):
     while len(need) > 0:
         cav = need[0]
         need = need[1:]
-        if local_key is not None and cav.cav.location == 'local':
+        if cav.cav.location == 'local':
+            if local_key is None:
+                raise error.ThirdPartyCaveatCheckFailed(
+                    'found local third party caveat but no private key provided',
+                )
             # TODO use a small caveat id.
             dm = discharge(ctx=emptyContext,
                            key=local_key,

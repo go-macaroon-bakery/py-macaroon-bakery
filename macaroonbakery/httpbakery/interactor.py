@@ -18,8 +18,7 @@ class Interactor(object):
         the Error.interaction_methods type.
         @return {str}
         '''
-        raise NotImplementedError('kind method must be defined in '
-                                  'subclass')
+        raise NotImplementedError('kind method must be defined in subclass')
 
     def interact(self, client, location, interaction_required_err):
         ''' Performs the interaction, and returns a token that can be
@@ -37,8 +36,7 @@ class Interactor(object):
         take place {Error}
         @return {DischargeToken} The discharge token.
         '''
-        raise NotImplementedError('interact method must be defined in '
-                                  'subclass')
+        raise NotImplementedError('interact method must be defined in subclass')
 
 
 class LegacyInteractor(object):
@@ -59,8 +57,7 @@ class LegacyInteractor(object):
         @param visit_url The visit_url field from the error {str}
         @return None
         '''
-        raise NotImplementedError('legacy_interact method must be defined in '
-                                  'subclass')
+        raise NotImplementedError('legacy_interact method must be defined in subclass')
 
 
 class DischargeToken(namedtuple('DischargeToken', 'kind, value')):

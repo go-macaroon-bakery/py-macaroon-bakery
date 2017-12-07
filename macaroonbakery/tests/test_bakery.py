@@ -2,19 +2,11 @@
 # Licensed under the LGPLv3, see LICENCE file for details.
 from unittest import TestCase
 
-import requests
-
-from mock import (
-    patch,
-)
-
-from httmock import (
-    HTTMock,
-    urlmatch,
-    response
-)
-
 import macaroonbakery.httpbakery as httpbakery
+import requests
+from mock import patch
+
+from httmock import HTTMock, response, urlmatch
 
 ID_PATH = 'http://example.com/someprotecteurl'
 
@@ -243,10 +235,10 @@ class TestBakery(TestCase):
                          'required but not possible')
 
     def test_407_then_unknown_interaction_methods(self):
-        class UnknowInteractor(httpbakery.Interactor):
+        class UnknownInteractor(httpbakery.Interactor):
             def kind(self):
                 return 'unknown'
-        client = httpbakery.Client(interaction_methods=[UnknowInteractor()])
+        client = httpbakery.Client(interaction_methods=[UnknownInteractor()])
         with HTTMock(first_407_then_200), HTTMock(discharge_401):
             with self.assertRaises(httpbakery.InteractionError) as exc:
                 requests.get(
@@ -254,9 +246,11 @@ class TestBakery(TestCase):
                     cookies=client.cookies,
                     auth=client.auth(),
                 )
-        self.assertEqual(str(exc.exception),
-                         'cannot start interactive session: no methods '
-                         'supported')
+        self.assertEqual(
+            str(exc.exception),
+            'cannot start interactive session: no methods supported; '
+            'supported [unknown]; provided [interactive]'
+        )
 
     def test_cookie_with_port(self):
         client = httpbakery.Client()

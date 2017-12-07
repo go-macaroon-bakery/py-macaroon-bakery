@@ -1,25 +1,22 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
-import base64
-from datetime import datetime, timedelta
 import json
+import logging
 import os
 import tempfile
+from datetime import datetime, timedelta
 from unittest import TestCase
 
-import requests.cookies
-from six.moves.urllib.parse import parse_qs
-from six.moves.http_cookies import SimpleCookie
-from httmock import (
-    HTTMock,
-    urlmatch,
-    response
-)
-
 import macaroonbakery as bakery
-import macaroonbakery.httpbakery as httpbakery
 import macaroonbakery.checkers as checkers
+import macaroonbakery.httpbakery as httpbakery
 import macaroonbakery.httpbakery.agent as agent
+import requests.cookies
+
+from httmock import HTTMock, response, urlmatch
+from six.moves.urllib.parse import parse_qs
+
+log = logging.getLogger(__name__)
 
 
 class TestAgents(TestCase):
@@ -254,26 +251,26 @@ class TestAgents(TestCase):
 
         key = bakery.generate_key()
 
-        @urlmatch(path='.*/visit?$')
+        @urlmatch(path='.*/visit')
         def visit(url, request):
             if request.headers.get('Accept') == 'application/json':
                 return {
                     'status_code': 200,
                     'content': {
-                        'agent': request.url
+                        'agent': '/agent-visit',
                     }
                 }
-            cs = SimpleCookie()
-            cookies = request.headers.get('Cookie')
-            if cookies is not None:
-                cs.load(str(cookies))
-            public_key = None
-            for c in cs:
-                if c == 'agent-login':
-                    json_cookie = json.loads(
-                        base64.b64decode(cs[c].value).decode('utf-8'))
-                    public_key = bakery.PublicKey.deserialize(
-                        json_cookie.get('public_key'))
+            raise Exception('unexpected call to visit without Accept header')
+
+        @urlmatch(path='.*/agent-visit')
+        def agent_visit(url, request):
+            if request.method != "POST":
+                raise Exception('unexpected method')
+            log.info('agent_visit url {}'.format(url))
+            body = json.loads(request.body.decode('utf-8'))
+            if body['username'] != 'test-user':
+                raise Exception('unexpected username in body {!r}'.format(request.body))
+            public_key = bakery.PublicKey.deserialize(body['public_key'])
             ms = httpbakery.extract_macaroons(request.headers)
             if len(ms) == 0:
                 b = bakery.Bakery(key=discharge_key)
@@ -296,11 +293,11 @@ class TestAgents(TestCase):
             return {
                 'status_code': 200,
                 'content': {
-                    'agent-login': True
+                    'agent_login': True
                 }
             }
 
-        @urlmatch(path='.*/wait?$')
+        @urlmatch(path='.*/wait$')
         def wait(url, request):
             class EmptyChecker(bakery.ThirdPartyCaveatChecker):
                 def check_third_party_caveat(self, ctx, info):
@@ -325,7 +322,8 @@ class TestAgents(TestCase):
         with HTTMock(server_get), \
                 HTTMock(discharge), \
                 HTTMock(visit), \
-                HTTMock(wait):
+                HTTMock(wait), \
+                HTTMock(agent_visit):
             client = httpbakery.Client(interaction_methods=[
                 agent.AgentInteractor(
                     agent.AuthInfo(

@@ -1,16 +1,19 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
-import base64
-from collections import namedtuple
+import copy
 import json
-
-import nacl.exceptions
-import requests.cookies
-from six.moves.urllib.parse import urljoin
+import logging
+from collections import namedtuple
 
 import macaroonbakery as bakery
-import macaroonbakery.utils as utils
 import macaroonbakery.httpbakery as httpbakery
+import macaroonbakery.utils as utils
+import nacl.exceptions
+import requests.cookies
+
+from six.moves.urllib.parse import urljoin
+
+log = logging.getLogger(__name__)
 
 
 class AgentFileFormatError(Exception):
@@ -90,6 +93,7 @@ class AgentInteractor(httpbakery.Interactor, httpbakery.LegacyInteractor):
         if not location.endswith('/'):
             location += '/'
         login_url = urljoin(location, p.login_url)
+        # TODO use client to make the request.
         resp = requests.get(login_url, json={
             'Username': agent.username,
             'PublicKey': self._auth_info.key.encode().decode('utf-8'),
@@ -123,26 +127,22 @@ class AgentInteractor(httpbakery.Interactor, httpbakery.LegacyInteractor):
         '''Implement LegacyInteractor.legacy_interact by obtaining
         the discharge macaroon using the client's private key
         '''
+        log.info('agent legacy_interact, visit_url {}'.format(visit_url))
         agent = self._find_agent(location)
-        pk_encoded = self._auth_info.key.public_key.encode().decode('utf-8')
-        value = {
-            'username': agent.username,
-            'public_key': pk_encoded,
-        }
-        # TODO(rogpeppe) use client passed into interact method.
-        client = httpbakery.Client(key=self._auth_info.key)
-        client.cookies.set_cookie(utils.cookie(
+        client = copy.copy(client)
+        client.key = self._auth_info.key
+        resp = client.request(
+            method='POST',
             url=visit_url,
-            name='agent-login',
-            value=base64.urlsafe_b64encode(
-                json.dumps(value).encode('utf-8')).decode('utf-8'),
-        ))
-        resp = requests.get(url=visit_url, cookies=client.cookies,
-                            auth=client.auth())
+            json={
+                'username': agent.username,
+                'public_key': self._auth_info.key.public_key.encode().decode('utf-8'),
+            },
+        )
         if resp.status_code != 200:
             raise httpbakery.InteractionError(
-                'cannot acquire agent macaroon: {}'.format(resp.status_code))
-        if not resp.json().get('agent-login', False):
+                'cannot acquire agent macaroon from {}: {} (response body: {!r})'.format(visit_url, resp.status_code, resp.text))
+        if not resp.json().get('agent_login', False):
             raise httpbakery.InteractionError('agent login failed')
 
 
