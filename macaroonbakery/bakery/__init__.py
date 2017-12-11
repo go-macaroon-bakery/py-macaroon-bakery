@@ -1,33 +1,33 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
 
-from macaroonbakery.versions import (
+from .versions import (
     VERSION_0,
     VERSION_1,
     VERSION_2,
     VERSION_3,
     LATEST_VERSION,
 )
-from macaroonbakery.authorizer import (
+from .authorizer import (
     ACLAuthorizer,
     Authorizer,
     AuthorizerFunc,
     ClosedAuthorizer,
     EVERYONE,
 )
-from macaroonbakery.codec import (
+from .codec import (
     decode_caveat,
     encode_caveat,
     encode_uvarint,
 )
-from macaroonbakery.checker import (
+from .checker import (
     AuthChecker,
     AuthInfo,
     Checker,
     LOGIN_OP,
     Op,
 )
-from macaroonbakery.error import (
+from .error import (
     AuthInitError,
     CaveatNotRecognizedError,
     DischargeRequiredError,
@@ -37,28 +37,28 @@ from macaroonbakery.error import (
     ThirdPartyInfoNotFound,
     VerificationError,
 )
-from macaroonbakery.identity import (
+from .identity import (
     ACLIdentity,
     Identity,
     IdentityClient,
     NoIdentities,
     SimpleIdentity,
 )
-from macaroonbakery.keys import (
+from .keys import (
     generate_key,
     PrivateKey,
     PublicKey,
 )
-from macaroonbakery.store import (
+from .store import (
     MemoryOpsStore,
     MemoryKeyStore,
 )
-from macaroonbakery.third_party import (
+from .third_party import (
     ThirdPartyCaveatInfo,
     ThirdPartyInfo,
     legacy_namespace,
 )
-from macaroonbakery.macaroon import (
+from .macaroon import (
     Macaroon,
     MacaroonJSONDecoder,
     MacaroonJSONEncoder,
@@ -66,18 +66,18 @@ from macaroonbakery.macaroon import (
     ThirdPartyStore,
     macaroon_version,
 )
-from macaroonbakery.discharge import (
+from .discharge import (
     ThirdPartyCaveatChecker,
     discharge,
     discharge_all,
     local_third_party_caveat,
 )
-from macaroonbakery.oven import (
+from .oven import (
     Oven,
     canonical_ops,
 )
-from macaroonbakery.bakery import Bakery
-from macaroonbakery.utils import (
+from .bakery import Bakery
+from macaroonbakery._utils import (
     b64decode,
     macaroon_to_dict,
 )

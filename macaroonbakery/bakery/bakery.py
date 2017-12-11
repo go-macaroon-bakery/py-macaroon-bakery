@@ -1,10 +1,10 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
 
-from macaroonbakery.authorizer import ClosedAuthorizer
-from macaroonbakery.checker import Checker
-from macaroonbakery.checkers import checkers
-from macaroonbakery.oven import Oven
+from .authorizer import ClosedAuthorizer
+from macaroonbakery.bakery.checker import Checker
+import macaroonbakery.checkers as checkers
+from macaroonbakery.bakery.oven import Oven
 
 
 class Bakery(object):

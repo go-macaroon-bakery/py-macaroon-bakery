@@ -4,7 +4,7 @@ import copy
 from datetime import datetime, timedelta
 from unittest import TestCase
 
-import macaroonbakery as bakery
+import macaroonbakery.bakery as bakery
 
 EPOCH = datetime(1900, 11, 17, 19, 00, 13, 0, None)
 AGES = EPOCH + timedelta(days=10)

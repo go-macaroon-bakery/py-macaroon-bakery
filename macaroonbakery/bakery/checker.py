@@ -3,7 +3,15 @@
 from collections import namedtuple
 from threading import Lock
 
-import macaroonbakery as bakery
+from .authorizer import ClosedAuthorizer
+from .identity import NoIdentities
+from .error import (
+    AuthInitError,
+    VerificationError,
+    IdentityError,
+    DischargeRequiredError,
+    PermissionDenied,
+)
 import macaroonbakery.checkers as checkers
 import pyrfc3339
 
@@ -36,7 +44,7 @@ class Checker(object):
     See the Oven type (TODO) for one way of doing that.
     '''
     def __init__(self, checker=checkers.Checker(),
-                 authorizer=bakery.ClosedAuthorizer(),
+                 authorizer=ClosedAuthorizer(),
                  identity_client=None,
                  macaroon_opstore=None):
         '''
@@ -55,7 +63,7 @@ class Checker(object):
         self._first_party_caveat_checker = checker
         self._authorizer = authorizer
         if identity_client is None:
-            identity_client = bakery.NoIdentities()
+            identity_client = NoIdentities()
         self._identity_client = identity_client
         self._macaroon_opstore = macaroon_opstore
 
@@ -104,7 +112,7 @@ class AuthChecker(object):
                 self._init_once(ctx)
                 self._executed = True
         if self._init_errors:
-            raise bakery.AuthInitError(self._init_errors[0])
+            raise AuthInitError(self._init_errors[0])
 
     def _init_once(self, ctx):
         self._auth_indexes = {}
@@ -113,7 +121,7 @@ class AuthChecker(object):
             try:
                 ops, conditions = self.parent._macaroon_opstore.macaroon_ops(
                     ms)
-            except bakery.VerificationError:
+            except VerificationError:
                 raise
             except Exception as exc:
                 self._init_errors.append(exc.args[0])
@@ -155,7 +163,7 @@ class AuthChecker(object):
             try:
                 identity = self.parent._identity_client.declared_identity(
                     ctx, declared)
-            except bakery.IdentityError as exc:
+            except IdentityError as exc:
                 self._init_errors.append(
                     'cannot decode declared identity: {}'.format(exc.args[0]))
                 continue
@@ -169,7 +177,7 @@ class AuthChecker(object):
             try:
                 identity, cavs = self.parent.\
                     _identity_client.identity_from_context(ctx)
-            except bakery.IdentityError:
+            except IdentityError:
                 self._init_errors.append('could not determine identity')
             if cavs is None:
                 cavs = []
@@ -290,7 +298,7 @@ class AuthChecker(object):
             # no caveats to be discharged.
             return authed, used
         if self._identity is None and len(self._identity_caveats) > 0:
-            raise bakery.DischargeRequiredError(
+            raise DischargeRequiredError(
                 msg='authentication required',
                 ops=[LOGIN_OP],
                 cavs=self._identity_caveats)
@@ -301,8 +309,8 @@ class AuthChecker(object):
             err = ''
             if len(all_errors) > 0:
                 err = all_errors[0]
-            raise bakery.PermissionDenied(err)
-        raise bakery.DischargeRequiredError(
+            raise PermissionDenied(err)
+        raise DischargeRequiredError(
             msg='some operations have extra caveats', ops=ops, cavs=caveats)
 
     def allow_capability(self, ctx, ops):

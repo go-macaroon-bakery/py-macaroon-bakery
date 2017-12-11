@@ -2,7 +2,7 @@
 # Licensed under the LGPLv3, see LICENCE file for details.
 import unittest
 
-import macaroonbakery as bakery
+import macaroonbakery.bakery as bakery
 import macaroonbakery.httpbakery as httpbakery
 
 from httmock import HTTMock, urlmatch

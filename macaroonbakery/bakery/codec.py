@@ -3,7 +3,10 @@
 import base64
 import json
 
-import macaroonbakery as bakery
+from .versions import (VERSION_1, VERSION_2, VERSION_3)
+from .third_party import legacy_namespace, ThirdPartyCaveatInfo
+from .keys import PublicKey
+from .error import VerificationError
 import macaroonbakery.checkers as checkers
 import nacl.public
 import six
@@ -32,11 +35,11 @@ def encode_caveat(condition, root_key, third_party_info, key, ns):
     @param ns not used yet
     @return bytes
     '''
-    if third_party_info.version == bakery.VERSION_1:
+    if third_party_info.version == VERSION_1:
         return _encode_caveat_v1(condition, root_key,
                                  third_party_info.public_key, key)
-    if (third_party_info.version == bakery.VERSION_2 or
-            third_party_info.version == bakery.VERSION_3):
+    if (third_party_info.version == VERSION_2 or
+            third_party_info.version == VERSION_3):
         return _encode_caveat_v2_v3(third_party_info.version, condition,
                                     root_key, third_party_info.public_key,
                                     key, ns)
@@ -98,7 +101,7 @@ def _encode_caveat_v2_v3(version, condition, root_key, third_party_pub_key,
         condition [rest of encrypted part]
     '''
     ns_data = bytearray()
-    if version >= bakery.VERSION_3:
+    if version >= VERSION_3:
         ns_data = ns.serialize_text()
     data = bytearray()
     data.append(version)
@@ -130,7 +133,7 @@ def _encode_secret_part_v2_v3(version, condition, root_key, ns):
     data.append(version)
     encode_uvarint(len(root_key), data)
     data.extend(root_key)
-    if version >= bakery.VERSION_3:
+    if version >= VERSION_3:
         encode_uvarint(len(ns), data)
         data.extend(ns)
     data.extend(condition.encode('utf-8'))
@@ -145,7 +148,7 @@ def decode_caveat(key, caveat):
     @return ThirdPartyCaveatInfo
     '''
     if len(caveat) == 0:
-        raise bakery.VerificationError('empty third party caveat')
+        raise VerificationError('empty third party caveat')
 
     first = caveat[:1]
     if first == b'e':
@@ -153,17 +156,17 @@ def decode_caveat(key, caveat):
         # encoded JSON object.
         return _decode_caveat_v1(key, caveat)
     first_as_int = six.byte2int(first)
-    if (first_as_int == bakery.VERSION_2 or
-            first_as_int == bakery.VERSION_3):
+    if (first_as_int == VERSION_2 or
+            first_as_int == VERSION_3):
         if (len(caveat) < _VERSION3_CAVEAT_MIN_LEN
-                and first_as_int == bakery.VERSION_3):
+                and first_as_int == VERSION_3):
             # If it has the version 3 caveat tag and it's too short, it's
             # almost certainly an id, not an encrypted payload.
-            raise bakery.VerificationError(
+            raise VerificationError(
                 'caveat id payload not provided for caveat id {}'.format(
                     caveat))
         return _decode_caveat_v2_v3(first_as_int, key, caveat)
-    raise bakery.VerificationError('unknown version for caveat')
+    raise VerificationError('unknown version for caveat')
 
 
 def _decode_caveat_v1(key, caveat):
@@ -195,15 +198,15 @@ def _decode_caveat_v1(key, caveat):
     record = json.loads(c.decode('utf-8'))
     fp_key = nacl.public.PublicKey(
         base64.b64decode(wrapper.get('FirstPartyPublicKey')))
-    return bakery.ThirdPartyCaveatInfo(
+    return ThirdPartyCaveatInfo(
         condition=record.get('Condition'),
-        first_party_public_key=bakery.PublicKey(fp_key),
+        first_party_public_key=PublicKey(fp_key),
         third_party_key_pair=key,
         root_key=base64.b64decode(record.get('RootKey')),
         caveat=caveat,
         id=None,
-        version=bakery.VERSION_1,
-        namespace=bakery.legacy_namespace()
+        version=VERSION_1,
+        namespace=legacy_namespace()
     )
 
 
@@ -212,14 +215,14 @@ def _decode_caveat_v2_v3(version, key, caveat):
     '''
     if (len(caveat) < 1 + _PUBLIC_KEY_PREFIX_LEN +
             _KEY_LEN + nacl.public.Box.NONCE_SIZE + 16):
-        raise bakery.VerificationError('caveat id too short')
+        raise VerificationError('caveat id too short')
     original_caveat = caveat
     caveat = caveat[1:]  # skip version (already checked)
 
     pk_prefix = caveat[:_PUBLIC_KEY_PREFIX_LEN]
     caveat = caveat[_PUBLIC_KEY_PREFIX_LEN:]
     if key.public_key.serialize(raw=True)[:_PUBLIC_KEY_PREFIX_LEN] != pk_prefix:
-        raise bakery.VerificationError('public key mismatch')
+        raise VerificationError('public key mismatch')
 
     first_party_pub = caveat[:_KEY_LEN]
     caveat = caveat[_KEY_LEN:]
@@ -229,9 +232,9 @@ def _decode_caveat_v2_v3(version, key, caveat):
     box = nacl.public.Box(key.key, fp_public_key)
     data = box.decrypt(caveat, nonce)
     root_key, condition, ns = _decode_secret_part_v2_v3(version, data)
-    return bakery.ThirdPartyCaveatInfo(
+    return ThirdPartyCaveatInfo(
         condition=condition.decode('utf-8'),
-        first_party_public_key=bakery.PublicKey(fp_public_key),
+        first_party_public_key=PublicKey(fp_public_key),
         third_party_key_pair=key,
         root_key=root_key,
         caveat=original_caveat,
@@ -243,25 +246,25 @@ def _decode_caveat_v2_v3(version, key, caveat):
 
 def _decode_secret_part_v2_v3(version, data):
     if len(data) < 1:
-        raise bakery.VerificationError('secret part too short')
+        raise VerificationError('secret part too short')
     got_version = six.byte2int(data[:1])
     data = data[1:]
     if version != got_version:
-        raise bakery.VerificationError(
+        raise VerificationError(
             'unexpected secret part version, got {} want {}'.format(
                 got_version, version))
     root_key_length, read = decode_uvarint(data)
     data = data[read:]
     root_key = data[:root_key_length]
     data = data[root_key_length:]
-    if version >= bakery.VERSION_3:
+    if version >= VERSION_3:
         namespace_length, read = decode_uvarint(data)
         data = data[read:]
         ns_data = data[:namespace_length]
         data = data[namespace_length:]
         ns = checkers.deserialize_namespace(ns_data)
     else:
-        ns = bakery.legacy_namespace()
+        ns = legacy_namespace()
     return root_key, data, ns
 
 

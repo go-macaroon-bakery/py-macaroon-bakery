@@ -1,7 +1,7 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
-import macaroonbakery as bakery
-import macaroonbakery.utils as utils
+import macaroonbakery.bakery as bakery
+import macaroonbakery._utils as utils
 
 
 def discharge(ctx, content, key, locator, checker):

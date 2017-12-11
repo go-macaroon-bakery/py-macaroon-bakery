@@ -5,9 +5,9 @@ import json
 import logging
 from collections import namedtuple
 
-import macaroonbakery as bakery
+import macaroonbakery.bakery as bakery
 import macaroonbakery.httpbakery as httpbakery
-import macaroonbakery.utils as utils
+import macaroonbakery._utils as utils
 import nacl.exceptions
 import requests.cookies
 

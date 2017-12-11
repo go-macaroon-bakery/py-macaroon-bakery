@@ -11,7 +11,7 @@ from macaroonbakery.httpbakery.interactor import (
     Interactor,
     LegacyInteractor,
 )
-from macaroonbakery.utils import visit_page_with_browser
+from macaroonbakery._utils import visit_page_with_browser
 
 from six.moves.urllib.parse import urljoin
 

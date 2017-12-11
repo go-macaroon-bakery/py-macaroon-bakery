@@ -4,10 +4,9 @@ import base64
 import json
 import logging
 
-import macaroonbakery as bakery
+import macaroonbakery.bakery as bakery
 import macaroonbakery.checkers as checkers
-import requests
-from macaroonbakery import utils
+import macaroonbakery._utils as utils
 from macaroonbakery.httpbakery.browser import WebBrowserInteractor
 from macaroonbakery.httpbakery.error import (
     BAKERY_PROTOCOL_HEADER,
@@ -23,6 +22,7 @@ from macaroonbakery.httpbakery.interactor import (
     LegacyInteractor,
 )
 
+import requests
 from six.moves.http_cookies import SimpleCookie
 from six.moves.urllib.parse import urljoin
 

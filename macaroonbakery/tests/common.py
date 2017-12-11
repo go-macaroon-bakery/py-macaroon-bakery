@@ -2,7 +2,7 @@
 # Licensed under the LGPLv3, see LICENCE file for details.
 from datetime import datetime, timedelta
 
-import macaroonbakery as bakery
+import macaroonbakery.bakery as bakery
 import macaroonbakery.checkers as checkers
 import pytz
 

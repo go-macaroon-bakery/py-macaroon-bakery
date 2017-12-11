@@ -1,6 +1,6 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
-import macaroonbakery as bakery
+import macaroonbakery.bakery as bakery
 import requests
 from macaroonbakery.httpbakery.error import BAKERY_PROTOCOL_HEADER
 

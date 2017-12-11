@@ -7,11 +7,26 @@ import itertools
 import os
 
 import google
-import macaroonbakery as bakery
+from .checker import (Op, LOGIN_OP)
+from .store import MemoryKeyStore
+from .error import VerificationError
+from .versions import (
+    VERSION_2,
+    VERSION_3,
+    LATEST_VERSION,
+)
+from .macaroon import (
+    Macaroon,
+    macaroon_version,
+)
+
 import macaroonbakery.checkers as checkers
 import six
-from macaroonbakery import utils
-from macaroonbakery.internal import id_pb2
+from macaroonbakery._utils import (
+    raw_urlsafe_b64encode,
+    b64decode,
+)
+from .internal import id_pb2
 from pymacaroons import MACAROON_V2, Verifier
 from pymacaroons.exceptions import (
     MacaroonInvalidSignatureException,
@@ -64,7 +79,7 @@ class Oven:
         self.ops_store = ops_store
         self.root_keystore_for_ops = root_keystore_for_ops
         if root_keystore_for_ops is None:
-            my_store = bakery.MemoryKeyStore()
+            my_store = MemoryKeyStore()
             self.root_keystore_for_ops = lambda x: my_store
 
     def macaroon(self, version, expiry, caveats, ops):
@@ -85,15 +100,15 @@ class Oven:
 
         id = self._new_macaroon_id(storage_id, expiry, ops)
 
-        id_bytes = six.int2byte(bakery.LATEST_VERSION) + \
+        id_bytes = six.int2byte(LATEST_VERSION) + \
             id.SerializeToString()
 
-        if bakery.macaroon_version(version) < MACAROON_V2:
+        if macaroon_version(version) < MACAROON_V2:
             # The old macaroon format required valid text for the macaroon id,
             # so base64-encode it.
-            id_bytes = utils.raw_urlsafe_b64encode(id_bytes)
+            id_bytes = raw_urlsafe_b64encode(id_bytes)
 
-        m = bakery.Macaroon(
+        m = Macaroon(
             root_key,
             id_bytes,
             self.location,
@@ -155,7 +170,7 @@ class Oven:
         storage_id, ops = _decode_macaroon_id(macaroons[0].identifier_bytes)
         root_key = self.root_keystore_for_ops(ops).get(storage_id)
         if root_key is None:
-            raise bakery.VerificationError(
+            raise VerificationError(
                 'macaroon key not found in storage')
         v = Verifier()
         conditions = []
@@ -170,7 +185,7 @@ class Oven:
             v.verify(macaroons[0], root_key, macaroons[1:])
         except (MacaroonUnmetCaveatException,
                 MacaroonInvalidSignatureException) as exc:
-            raise bakery.VerificationError(
+            raise VerificationError(
                 'verification failed: {}'.format(exc.args[0]))
 
         if (self.ops_store is not None
@@ -196,7 +211,7 @@ def _decode_macaroon_id(id):
         # Note that old-style ids always start with an ASCII character >= 4
         # (> 32 in fact) so this logic won't be triggered for those.
         try:
-            dec = utils.b64decode(id.decode('utf-8'))
+            dec = b64decode(id.decode('utf-8'))
             # Set the id only on success.
             id = dec
             base64_decoded = True
@@ -209,23 +224,23 @@ def _decode_macaroon_id(id):
     # creating macaroons to make all macaroons unique even if
     # they're using the same root key.
     first = six.byte2int(id[:1])
-    if first == bakery.VERSION_2:
+    if first == VERSION_2:
         # Skip the UUID at the start of the id.
         storage_id = id[1 + 16:]
-    if first == bakery.VERSION_3:
+    if first == VERSION_3:
         try:
             id1 = id_pb2.MacaroonId.FromString(id[1:])
         except google.protobuf.message.DecodeError:
-            raise bakery.VerificationError(
+            raise VerificationError(
                 'no operations found in macaroon')
         if len(id1.ops) == 0 or len(id1.ops[0].actions) == 0:
-            raise bakery.VerificationError(
+            raise VerificationError(
                 'no operations found in macaroon')
 
         ops = []
         for op in id1.ops:
             for action in op.actions:
-                ops.append(bakery.Op(op.entity, action))
+                ops.append(Op(op.entity, action))
         return id1.storageId, ops
 
     if not base64_decoded and _is_lower_case_hex_char(first):
@@ -234,7 +249,7 @@ def _decode_macaroon_id(id):
         last = id.rfind(b'-')
         if last >= 0:
             storage_id = id[0:last]
-    return storage_id, [bakery.LOGIN_OP]
+    return storage_id, [LOGIN_OP]
 
 
 def _is_lower_case_hex_char(b):

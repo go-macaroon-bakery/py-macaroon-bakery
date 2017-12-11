@@ -6,12 +6,12 @@ import json
 import threading
 from unittest import TestCase
 
-import macaroonbakery as bakery
+import macaroonbakery.bakery as bakery
 import macaroonbakery.checkers as checkers
 import macaroonbakery.httpbakery as httpbakery
 import pymacaroons
 import requests
-from macaroonbakery import utils
+import macaroonbakery._utils as utils
 
 from httmock import HTTMock, urlmatch
 from six.moves.urllib.parse import parse_qs
@@ -128,8 +128,8 @@ class TestClient(TestCase):
             resp.raise_for_status()
             m = bakery.Macaroon.from_dict(json.loads(
                 base64.b64decode(client.cookies.get('macaroon-test')).decode('utf-8'))[0])
-            t = bakery.checkers.macaroons_expiry_time(
-                bakery.checkers.Namespace(), [m.macaroon])
+            t = checkers.macaroons_expiry_time(
+                checkers.Namespace(), [m.macaroon])
             self.assertEquals(ages, t)
             self.assertEquals(resp.text, 'done')
         finally:

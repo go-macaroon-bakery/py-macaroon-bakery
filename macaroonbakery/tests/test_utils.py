@@ -5,10 +5,10 @@ import json
 from datetime import datetime
 from unittest import TestCase
 
-import macaroonbakery as bakery
+import macaroonbakery.bakery as bakery
 import pymacaroons
 import pytz
-from macaroonbakery.utils import cookie
+from macaroonbakery._utils import cookie
 from pymacaroons.serializers import json_serializer
 
 
