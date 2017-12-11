@@ -5,7 +5,6 @@ from collections import namedtuple
 
 import macaroonbakery as bakery
 import macaroonbakery.checkers as checkers
-import macaroonbakery.error as error
 
 emptyContext = checkers.AuthContext()
 
@@ -49,7 +48,7 @@ def discharge_all(m, get_discharge, local_key=None):
         need = need[1:]
         if cav.cav.location == 'local':
             if local_key is None:
-                raise error.ThirdPartyCaveatCheckFailed(
+                raise bakery.ThirdPartyCaveatCheckFailed(
                     'found local third party caveat but no private key provided',
                 )
             # TODO use a small caveat id.
@@ -223,8 +222,8 @@ def local_third_party_caveat(key, version):
     the given PublicKey.
     This can be automatically discharged by discharge_all passing a local key.
     '''
-    encoded_key = key.encode().decode('utf-8')
-    loc = 'local {}'.format(encoded_key)
     if version >= bakery.VERSION_2:
-        loc = 'local {} {}'.format(version, encoded_key)
+        loc = 'local {} {}'.format(version, key)
+    else:
+        loc = 'local {}'.format(key)
     return checkers.Caveat(location=loc, condition='')

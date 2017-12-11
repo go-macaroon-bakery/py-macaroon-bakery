@@ -41,8 +41,8 @@ class TestAgents(TestCase):
 
     def test_load_auth_info(self):
         auth_info = agent.load_auth_info(self.agent_filename)
-        self.assertEqual(auth_info.key.encode(), b'CqoSgj06Zcgb4/S6RT4DpTjLAfKoznEY3JsShSjKJEU=')
-        self.assertEqual(auth_info.key.public_key.encode(), b'YAhRSsth3a36mRYqQGQaLiS4QJax0p356nd+B8x7UQE=')
+        self.assertEqual(str(auth_info.key), 'CqoSgj06Zcgb4/S6RT4DpTjLAfKoznEY3JsShSjKJEU=')
+        self.assertEqual(str(auth_info.key.public_key), 'YAhRSsth3a36mRYqQGQaLiS4QJax0p356nd+B8x7UQE=')
         self.assertEqual(auth_info.agents, [
             agent.Agent(url='https://1.example.com/', username='user-1'),
             agent.Agent(url='https://2.example.com/discharger', username='user-2'),

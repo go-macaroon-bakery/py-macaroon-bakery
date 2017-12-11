@@ -96,7 +96,7 @@ class AgentInteractor(httpbakery.Interactor, httpbakery.LegacyInteractor):
         # TODO use client to make the request.
         resp = requests.get(login_url, json={
             'Username': agent.username,
-            'PublicKey': self._auth_info.key.encode().decode('utf-8'),
+            'PublicKey': str(self._auth_info.key),
         })
         if resp.status_code != 200:
             raise httpbakery.InteractionError(
@@ -127,8 +127,11 @@ class AgentInteractor(httpbakery.Interactor, httpbakery.LegacyInteractor):
         '''Implement LegacyInteractor.legacy_interact by obtaining
         the discharge macaroon using the client's private key
         '''
-        log.info('agent legacy_interact, visit_url {}'.format(visit_url))
         agent = self._find_agent(location)
+        # Shallow-copy the client so that we don't unexpectedly side-effect
+        # it by changing the key. Another possibility might be to
+        # set up agent authentication differently, in such a way that
+        # we're sure that client.key is the same as self._auth_info.key.
         client = copy.copy(client)
         client.key = self._auth_info.key
         resp = client.request(
@@ -136,7 +139,7 @@ class AgentInteractor(httpbakery.Interactor, httpbakery.LegacyInteractor):
             url=visit_url,
             json={
                 'username': agent.username,
-                'public_key': self._auth_info.key.public_key.encode().decode('utf-8'),
+                'public_key': str(self._auth_info.key.public_key),
             },
         )
         if resp.status_code != 200:
