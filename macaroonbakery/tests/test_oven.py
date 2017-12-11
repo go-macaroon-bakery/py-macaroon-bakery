@@ -1,9 +1,8 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
-from unittest import TestCase
-
 import copy
 from datetime import datetime, timedelta
+from unittest import TestCase
 
 import macaroonbakery as bakery
 

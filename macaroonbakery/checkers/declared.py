@@ -1,11 +1,13 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
-from macaroonbakery.checkers.namespace import Namespace
-from macaroonbakery.checkers.caveat import parse_caveat, Caveat, error_caveat
-from macaroonbakery.checkers.conditions import (
-    COND_DECLARED, COND_NEED_DECLARED, STD_NAMESPACE
-)
 from macaroonbakery.checkers.auth_context import ContextKey
+from macaroonbakery.checkers.caveat import Caveat, error_caveat, parse_caveat
+from macaroonbakery.checkers.conditions import (
+    COND_DECLARED,
+    COND_NEED_DECLARED,
+    STD_NAMESPACE,
+)
+from macaroonbakery.checkers.namespace import Namespace
 
 DECLARED_KEY = ContextKey('declared-key')
 

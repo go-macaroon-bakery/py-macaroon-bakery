@@ -9,14 +9,19 @@ import macaroonbakery.checkers as checkers
 import requests
 from macaroonbakery import utils
 from macaroonbakery.httpbakery.browser import WebBrowserInteractor
-from macaroonbakery.httpbakery.error import (BAKERY_PROTOCOL_HEADER,
-                                             ERR_DISCHARGE_REQUIRED,
-                                             ERR_INTERACTION_REQUIRED,
-                                             DischargeError, Error,
-                                             InteractionError,
-                                             InteractionMethodNotFound)
-from macaroonbakery.httpbakery.interactor import (WEB_BROWSER_INTERACTION_KIND,
-                                                  LegacyInteractor)
+from macaroonbakery.httpbakery.error import (
+    BAKERY_PROTOCOL_HEADER,
+    ERR_DISCHARGE_REQUIRED,
+    ERR_INTERACTION_REQUIRED,
+    DischargeError,
+    Error,
+    InteractionError,
+    InteractionMethodNotFound,
+)
+from macaroonbakery.httpbakery.interactor import (
+    WEB_BROWSER_INTERACTION_KIND,
+    LegacyInteractor,
+)
 
 from six.moves.http_cookies import SimpleCookie
 from six.moves.urllib.parse import urljoin

@@ -2,11 +2,10 @@
 # Licensed under the LGPLv3, see LICENCE file for details.
 import unittest
 
-from pymacaroons.verifier import Verifier
-
 import macaroonbakery as bakery
 import macaroonbakery.checkers as checkers
 from macaroonbakery.tests import common
+from pymacaroons.verifier import Verifier
 
 
 def always_ok(predicate):

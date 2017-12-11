@@ -1,10 +1,10 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
-from six.moves.urllib.parse import urlparse
-import requests
-
 import macaroonbakery as bakery
+import requests
 from macaroonbakery.httpbakery.error import BAKERY_PROTOCOL_HEADER
+
+from six.moves.urllib.parse import urlparse
 
 
 class ThirdPartyLocator(bakery.ThirdPartyLocator):

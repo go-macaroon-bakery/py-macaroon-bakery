@@ -2,10 +2,9 @@
 # Licensed under the LGPLv3, see LICENCE file for details.
 from datetime import datetime, timedelta
 
-import pytz
-
 import macaroonbakery as bakery
 import macaroonbakery.checkers as checkers
+import pytz
 
 
 class _StoppedClock(object):

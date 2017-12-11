@@ -7,16 +7,16 @@ import itertools
 import os
 
 import google
-from pymacaroons import MACAROON_V2, Verifier
-from pymacaroons.exceptions import (
-    MacaroonUnmetCaveatException, MacaroonInvalidSignatureException
-)
-import six
-
 import macaroonbakery as bakery
 import macaroonbakery.checkers as checkers
+import six
 from macaroonbakery import utils
 from macaroonbakery.internal import id_pb2
+from pymacaroons import MACAROON_V2, Verifier
+from pymacaroons.exceptions import (
+    MacaroonInvalidSignatureException,
+    MacaroonUnmetCaveatException,
+)
 
 
 class Oven:

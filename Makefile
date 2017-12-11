@@ -96,3 +96,11 @@ test: setup
 	@$(DEVENV)/bin/nosetests \
 		--verbosity 2 --with-coverage --cover-erase \
 		--cover-package macaroonbakery
+
+.PHONY: isort
+isort:
+	isort \
+		--trailing-comma \
+		--recursive \
+		--multi-line 3 \
+		`find macaroonbakery -name '*.py' | grep -v 'internal/id_pb2\.py'`

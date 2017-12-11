@@ -1,17 +1,16 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
 import base64
-from collections import namedtuple
 import json
-from unittest import TestCase
+from collections import namedtuple
 from datetime import timedelta
-
-from pymacaroons.verifier import Verifier, FirstPartyCaveatVerifierDelegate
-import pymacaroons
+from unittest import TestCase
 
 import macaroonbakery as bakery
 import macaroonbakery.checkers as checkers
-from macaroonbakery.tests.common import test_context, epoch, test_checker
+import pymacaroons
+from macaroonbakery.tests.common import epoch, test_checker, test_context
+from pymacaroons.verifier import FirstPartyCaveatVerifierDelegate, Verifier
 
 
 class TestChecker(TestCase):

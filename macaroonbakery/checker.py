@@ -3,11 +3,9 @@
 from collections import namedtuple
 from threading import Lock
 
-
-import pyrfc3339
-
 import macaroonbakery as bakery
 import macaroonbakery.checkers as checkers
+import pyrfc3339
 
 
 class Op(namedtuple('Op', 'entity, action')):

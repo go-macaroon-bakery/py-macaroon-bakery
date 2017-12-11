@@ -3,12 +3,11 @@
 import base64
 from unittest import TestCase
 
+import macaroonbakery as bakery
+import macaroonbakery.checkers as checkers
 import nacl.public
 import six
-
-import macaroonbakery as bakery
 from macaroonbakery import codec
-import macaroonbakery.checkers as checkers
 
 
 class TestCodec(TestCase):

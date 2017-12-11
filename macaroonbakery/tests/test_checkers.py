@@ -3,11 +3,10 @@
 from datetime import datetime, timedelta
 from unittest import TestCase
 
-import six
-import pytz
-from pymacaroons import Macaroon, MACAROON_V2
-
 import macaroonbakery.checkers as checkers
+import pytz
+import six
+from pymacaroons import MACAROON_V2, Macaroon
 
 # A frozen time for the tests.
 NOW = datetime(

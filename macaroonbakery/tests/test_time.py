@@ -1,14 +1,13 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
+from collections import namedtuple
 from datetime import timedelta
 from unittest import TestCase
-from collections import namedtuple
-
-import pyrfc3339
-import pymacaroons
-from pymacaroons import Macaroon
 
 import macaroonbakery.checkers as checkers
+import pymacaroons
+import pyrfc3339
+from pymacaroons import Macaroon
 
 t1 = pyrfc3339.parse('2017-10-26T16:19:47.441402074Z', produce_naive=True)
 t2 = t1 + timedelta(hours=1)

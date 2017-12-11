@@ -2,12 +2,10 @@
 # Licensed under the LGPLv3, see LICENCE file for details.
 
 import pyrfc3339
-
 from macaroonbakery.checkers.auth_context import ContextKey
+from macaroonbakery.checkers.caveat import parse_caveat
 from macaroonbakery.checkers.conditions import COND_TIME_BEFORE, STD_NAMESPACE
 from macaroonbakery.checkers.utils import condition_with_prefix
-from macaroonbakery.checkers.caveat import parse_caveat
-
 
 TIME_KEY = ContextKey('time-key')
 
