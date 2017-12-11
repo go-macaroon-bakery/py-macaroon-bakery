@@ -4,8 +4,8 @@ import base64
 from collections import namedtuple
 
 import requests
-from macaroonbakery.httpbakery.error import InteractionError
-from macaroonbakery.httpbakery.interactor import (
+from ._error import InteractionError
+from ._interactor import (
     WEB_BROWSER_INTERACTION_KIND,
     DischargeToken,
     Interactor,

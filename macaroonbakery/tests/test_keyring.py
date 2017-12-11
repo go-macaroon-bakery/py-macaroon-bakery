@@ -79,7 +79,7 @@ class TestKeyRing(unittest.TestCase):
 
     def test_allow_insecure(self):
         kr = httpbakery.ThirdPartyLocator()
-        with self.assertRaises(bakery.error.ThirdPartyInfoNotFound):
+        with self.assertRaises(bakery.ThirdPartyInfoNotFound):
             kr.third_party_info('http://0.1.2.3/')
 
     def test_fallback(self):

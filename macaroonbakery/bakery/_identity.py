@@ -2,7 +2,7 @@
 # Licensed under the LGPLv3, see LICENCE file for details.
 import abc
 
-from .error import IdentityError
+from ._error import IdentityError
 
 
 class Identity(object):

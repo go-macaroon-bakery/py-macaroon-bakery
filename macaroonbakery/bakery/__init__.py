@@ -1,33 +1,33 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
 
-from .versions import (
+from ._versions import (
     VERSION_0,
     VERSION_1,
     VERSION_2,
     VERSION_3,
     LATEST_VERSION,
 )
-from .authorizer import (
+from ._authorizer import (
     ACLAuthorizer,
     Authorizer,
     AuthorizerFunc,
     ClosedAuthorizer,
     EVERYONE,
 )
-from .codec import (
+from ._codec import (
     decode_caveat,
     encode_caveat,
     encode_uvarint,
 )
-from .checker import (
+from ._checker import (
     AuthChecker,
     AuthInfo,
     Checker,
     LOGIN_OP,
     Op,
 )
-from .error import (
+from ._error import (
     AuthInitError,
     CaveatNotRecognizedError,
     DischargeRequiredError,
@@ -37,28 +37,28 @@ from .error import (
     ThirdPartyInfoNotFound,
     VerificationError,
 )
-from .identity import (
+from ._identity import (
     ACLIdentity,
     Identity,
     IdentityClient,
     NoIdentities,
     SimpleIdentity,
 )
-from .keys import (
+from ._keys import (
     generate_key,
     PrivateKey,
     PublicKey,
 )
-from .store import (
+from ._store import (
     MemoryOpsStore,
     MemoryKeyStore,
 )
-from .third_party import (
+from ._third_party import (
     ThirdPartyCaveatInfo,
     ThirdPartyInfo,
     legacy_namespace,
 )
-from .macaroon import (
+from ._macaroon import (
     Macaroon,
     MacaroonJSONDecoder,
     MacaroonJSONEncoder,
@@ -66,17 +66,17 @@ from .macaroon import (
     ThirdPartyStore,
     macaroon_version,
 )
-from .discharge import (
+from ._discharge import (
     ThirdPartyCaveatChecker,
     discharge,
     discharge_all,
     local_third_party_caveat,
 )
-from .oven import (
+from ._oven import (
     Oven,
     canonical_ops,
 )
-from .bakery import Bakery
+from ._bakery import Bakery
 from macaroonbakery._utils import (
     b64decode,
     macaroon_to_dict,

@@ -2,7 +2,7 @@
 # Licensed under the LGPLv3, see LICENCE file for details.
 import macaroonbakery.bakery as bakery
 import requests
-from macaroonbakery.httpbakery.error import BAKERY_PROTOCOL_HEADER
+from ._error import BAKERY_PROTOCOL_HEADER
 
 from six.moves.urllib.parse import urlparse
 

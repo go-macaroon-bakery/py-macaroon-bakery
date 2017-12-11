@@ -7,15 +7,15 @@ import itertools
 import os
 
 import google
-from .checker import (Op, LOGIN_OP)
-from .store import MemoryKeyStore
-from .error import VerificationError
-from .versions import (
+from ._checker import (Op, LOGIN_OP)
+from ._store import MemoryKeyStore
+from ._error import VerificationError
+from ._versions import (
     VERSION_2,
     VERSION_3,
     LATEST_VERSION,
 )
-from .macaroon import (
+from ._macaroon import (
     Macaroon,
     macaroon_version,
 )
@@ -26,7 +26,7 @@ from macaroonbakery._utils import (
     raw_urlsafe_b64encode,
     b64decode,
 )
-from .internal import id_pb2
+from ._internal import id_pb2
 from pymacaroons import MACAROON_V2, Verifier
 from pymacaroons.exceptions import (
     MacaroonInvalidSignatureException,

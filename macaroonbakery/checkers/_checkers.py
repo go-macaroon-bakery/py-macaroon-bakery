@@ -6,8 +6,8 @@ from datetime import datetime
 
 import pyrfc3339
 import pytz
-from macaroonbakery.checkers.caveat import parse_caveat
-from macaroonbakery.checkers.conditions import (
+from ._caveat import parse_caveat
+from ._conditions import (
     COND_ALLOW,
     COND_DECLARED,
     COND_DENY,
@@ -15,11 +15,11 @@ from macaroonbakery.checkers.conditions import (
     COND_TIME_BEFORE,
     STD_NAMESPACE,
 )
-from macaroonbakery.checkers.declared import DECLARED_KEY
-from macaroonbakery.checkers.namespace import Namespace
-from macaroonbakery.checkers.operation import OP_KEY
-from macaroonbakery.checkers.time import TIME_KEY
-from macaroonbakery.checkers.utils import condition_with_prefix
+from ._declared import DECLARED_KEY
+from ._namespace import Namespace
+from ._operation import OP_KEY
+from ._time import TIME_KEY
+from ._utils import condition_with_prefix
 
 
 class RegisterError(Exception):

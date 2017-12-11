@@ -10,22 +10,22 @@ import macaroonbakery.checkers as checkers
 import pymacaroons
 from macaroonbakery._utils import b64decode
 from pymacaroons.serializers import json_serializer
-from .versions import (
+from ._versions import (
     LATEST_VERSION,
     VERSION_0,
     VERSION_1,
     VERSION_2,
     VERSION_3,
 )
-from .error import (
+from ._error import (
     ThirdPartyInfoNotFound,
 )
-from .codec import (
+from ._codec import (
     encode_uvarint,
     encode_caveat,
 )
-from .keys import PublicKey
-from .third_party import (
+from ._keys import PublicKey
+from ._third_party import (
     legacy_namespace,
     ThirdPartyInfo,
 )

@@ -7,7 +7,7 @@ import macaroonbakery.bakery as bakery
 import macaroonbakery.checkers as checkers
 import nacl.public
 import six
-from macaroonbakery.bakery import codec
+from macaroonbakery.bakery import _codec as codec
 
 
 class TestCodec(TestCase):

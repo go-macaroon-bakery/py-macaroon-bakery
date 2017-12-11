@@ -3,10 +3,10 @@
 import base64
 import json
 
-from .versions import (VERSION_1, VERSION_2, VERSION_3)
-from .third_party import legacy_namespace, ThirdPartyCaveatInfo
-from .keys import PublicKey
-from .error import VerificationError
+from ._versions import (VERSION_1, VERSION_2, VERSION_3)
+from ._third_party import legacy_namespace, ThirdPartyCaveatInfo
+from ._keys import PublicKey
+from ._error import VerificationError
 import macaroonbakery.checkers as checkers
 import nacl.public
 import six

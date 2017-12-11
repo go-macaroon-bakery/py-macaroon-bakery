@@ -2,8 +2,8 @@
 # Licensed under the LGPLv3, see LICENCE file for details.
 import collections
 
-from macaroonbakery.checkers.caveat import error_caveat
-from macaroonbakery.checkers.utils import condition_with_prefix
+from ._caveat import error_caveat
+from ._utils import condition_with_prefix
 
 
 class Namespace:

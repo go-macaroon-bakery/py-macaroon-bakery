@@ -1,7 +1,7 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
 
-from macaroonbakery.httpbakery.agent.agent import (
+from ._agent import (
     load_auth_info,
     Agent,
     AgentInteractor,

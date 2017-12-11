@@ -2,7 +2,7 @@
 # Licensed under the LGPLv3, see LICENCE file for details.
 import abc
 
-from .identity import ACLIdentity
+from ._identity import ACLIdentity
 
 # EVERYONE is recognized by ACLAuthorizer as the name of a
 # group that has everyone in it.

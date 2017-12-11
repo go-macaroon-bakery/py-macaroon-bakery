@@ -3,18 +3,18 @@
 import abc
 from collections import namedtuple
 
-from .error import (
+from ._error import (
     ThirdPartyCaveatCheckFailed,
     CaveatNotRecognizedError,
     VerificationError,
 )
-from .codec import decode_caveat
-from .macaroon import (
+from ._codec import decode_caveat
+from ._macaroon import (
     Macaroon,
     ThirdPartyLocator,
 )
-from .versions import VERSION_2
-from .third_party import ThirdPartyCaveatInfo
+from ._versions import VERSION_2
+from ._third_party import ThirdPartyCaveatInfo
 
 import macaroonbakery.checkers as checkers
 

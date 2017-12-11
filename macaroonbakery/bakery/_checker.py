@@ -3,9 +3,9 @@
 from collections import namedtuple
 from threading import Lock
 
-from .authorizer import ClosedAuthorizer
-from .identity import NoIdentities
-from .error import (
+from ._authorizer import ClosedAuthorizer
+from ._identity import NoIdentities
+from ._error import (
     AuthInitError,
     VerificationError,
     IdentityError,

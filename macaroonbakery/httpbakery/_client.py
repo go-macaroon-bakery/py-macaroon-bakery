@@ -7,8 +7,8 @@ import logging
 import macaroonbakery.bakery as bakery
 import macaroonbakery.checkers as checkers
 import macaroonbakery._utils as utils
-from macaroonbakery.httpbakery.browser import WebBrowserInteractor
-from macaroonbakery.httpbakery.error import (
+from ._browser import WebBrowserInteractor
+from ._error import (
     BAKERY_PROTOCOL_HEADER,
     ERR_DISCHARGE_REQUIRED,
     ERR_INTERACTION_REQUIRED,
@@ -17,7 +17,7 @@ from macaroonbakery.httpbakery.error import (
     InteractionError,
     InteractionMethodNotFound,
 )
-from macaroonbakery.httpbakery.interactor import (
+from ._interactor import (
     WEB_BROWSER_INTERACTION_KIND,
     LegacyInteractor,
 )
