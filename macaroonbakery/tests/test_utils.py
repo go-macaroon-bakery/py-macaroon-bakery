@@ -1,16 +1,15 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
 
-from unittest import TestCase
-from datetime import datetime
-from pymacaroons.serializers import json_serializer
-
-import pytz
 import json
+from datetime import datetime
+from unittest import TestCase
 
 import macaroonbakery as bakery
-from macaroonbakery.utils import cookie
 import pymacaroons
+import pytz
+from macaroonbakery.utils import cookie
+from pymacaroons.serializers import json_serializer
 
 
 class CookieTest(TestCase):

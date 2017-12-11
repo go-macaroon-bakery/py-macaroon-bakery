@@ -3,27 +3,24 @@
 import base64
 import datetime
 import json
+import threading
 from unittest import TestCase
+
+import macaroonbakery as bakery
+import macaroonbakery.checkers as checkers
+import macaroonbakery.httpbakery as httpbakery
+import pymacaroons
+import requests
+from macaroonbakery import utils
+
+from httmock import HTTMock, urlmatch
+from six.moves.urllib.parse import parse_qs
+from six.moves.urllib.request import Request
+
 try:
     from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 except ImportError:
     from http.server import HTTPServer, BaseHTTPRequestHandler
-import threading
-
-import pymacaroons
-
-from httmock import (
-    HTTMock,
-    urlmatch
-)
-import requests
-from six.moves.urllib.parse import parse_qs
-from six.moves.urllib.request import Request
-
-import macaroonbakery as bakery
-import macaroonbakery.httpbakery as httpbakery
-import macaroonbakery.checkers as checkers
-from macaroonbakery import utils
 
 AGES = datetime.datetime.utcnow() + datetime.timedelta(days=1)
 TEST_OP = bakery.Op(entity='test', action='test')

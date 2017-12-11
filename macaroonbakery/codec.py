@@ -3,11 +3,10 @@
 import base64
 import json
 
-import six
-import nacl.public
-
 import macaroonbakery as bakery
 import macaroonbakery.checkers as checkers
+import nacl.public
+import six
 
 _PUBLIC_KEY_PREFIX_LEN = 4
 _KEY_LEN = 32

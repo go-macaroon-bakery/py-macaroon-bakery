@@ -6,13 +6,11 @@ import json
 import logging
 import os
 
-import pymacaroons
-from pymacaroons.serializers import json_serializer
-
 import macaroonbakery as bakery
 import macaroonbakery.checkers as checkers
+import pymacaroons
 from macaroonbakery import utils
-
+from pymacaroons.serializers import json_serializer
 
 log = logging.getLogger(__name__)
 

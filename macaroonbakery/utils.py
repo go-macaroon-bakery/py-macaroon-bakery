@@ -1,16 +1,17 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
 import base64
-from datetime import datetime
 import binascii
 import json
 import webbrowser
-import six
-import six.moves.http_cookiejar as http_cookiejar
-from six.moves.urllib.parse import urlparse
+from datetime import datetime
 
+import six
 from pymacaroons import Macaroon
 from pymacaroons.serializers import json_serializer
+
+import six.moves.http_cookiejar as http_cookiejar
+from six.moves.urllib.parse import urlparse
 
 
 def to_bytes(s):

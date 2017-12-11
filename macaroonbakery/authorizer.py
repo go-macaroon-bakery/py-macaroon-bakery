@@ -4,7 +4,6 @@ import abc
 
 import macaroonbakery as bakery
 
-
 # EVERYONE is recognized by ACLAuthorizer as the name of a
 # group that has everyone in it.
 EVERYONE = 'everyone'

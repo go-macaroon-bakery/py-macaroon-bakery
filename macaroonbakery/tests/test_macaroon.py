@@ -3,13 +3,12 @@
 import json
 from unittest import TestCase
 
-import six
-import pymacaroons
-from pymacaroons import serializers
-
 import macaroonbakery as bakery
 import macaroonbakery.checkers as checkers
+import pymacaroons
+import six
 from macaroonbakery.tests import common
+from pymacaroons import serializers
 
 
 class TestMacaroon(TestCase):

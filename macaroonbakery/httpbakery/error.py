@@ -1,7 +1,7 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
-from collections import namedtuple
 import json
+from collections import namedtuple
 
 import macaroonbakery as bakery
 

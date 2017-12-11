@@ -2,10 +2,10 @@
 # Licensed under the LGPLv3, see LICENCE file for details.
 import unittest
 
-from httmock import urlmatch, HTTMock
-
 import macaroonbakery as bakery
 import macaroonbakery.httpbakery as httpbakery
+
+from httmock import HTTMock, urlmatch
 
 
 class TestKeyRing(unittest.TestCase):

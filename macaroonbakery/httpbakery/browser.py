@@ -2,15 +2,18 @@
 # Licensed under the LGPLv3, see LICENCE file for details.
 import base64
 from collections import namedtuple
-import requests
-from six.moves.urllib.parse import urljoin
 
-from macaroonbakery.utils import visit_page_with_browser
-from macaroonbakery.httpbakery.interactor import (
-    Interactor, LegacyInteractor, WEB_BROWSER_INTERACTION_KIND,
-    DischargeToken
-)
+import requests
 from macaroonbakery.httpbakery.error import InteractionError
+from macaroonbakery.httpbakery.interactor import (
+    WEB_BROWSER_INTERACTION_KIND,
+    DischargeToken,
+    Interactor,
+    LegacyInteractor,
+)
+from macaroonbakery.utils import visit_page_with_browser
+
+from six.moves.urllib.parse import urljoin
 
 
 class WebBrowserInteractor(Interactor, LegacyInteractor):
