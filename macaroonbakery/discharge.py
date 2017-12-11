@@ -46,7 +46,11 @@ def discharge_all(m, get_discharge, local_key=None):
     while len(need) > 0:
         cav = need[0]
         need = need[1:]
-        if local_key is not None and cav.cav.location == 'local':
+        if cav.cav.location == 'local':
+            if local_key is None:
+                raise bakery.ThirdPartyCaveatCheckFailed(
+                    'found local third party caveat but no private key provided',
+                )
             # TODO use a small caveat id.
             dm = discharge(ctx=emptyContext,
                            key=local_key,
@@ -218,8 +222,8 @@ def local_third_party_caveat(key, version):
     the given PublicKey.
     This can be automatically discharged by discharge_all passing a local key.
     '''
-    encoded_key = key.encode().decode('utf-8')
-    loc = 'local {}'.format(encoded_key)
     if version >= bakery.VERSION_2:
-        loc = 'local {} {}'.format(version, encoded_key)
+        loc = 'local {} {}'.format(version, key)
+    else:
+        loc = 'local {}'.format(key)
     return checkers.Caveat(location=loc, condition='')

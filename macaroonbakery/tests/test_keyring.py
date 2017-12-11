@@ -19,7 +19,7 @@ class TestKeyRing(unittest.TestCase):
                 'status_code': 200,
                 'content': {
                     'Version': bakery.LATEST_VERSION,
-                    'PublicKey': key.public_key.encode().decode('utf-8')
+                    'PublicKey': str(key.public_key),
                 }
             }
 
@@ -41,7 +41,7 @@ class TestKeyRing(unittest.TestCase):
                 'status_code': 200,
                 'content': {
                     'Version': bakery.LATEST_VERSION,
-                    'PublicKey': key.public_key.encode().decode('utf-8')
+                    'PublicKey': str(key.public_key),
                 }
             }
 
@@ -64,7 +64,7 @@ class TestKeyRing(unittest.TestCase):
             return {
                 'status_code': 200,
                 'content': {
-                    'PublicKey': key.public_key.encode().decode('utf-8')
+                    'PublicKey': str(key.public_key),
                 }
             }
 
@@ -96,7 +96,7 @@ class TestKeyRing(unittest.TestCase):
             return {
                 'status_code': 200,
                 'content': {
-                    'PublicKey': key.public_key.encode().decode('utf-8')
+                    'PublicKey': str(key.public_key),
                 }
             }
 

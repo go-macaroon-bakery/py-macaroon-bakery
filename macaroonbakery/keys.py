@@ -34,14 +34,18 @@ class PrivateKey(object):
             nacl.public.PrivateKey(serialized,
                                    encoder=nacl.encoding.Base64Encoder))
 
-    def encode(self, raw=False):
-        ''' Encode the key in a base64 format by default but when raw is True
-        it will return a an hex encoded bytes.
+    def serialize(self, raw=False):
+        '''Encode the private part of the key in a base64 format by default,
+        but when raw is True it will return hex encoded bytes.
         @return: bytes
         '''
         if raw:
             return self._key.encode()
         return self._key.encode(nacl.encoding.Base64Encoder)
+
+    def __str__(self):
+        '''Return the private part of the key key as a base64-encoded string'''
+        return self.serialize().decode('utf-8')
 
     def __eq__(self, other):
         return self.key == other.key
@@ -63,14 +67,18 @@ class PublicKey(object):
         '''
         return self._key
 
-    def encode(self, raw=False):
-        ''' Encode the key in a base64 format by default but when raw is True
-        it will return a an hex encoded bytes.
+    def serialize(self, raw=False):
+        '''Encode the private part of the key in a base64 format by default,
+        but when raw is True it will return hex encoded bytes.
         @return: bytes
         '''
         if raw:
             return self._key.encode()
         return self._key.encode(nacl.encoding.Base64Encoder)
+
+    def __str__(self):
+        '''Return the key as a base64-encoded string'''
+        return self.serialize().decode('utf-8')
 
     @classmethod
     def deserialize(cls, serialized):

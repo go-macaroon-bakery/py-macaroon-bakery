@@ -2,30 +2,29 @@
 # Licensed under the LGPLv3, see LICENCE file for details.
 import base64
 import json
-import requests
-from six.moves.http_cookies import SimpleCookie
-from six.moves.urllib.parse import urljoin
+import logging
 
 import macaroonbakery as bakery
 import macaroonbakery.checkers as checkers
+import requests
 from macaroonbakery import utils
-from macaroonbakery.httpbakery.interactor import (
-    LegacyInteractor,
-    WEB_BROWSER_INTERACTION_KIND,
-)
-from macaroonbakery.httpbakery.error import (
-    DischargeError,
-    ERR_DISCHARGE_REQUIRED,
-    ERR_INTERACTION_REQUIRED,
-    Error,
-    InteractionError,
-    InteractionMethodNotFound,
-)
-from macaroonbakery.httpbakery.error import BAKERY_PROTOCOL_HEADER
 from macaroonbakery.httpbakery.browser import WebBrowserInteractor
+from macaroonbakery.httpbakery.error import (BAKERY_PROTOCOL_HEADER,
+                                             ERR_DISCHARGE_REQUIRED,
+                                             ERR_INTERACTION_REQUIRED,
+                                             DischargeError, Error,
+                                             InteractionError,
+                                             InteractionMethodNotFound)
+from macaroonbakery.httpbakery.interactor import (WEB_BROWSER_INTERACTION_KIND,
+                                                  LegacyInteractor)
+
+from six.moves.http_cookies import SimpleCookie
+from six.moves.urllib.parse import urljoin
 
 TIME_OUT = 30
 MAX_DISCHARGE_RETRIES = 3
+
+log = logging.getLogger('httpbakery')
 
 
 class BakeryException(requests.RequestException):
@@ -58,7 +57,7 @@ class Client:
         if cookies is None:
             cookies = requests.cookies.RequestsCookieJar()
         self._interaction_methods = interaction_methods
-        self._key = key
+        self.key = key
         self.cookies = cookies
 
     def auth(self):
@@ -76,7 +75,10 @@ class Client:
 
             requests.request(method, url, auth=client.auth())
         '''
-        kwargs.setdefault('auth', self.auth())
+        # TODO should we raise an exception if auth or cookies are explicitly
+        # mentioned in kwargs?
+        kwargs['auth'] = self.auth()
+        kwargs['cookies'] = self.cookies
         return requests.request(method=method, url=url, **kwargs)
 
     def handle_error(self, error, url):
@@ -94,7 +96,7 @@ class Client:
         discharges = bakery.discharge_all(
             error.info.macaroon,
             self.acquire_discharge,
-            self._key,
+            self.key,
         )
         macaroons = '[' + ','.join(map(utils.macaroon_to_json_string,
                                        discharges)) + ']'
@@ -177,7 +179,6 @@ class Client:
                 error_info.info.visit_url is not None:
             # It's an old-style error; deal with it differently.
             return None, self._legacy_interact(location, error_info)
-
         for interactor in self._interaction_methods:
             found = error_info.info.interaction_methods.get(interactor.kind())
             if found is None:
@@ -206,7 +207,6 @@ class Client:
             # method, so we need to fetch the possible methods supported by
             # the discharger.
             method_urls = _legacy_get_interaction_methods(visit_url)
-
         for interactor in self._interaction_methods:
             kind = interactor.kind()
             if kind == WEB_BROWSER_INTERACTION_KIND:
@@ -225,7 +225,10 @@ class Client:
             interactor.legacy_interact(self, location, visit_url)
             return _wait_for_macaroon(wait_url)
 
-        raise InteractionError('no methods supported')
+        raise InteractionError('no methods supported; supported [{}]; provided [{}]'.format(
+            ' '.join([x.kind() for x in self._interaction_methods]),
+            ' '.join(method_urls.keys()),
+        ))
 
 
 class _BakeryAuth:
@@ -390,8 +393,7 @@ def _legacy_get_interaction_methods(u):
     if resp.status_code == 200:
         json_resp = resp.json()
         for m in json_resp:
-            relative_url(u, json_resp[m])
-        method_urls[m] = relative_url(u, json_resp[m])
+            method_urls[m] = relative_url(u, json_resp[m])
 
     if method_urls.get('interactive') is None:
         # There's no "interactive" method returned, but we know

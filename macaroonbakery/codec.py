@@ -67,8 +67,8 @@ def _encode_caveat_v1(condition, root_key, third_party_pub_key, key):
     nonce = encrypted[0:nacl.public.Box.NONCE_SIZE]
     encrypted = encrypted[nacl.public.Box.NONCE_SIZE:]
     return base64.b64encode(six.b(json.dumps({
-        'ThirdPartyPublicKey': third_party_pub_key.encode().decode('ascii'),
-        'FirstPartyPublicKey': key.public_key.encode().decode('ascii'),
+        'ThirdPartyPublicKey': str(third_party_pub_key),
+        'FirstPartyPublicKey': str(key.public_key),
         'Nonce': base64.b64encode(nonce).decode('ascii'),
         'Id': base64.b64encode(encrypted).decode('ascii')
     })))
@@ -103,8 +103,8 @@ def _encode_caveat_v2_v3(version, condition, root_key, third_party_pub_key,
         ns_data = ns.serialize_text()
     data = bytearray()
     data.append(version)
-    data.extend(third_party_pub_key.encode(raw=True)[:_PUBLIC_KEY_PREFIX_LEN])
-    data.extend(key.public_key.encode(raw=True)[:])
+    data.extend(third_party_pub_key.serialize(raw=True)[:_PUBLIC_KEY_PREFIX_LEN])
+    data.extend(key.public_key.serialize(raw=True)[:])
     secret = _encode_secret_part_v2_v3(version, condition, root_key, ns_data)
     box = nacl.public.Box(key.key, third_party_pub_key.key)
     encrypted = box.encrypt(secret)
@@ -219,7 +219,7 @@ def _decode_caveat_v2_v3(version, key, caveat):
 
     pk_prefix = caveat[:_PUBLIC_KEY_PREFIX_LEN]
     caveat = caveat[_PUBLIC_KEY_PREFIX_LEN:]
-    if key.public_key.encode(raw=True)[:_PUBLIC_KEY_PREFIX_LEN] != pk_prefix:
+    if key.public_key.serialize(raw=True)[:_PUBLIC_KEY_PREFIX_LEN] != pk_prefix:
         raise bakery.VerificationError('public key mismatch')
 
     first_party_pub = caveat[:_KEY_LEN]
