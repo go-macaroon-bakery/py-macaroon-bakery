@@ -3,7 +3,7 @@
 import collections
 
 import pyrfc3339
-from macaroonbakery.checkers.conditions import (
+from ._conditions import (
     COND_ALLOW,
     COND_DECLARED,
     COND_DENY,

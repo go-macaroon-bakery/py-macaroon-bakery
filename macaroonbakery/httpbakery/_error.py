@@ -3,7 +3,7 @@
 import json
 from collections import namedtuple
 
-import macaroonbakery as bakery
+import macaroonbakery.bakery as bakery
 
 ERR_INTERACTION_REQUIRED = 'interaction required'
 ERR_DISCHARGE_REQUIRED = 'macaroon discharge required'

@@ -6,7 +6,7 @@ from collections import namedtuple
 from datetime import timedelta
 from unittest import TestCase
 
-import macaroonbakery as bakery
+import macaroonbakery.bakery as bakery
 import macaroonbakery.checkers as checkers
 import pymacaroons
 from macaroonbakery.tests.common import epoch, test_checker, test_context

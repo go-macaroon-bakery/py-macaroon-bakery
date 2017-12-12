@@ -3,7 +3,7 @@
 import json
 from unittest import TestCase
 
-import macaroonbakery as bakery
+import macaroonbakery.bakery as bakery
 import macaroonbakery.checkers as checkers
 import pymacaroons
 import six

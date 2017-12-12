@@ -1,6 +1,6 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
-from macaroonbakery.checkers.conditions import (
+from ._conditions import (
     STD_NAMESPACE,
     COND_DECLARED,
     COND_TIME_BEFORE,
@@ -9,7 +9,7 @@ from macaroonbakery.checkers.conditions import (
     COND_DENY,
     COND_NEED_DECLARED,
 )
-from macaroonbakery.checkers.caveat import (
+from ._caveat import (
     allow_caveat,
     deny_caveat,
     declared_caveat,
@@ -17,35 +17,35 @@ from macaroonbakery.checkers.caveat import (
     time_before_caveat,
     Caveat,
 )
-from macaroonbakery.checkers.declared import (
+from ._declared import (
     context_with_declared,
     infer_declared,
     infer_declared_from_conditions,
     need_declared_caveat,
 )
-from macaroonbakery.checkers.operation import (
+from ._operation import (
     context_with_operations,
 )
-from macaroonbakery.checkers.namespace import (
+from ._namespace import (
     Namespace,
     deserialize_namespace
 )
-from macaroonbakery.checkers.time import (
+from ._time import (
     context_with_clock,
     expiry_time,
     macaroons_expiry_time,
 )
-from macaroonbakery.checkers.checkers import (
+from ._checkers import (
     Checker,
     CheckerInfo,
     RegisterError,
 )
-from macaroonbakery.checkers.auth_context import (
+from ._auth_context import (
     AuthContext,
     ContextKey,
 )
 
-from macaroonbakery.checkers.utils import (
+from ._utils import (
     condition_with_prefix,
 )
 
