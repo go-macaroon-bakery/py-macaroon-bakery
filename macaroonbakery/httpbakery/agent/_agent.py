@@ -8,7 +8,6 @@ from collections import namedtuple
 import macaroonbakery.bakery as bakery
 import macaroonbakery.httpbakery as httpbakery
 import macaroonbakery._utils as utils
-import nacl.exceptions
 import requests.cookies
 
 from six.moves.urllib.parse import urljoin
@@ -27,12 +26,25 @@ def load_auth_info(filename):
     '''Loads agent authentication information from the specified file.
     The returned information is suitable for passing as an argument
     to the AgentInteractor constructor.
+    @param filename The name of the file to open (str)
     @return AuthInfo The authentication information
     @raises AgentFileFormatError when the file format is bad.
     '''
     with open(filename) as f:
-        data = json.load(f)
+        return read_auth_info(f.read())
+
+
+def read_auth_info(agent_file_content):
+    '''Loads agent authentication information from the
+    specified content string, as read from an agents file.
+    The returned information is suitable for passing as an argument
+    to the AgentInteractor constructor.
+    @param agent_file_content The agent file content (str)
+    @return AuthInfo The authentication information
+    @raises AgentFileFormatError when the file format is bad.
+    '''
     try:
+        data = json.loads(agent_file_content)
         return AuthInfo(
             key=bakery.PrivateKey.deserialize(data['key']['private']),
             agents=list(
@@ -40,7 +52,11 @@ def load_auth_info(filename):
                 for a in data.get('agents', [])
             ),
         )
-    except (KeyError, ValueError, nacl.exceptions.TypeError) as e:
+    except (
+        KeyError,
+        ValueError,
+        TypeError,
+    ) as e:
         raise AgentFileFormatError('invalid agent file', e)
 
 

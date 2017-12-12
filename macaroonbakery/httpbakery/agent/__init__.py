@@ -3,6 +3,7 @@
 
 from ._agent import (
     load_auth_info,
+    read_auth_info,
     Agent,
     AgentInteractor,
     AgentFileFormatError,
@@ -14,4 +15,5 @@ __all__ = [
     'AgentInteractor',
     'AuthInfo',
     'load_auth_info',
+    'read_auth_info',
 ]

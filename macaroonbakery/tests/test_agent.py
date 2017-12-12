@@ -49,6 +49,14 @@ class TestAgents(TestCase):
             agent.Agent(url='http://0.3.2.1', username='test-user'),
         ])
 
+    def test_invalid_agent_json(self):
+        with self.assertRaises(agent.AgentFileFormatError):
+            agent.read_auth_info('}')
+
+    def test_invalid_read_auth_info_arg(self):
+        with self.assertRaises(agent.AgentFileFormatError):
+            agent.read_auth_info(0)
+
     def test_load_auth_info_with_bad_key(self):
         with self.assertRaises(agent.AgentFileFormatError):
             agent.load_auth_info(self.bad_key_agent_filename)
