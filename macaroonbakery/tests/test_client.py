@@ -346,6 +346,11 @@ class TestClient(TestCase):
             value=encode_macaroon(m2),
             url='http://example.com',
         ))
+        jar.set_cookie(utils.cookie(
+            name='macaroon-empty',
+            value='',
+            url='http://example.com',
+        ))
         jar.add_cookie_header(req)
 
         macaroons = httpbakery.extract_macaroons(req)
