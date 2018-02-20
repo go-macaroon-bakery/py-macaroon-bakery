@@ -14,9 +14,12 @@ import macaroonbakery.httpbakery.agent as agent
 import requests.cookies
 
 from httmock import HTTMock, response, urlmatch
-from six.moves.urllib.parse import parse_qs
+from six.moves.urllib.parse import parse_qs, urlparse
 
 log = logging.getLogger(__name__)
+
+PRIVATE_KEY = 'CqoSgj06Zcgb4/S6RT4DpTjLAfKoznEY3JsShSjKJEU='
+PUBLIC_KEY = 'YAhRSsth3a36mRYqQGQaLiS4QJax0p356nd+B8x7UQE='
 
 
 class TestAgents(TestCase):
@@ -41,8 +44,8 @@ class TestAgents(TestCase):
 
     def test_load_auth_info(self):
         auth_info = agent.load_auth_info(self.agent_filename)
-        self.assertEqual(str(auth_info.key), 'CqoSgj06Zcgb4/S6RT4DpTjLAfKoznEY3JsShSjKJEU=')
-        self.assertEqual(str(auth_info.key.public_key), 'YAhRSsth3a36mRYqQGQaLiS4QJax0p356nd+B8x7UQE=')
+        self.assertEqual(str(auth_info.key), PRIVATE_KEY)
+        self.assertEqual(str(auth_info.key.public_key), PUBLIC_KEY)
         self.assertEqual(auth_info.agents, [
             agent.Agent(url='https://1.example.com/', username='user-1'),
             agent.Agent(url='https://2.example.com/discharger', username='user-2'),
@@ -139,12 +142,16 @@ class TestAgents(TestCase):
 
         @urlmatch(path='.*/login')
         def login(url, request):
+            qs = parse_qs(urlparse(request.url).query)
+            self.assertEqual(request.method, 'GET')
+            self.assertEqual(
+                qs, {'username': ['test-user'], 'public-key': [PUBLIC_KEY]})
             b = bakery.Bakery(key=discharge_key)
             m = b.oven.macaroon(
                 version=bakery.LATEST_VERSION,
                 expiry=datetime.utcnow() + timedelta(days=1),
                 caveats=[bakery.local_third_party_caveat(
-                    auth_info.key.public_key,
+                    PUBLIC_KEY,
                     version=httpbakery.request_version(request.headers))],
                 ops=[bakery.Op(entity='agent', action='login')])
             return {
@@ -164,7 +171,7 @@ class TestAgents(TestCase):
                 'http://0.1.2.3/here',
                 cookies=client.cookies,
                 auth=client.auth())
-        self.assertEquals(resp.content, b'done')
+        self.assertEqual(resp.content, b'done')
 
     def test_agent_legacy(self):
         discharge_key = bakery.generate_key()
@@ -346,7 +353,7 @@ class TestAgents(TestCase):
                 cookies=client.cookies,
                 auth=client.auth(),
             )
-        self.assertEquals(resp.content, b'done')
+        self.assertEqual(resp.content, b'done')
 
 
 agent_file = '''
