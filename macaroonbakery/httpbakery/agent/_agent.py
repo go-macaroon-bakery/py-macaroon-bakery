@@ -109,14 +109,15 @@ class AgentInteractor(httpbakery.Interactor, httpbakery.LegacyInteractor):
         if not location.endswith('/'):
             location += '/'
         login_url = urljoin(location, p.login_url)
-        # TODO use client to make the request.
-        resp = requests.get(login_url, json={
-            'Username': agent.username,
-            'PublicKey': str(self._auth_info.key),
-        })
+        resp = requests.get(
+            login_url, params={
+                'username': agent.username,
+                'public-key': str(self._auth_info.key.public_key)},
+            auth=client.auth())
         if resp.status_code != 200:
             raise httpbakery.InteractionError(
-                'cannot acquire agent macaroon: {}'.format(resp.status_code)
+                'cannot acquire agent macaroon: {} {}'.format(
+                    resp.status_code, resp.text)
             )
         m = resp.json().get('macaroon')
         if m is None:
