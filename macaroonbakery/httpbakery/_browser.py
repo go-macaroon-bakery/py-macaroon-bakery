@@ -85,5 +85,6 @@ class WebBrowserInteractionInfo(namedtuple('WebBrowserInteractionInfo',
         @param info_dict The deserialized JSON object
         @return a new WebBrowserInteractionInfo object.
         '''
-        return WebBrowserInteractionInfo(visit_url=info_dict.get('VisitURL'),
-                                         wait_token_url=info_dict('WaitURL'))
+        return WebBrowserInteractionInfo(
+            visit_url=info_dict.get('VisitURL'),
+            wait_token_url=info_dict.get('WaitTokenURL'))
