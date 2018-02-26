@@ -5,7 +5,6 @@ from collections import namedtuple
 from datetime import datetime
 
 import pyrfc3339
-import pytz
 from ._caveat import parse_caveat
 from ._conditions import (
     COND_ALLOW,
@@ -166,12 +165,16 @@ class CheckerInfo(namedtuple('CheckInfo', 'prefix name ns check')):
 def _check_time_before(ctx, cond, arg):
     clock = ctx.get(TIME_KEY)
     if clock is None:
-        now = pytz.UTC.localize(datetime.utcnow())
+        now = datetime.utcnow()
     else:
         now = clock.utcnow()
 
     try:
-        if pyrfc3339.parse(arg) <= now:
+        # Note: pyrfc3339 returns a datetime with a timezone, which
+        # we need to remove before we can compare it with the naive
+        # datetime object returned by datetime.utcnow.
+        expiry = pyrfc3339.parse(arg, utc=True).replace(tzinfo=None)
+        if now >= expiry:
             return 'macaroon has expired'
     except ValueError:
         return 'cannot parse "{}" as RFC 3339'.format(arg)

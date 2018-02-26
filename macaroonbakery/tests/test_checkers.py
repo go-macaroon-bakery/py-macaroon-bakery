@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from unittest import TestCase
 
 import macaroonbakery.checkers as checkers
-import pytz
 import six
 from pymacaroons import MACAROON_V2, Macaroon
 
@@ -15,7 +14,7 @@ NOW = datetime(
 
 class TestClock():
     def utcnow(self):
-        return pytz.UTC.localize(NOW)
+        return NOW
 
 
 class TestCheckers(TestCase):

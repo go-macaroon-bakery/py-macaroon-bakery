@@ -30,7 +30,6 @@ requirements = [
     'six>=1.11.0,<2.0',
     'protobuf>=3.0.0,<4.0',
     'pyRFC3339>=1.0,<2.0',
-    'pytz>=2017.2,<2018.0'
 ]
 
 test_requirements = [
