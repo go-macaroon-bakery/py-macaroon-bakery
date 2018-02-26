@@ -7,7 +7,6 @@ from unittest import TestCase
 
 import macaroonbakery.bakery as bakery
 import pymacaroons
-import pytz
 from macaroonbakery._utils import cookie
 from pymacaroons.serializers import json_serializer
 
@@ -21,7 +20,8 @@ class CookieTest(TestCase):
             c.expires, int((timestamp - datetime(1970, 1, 1)).total_seconds()))
 
     def test_cookie_expires_with_timezone(self):
-        timestamp = datetime.now(pytz.UTC)
+        from datetime import tzinfo
+        timestamp = datetime.utcnow().replace(tzinfo=tzinfo())
         self.assertRaises(
             ValueError, cookie, 'http://example.com', 'test', 'value',
             expires=timestamp)

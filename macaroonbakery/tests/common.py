@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 
 import macaroonbakery.bakery as bakery
 import macaroonbakery.checkers as checkers
-import pytz
 
 
 class _StoppedClock(object):
@@ -15,8 +14,7 @@ class _StoppedClock(object):
         return self.t
 
 
-epoch = pytz.utc.localize(
-    datetime(year=1900, month=11, day=17, hour=19, minute=00, second=13))
+epoch = datetime(year=1900, month=11, day=17, hour=19, minute=00, second=13)
 ages = epoch + timedelta(days=1)
 
 test_context = checkers.context_with_clock(checkers.AuthContext(),
