@@ -320,8 +320,11 @@ def extract_macaroons(headers_or_request):
     mss = []
 
     def add_macaroon(data):
-        data = utils.b64decode(data)
-        data_as_objs = json.loads(data.decode('utf-8'))
+        try:
+            data = utils.b64decode(data)
+            data_as_objs = json.loads(data.decode('utf-8'))
+        except ValueError:
+            return
         ms = [utils.macaroon_from_dict(x) for x in data_as_objs]
         mss.append(ms)
 
