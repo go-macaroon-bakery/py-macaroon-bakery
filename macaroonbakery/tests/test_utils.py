@@ -26,6 +26,13 @@ class CookieTest(TestCase):
             ValueError, cookie, 'http://example.com', 'test', 'value',
             expires=timestamp)
 
+    def test_cookie_with_hostname_not_fqdn(self):
+        c = cookie('http://myhost', 'test', 'value')
+        self.assertEqual(c.domain, 'myhost.local')
+
+    def test_cookie_with_hostname_ipc4(self):
+        c = cookie('http://1.2.3.4', 'test', 'value')
+        self.assertEqual(c.domain, '1.2.3.4')
 
 class TestB64Decode(TestCase):
     def test_decode(self):

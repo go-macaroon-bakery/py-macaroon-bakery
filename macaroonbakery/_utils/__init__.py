@@ -3,6 +3,7 @@
 import base64
 import binascii
 import json
+import re
 import webbrowser
 from datetime import datetime
 
@@ -12,6 +13,9 @@ from pymacaroons.serializers import json_serializer
 
 import six.moves.http_cookiejar as http_cookiejar
 from six.moves.urllib.parse import urlparse
+
+
+IPV4_RE = re.compile(r"\.\d+$", re.ASCII)
 
 
 def to_bytes(s):
@@ -134,7 +138,11 @@ def cookie(
         it must be a naive timestamp in UTC.
     '''
     u = urlparse(url)
-    domain = u.hostname or u.netloc
+    domain = u.hostname
+    if '.' not in domain and not IPV4_RE.search(domain):
+        # If the host is not an FQDN, append a local doamin to make it a valid
+        # domain (this is what http.cookielib expects)
+        domain += ".local"
     port = str(u.port) if u.port is not None else None
     secure = u.scheme == 'https'
     if expires is not None:

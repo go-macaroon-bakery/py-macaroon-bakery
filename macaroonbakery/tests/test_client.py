@@ -55,6 +55,35 @@ class TestClient(TestCase):
         finally:
             httpd.shutdown()
 
+    def test_cookie_domain_host_not_fqdn(self):
+        b = new_bakery('loc', None, None)
+
+        def handler(*args):
+            GetHandler(b, None, None, None, None, AGES, *args)
+        try:
+            httpd = HTTPServer(('', 0), handler)
+            thread = threading.Thread(target=httpd.serve_forever)
+            thread.start()
+            srv_macaroon = b.oven.macaroon(
+                version=bakery.LATEST_VERSION, expiry=AGES,
+                caveats=None, ops=[TEST_OP])
+            self.assertEquals(srv_macaroon.macaroon.location, 'loc')
+            client = httpbakery.Client()
+            resp = requests.get(
+                url='http://localhost:' + str(httpd.server_address[1]),
+                cookies=client.cookies, auth=client.auth())
+            resp.raise_for_status()
+            self.assertEquals(resp.text, 'done')
+        except httpbakery.BakeryException:
+            pass  # interacion required exception is expected
+        finally:
+            httpd.shutdown()
+
+        # the cookie has the .local domain appended
+        [cookie] = client.cookies
+        self.assertEqual(cookie.name, 'macaroon-test')
+        self.assertEqual(cookie.domain, 'localhost.local')
+
     def test_single_party_with_header(self):
         b = new_bakery('loc', None, None)
 
