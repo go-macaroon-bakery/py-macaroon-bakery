@@ -2,6 +2,7 @@
 
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
+import sys
 import platform
 
 from setuptools import (
@@ -46,6 +47,9 @@ if len(distribution) == 3 and distribution[2] == 'trusty':
         'pyasn1==0.1.9',
         'ndg_httpsclient==0.3.3',
     ])
+
+if sys.version_info.major == 2:
+    requirements.append('ipaddress')
 
 
 setup(

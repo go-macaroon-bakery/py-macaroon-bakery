@@ -56,6 +56,9 @@ class TestClient(TestCase):
             httpd.shutdown()
 
     def test_cookie_domain_host_not_fqdn(self):
+        # See
+        # https://github.com/go-macaroon-bakery/py-macaroon-bakery/issues/53
+
         b = new_bakery('loc', None, None)
 
         def handler(*args):
@@ -69,6 +72,9 @@ class TestClient(TestCase):
                 caveats=None, ops=[TEST_OP])
             self.assertEquals(srv_macaroon.macaroon.location, 'loc')
             client = httpbakery.Client()
+            # Note: by using "localhost" instead of the presumably numeric address held
+            # in httpd.server_address, we're triggering the no-FQDN logic in the cookie
+            # code.
             resp = requests.get(
                 url='http://localhost:' + str(httpd.server_address[1]),
                 cookies=client.cookies, auth=client.auth())

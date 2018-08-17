@@ -2,8 +2,8 @@
 # Licensed under the LGPLv3, see LICENCE file for details.
 import base64
 import binascii
+import ipaddress
 import json
-import re
 import webbrowser
 from datetime import datetime
 
@@ -13,9 +13,6 @@ from pymacaroons.serializers import json_serializer
 
 import six.moves.http_cookiejar as http_cookiejar
 from six.moves.urllib.parse import urlparse
-
-
-IPV4_RE = re.compile(r"\.\d+$", re.ASCII)
 
 
 def to_bytes(s):
@@ -139,9 +136,7 @@ def cookie(
     '''
     u = urlparse(url)
     domain = u.hostname
-    if '.' not in domain and not IPV4_RE.search(domain):
-        # If the host is not an FQDN, append a local doamin to make it a valid
-        # domain (this is what http.cookielib expects)
+    if '.' not in domain and not _is_ip_addr(domain):
         domain += ".local"
     port = str(u.port) if u.port is not None else None
     secure = u.scheme == 'https'
@@ -168,3 +163,11 @@ def cookie(
         rest=None,
         rfc2109=False,
     )
+
+
+def _is_ip_addr(h):
+    try:
+        ipaddress.ip_address(h)
+    except ValueError:
+        return False
+    return True

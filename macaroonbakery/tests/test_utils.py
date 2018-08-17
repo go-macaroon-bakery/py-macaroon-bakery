@@ -30,9 +30,18 @@ class CookieTest(TestCase):
         c = cookie('http://myhost', 'test', 'value')
         self.assertEqual(c.domain, 'myhost.local')
 
-    def test_cookie_with_hostname_ipc4(self):
+    def test_cookie_with_hostname_ipv4(self):
         c = cookie('http://1.2.3.4', 'test', 'value')
         self.assertEqual(c.domain, '1.2.3.4')
+
+    def test_cookie_with_hostname_ipv6(self):
+        c = cookie('http://[dead::beef]', 'test', 'value')
+        self.assertEqual(c.domain, 'dead::beef')
+
+    def test_cookie_with_hostname_like_ipv4(self):
+        c = cookie('http://1.2.3.4.com', 'test', 'value')
+        self.assertEqual(c.domain, '1.2.3.4.com')
+
 
 class TestB64Decode(TestCase):
     def test_decode(self):
