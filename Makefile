@@ -40,13 +40,13 @@ check: setup lint
 clean:
 	$(PYTHON) setup.py clean
 	# Remove the development environments.
-	rm -rfv $(DEVENV) .tox/
+	rm -rf $(DEVENV) .tox/
 	# Remove distribution artifacts.
-	rm -rfv *.egg build/ dist/ macaroonbakery.egg-info MANIFEST
+	rm -rf *.egg build/ dist/ macaroonbakery.egg-info MANIFEST
 	# Remove tests artifacts.
-	rm -fv .coverage
+	rm -f .coverage
 	# Remove the canary file.
-	rm -fv $(SYSDEPS_INSTALLED)
+	rm -f $(SYSDEPS_INSTALLED)
 	# Remove Python compiled bytecode.
 	find . -name '*.pyc' -delete
 	find . -name '__pycache__' -type d -delete
