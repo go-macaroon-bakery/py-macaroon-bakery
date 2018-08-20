@@ -2,6 +2,7 @@
 # Licensed under the LGPLv3, see LICENCE file for details.
 import base64
 import binascii
+import ipaddress
 import json
 import webbrowser
 from datetime import datetime
@@ -134,7 +135,9 @@ def cookie(
         it must be a naive timestamp in UTC.
     '''
     u = urlparse(url)
-    domain = u.hostname or u.netloc
+    domain = u.hostname
+    if '.' not in domain and not _is_ip_addr(domain):
+        domain += ".local"
     port = str(u.port) if u.port is not None else None
     secure = u.scheme == 'https'
     if expires is not None:
@@ -160,3 +163,11 @@ def cookie(
         rest=None,
         rfc2109=False,
     )
+
+
+def _is_ip_addr(h):
+    try:
+        ipaddress.ip_address(h)
+    except ValueError:
+        return False
+    return True

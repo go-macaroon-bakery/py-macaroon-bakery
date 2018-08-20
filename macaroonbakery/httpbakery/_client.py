@@ -290,12 +290,8 @@ def _prepare_discharge_hook(req, client):
                 Retry.count)
             )
         client.handle_error(error, req.url)
-        # Replace the private _cookies from req as it is a copy of
-        # the original cookie jar passed into the requests method and we need
-        # to set the cookie for this request.
-        req._cookies = client.cookies
         req.headers.pop('Cookie', None)
-        req.prepare_cookies(req._cookies)
+        req.prepare_cookies(client.cookies)
         req.headers[BAKERY_PROTOCOL_HEADER] = \
             str(bakery.LATEST_VERSION)
         with requests.Session() as s:
