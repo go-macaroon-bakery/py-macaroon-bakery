@@ -166,6 +166,13 @@ def cookie(
 
 
 def _is_ip_addr(h):
+    if six.PY2:
+        # the python2.7 backport of ipaddr needs a bytestring passed in
+        try:
+            h = h.decode('ascii')
+        except UnicodeDecodeError:
+            # If there are non-ascii chars it's not an address anyway
+            return False
     try:
         ipaddress.ip_address(h)
     except ValueError:

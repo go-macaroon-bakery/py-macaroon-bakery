@@ -1,3 +1,5 @@
+#  -*- coding: utf-8 -*-
+
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
 
@@ -41,6 +43,10 @@ class CookieTest(TestCase):
     def test_cookie_with_hostname_like_ipv4(self):
         c = cookie('http://1.2.3.4.com', 'test', 'value')
         self.assertEqual(c.domain, '1.2.3.4.com')
+
+    def test_cookie_with_hostname_not_ascii(self):
+        c = cookie('http://κουλουράκι', 'test', 'value')
+        self.assertEqual(c.domain, 'κουλουράκι.local')
 
 
 class TestB64Decode(TestCase):
