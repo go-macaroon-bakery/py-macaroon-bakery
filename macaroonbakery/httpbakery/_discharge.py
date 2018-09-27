@@ -16,10 +16,13 @@ def discharge(ctx, content, key, locator, checker):
     @return The discharge macaroon {macaroonbakery.Macaroon}
     '''
     id = content.get('id')
-    if id is None:
+    if id is not None:
+        id = id.encode('utf-8')
+    else:
         id = content.get('id64')
         if id is not None:
             id = utils.b64decode(id)
+
     caveat = content.get('caveat64')
     if caveat is not None:
         caveat = utils.b64decode(caveat)
