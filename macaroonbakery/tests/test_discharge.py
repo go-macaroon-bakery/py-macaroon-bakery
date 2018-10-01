@@ -153,7 +153,7 @@ class TestDischarge(unittest.TestCase):
                 bakery.LOGIN_OP
             )
             self.fail('macaroon unmet should be raised')
-        except bakery.VerificationError:
+        except bakery.PermissionDenied:
             pass
 
     def test_macaroon_paper_fig6_fails_with_binding_on_tampered_sig(self):
@@ -194,7 +194,7 @@ class TestDischarge(unittest.TestCase):
             d[i + 1] = tampered_macaroon.prepare_for_request(dm)
 
         # client makes request to ts.
-        with self.assertRaises(bakery.VerificationError) as exc:
+        with self.assertRaises(bakery.PermissionDenied) as exc:
             ts.checker.auth([d]).allow(common.test_context,
                                        bakery.LOGIN_OP)
         self.assertEqual('verification failed: Signatures do not match',
@@ -298,7 +298,7 @@ class TestDischarge(unittest.TestCase):
             'arble': 'b',
         })
 
-        with self.assertRaises(bakery.AuthInitError) as exc:
+        with self.assertRaises(bakery.PermissionDenied) as exc:
             first_party.checker.auth([d]).allow(common.test_context,
                                                 bakery.LOGIN_OP)
         self.assertEqual('cannot authorize login macaroon: caveat '
@@ -377,7 +377,7 @@ class TestDischarge(unittest.TestCase):
             'bar': '',
             'baz': 'bazval',
         })
-        with self.assertRaises(bakery.AuthInitError) as exc:
+        with self.assertRaises(bakery.PermissionDenied) as exc:
             first_party.checker.auth([d]).allow(common.test_context,
                                                 bakery.LOGIN_OP)
         self.assertEqual('cannot authorize login macaroon: caveat "declared '
@@ -416,7 +416,7 @@ class TestDischarge(unittest.TestCase):
         self.assertIsNotNone(M.unbound)
 
         # Make sure it cannot be used as a normal macaroon in the third party.
-        with self.assertRaises(bakery.VerificationError) as exc:
+        with self.assertRaises(bakery.PermissionDenied) as exc:
             third_party.checker.auth([[M.unbound]]).allow(
                 common.test_context, [bakery.LOGIN_OP])
         self.assertEqual('no operations found in macaroon',
