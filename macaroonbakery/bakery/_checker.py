@@ -111,21 +111,18 @@ class AuthChecker(object):
             if not self._executed:
                 self._init_once(ctx)
                 self._executed = True
-        if self._init_errors:
-            raise AuthInitError(self._init_errors[0])
 
     def _init_once(self, ctx):
         self._auth_indexes = {}
         self._conditions = [None] * len(self._macaroons)
         for i, ms in enumerate(self._macaroons):
             try:
-                ops, conditions = self.parent._macaroon_opstore.macaroon_ops(
-                    ms)
-            except VerificationError:
-                raise
-            except Exception as exc:
-                self._init_errors.append(exc.args[0])
+                ops, conditions = self.parent._macaroon_opstore.macaroon_ops(ms)
+            except VerificationError as e:
+                self._init_errors.append(str(e))
                 continue
+            except Exception as exc:
+                raise AuthInitError(str(exc))
 
             # It's a valid macaroon (in principle - we haven't checked first
             # party caveats).
@@ -152,8 +149,7 @@ class AuthChecker(object):
             # other operations if the conditions succeed for those.
             declared, err = self._check_conditions(ctx, LOGIN_OP, conditions)
             if err is not None:
-                self._init_errors.append('cannot authorize login macaroon: ' +
-                                         err)
+                self._init_errors.append('cannot authorize login macaroon: ' + err)
                 continue
             if self._identity is not None:
                 # We've already found a login macaroon so ignore this one
@@ -201,8 +197,13 @@ class AuthChecker(object):
         authorization requests.
 
         If an operation was not allowed, an exception will be raised which may
-        be DischargeRequiredError holding the operations that remain to
-        be authorized in order to allow authorization to proceed.
+        be:
+
+        - DischargeRequiredError holding the operations that remain to
+        be authorized in order to allow authorization to proceed
+        - PermissionDenied when no operations can be authorized and there's
+        no third party to discharge macaroons for.
+
         @param ctx AuthContext
         @param ops an array of Op
         :return: an AuthInfo object.
