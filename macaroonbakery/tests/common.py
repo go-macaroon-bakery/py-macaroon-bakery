@@ -80,7 +80,7 @@ class ThirdPartyStrcmpChecker(bakery.ThirdPartyCaveatChecker):
             condition = cav_info.condition.decode('utf-8')
         if condition != self.str:
             raise bakery.ThirdPartyCaveatCheckFailed(
-                '{} doesn\'t match {}'.format(condition, self.str))
+                '{} doesn\'t match {}'.format(repr(condition), repr(self.str)))
         return []
 
 
