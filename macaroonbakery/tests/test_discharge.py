@@ -351,14 +351,14 @@ class TestDischarge(unittest.TestCase):
         # Since no declarations are added by the discharger,
         class ThirdPartyCaveatCheckerF(bakery.ThirdPartyCaveatChecker):
             def check_third_party_caveat(self, ctx, cav_info):
-                if cav_info.condition == b'x':
+                if cav_info.condition == 'x':
                     return [checkers.declared_caveat('foo', 'fooval1')]
-                if cav_info.condition == b'y':
+                if cav_info.condition == 'y':
                     return [
                         checkers.declared_caveat('foo', 'fooval2'),
                         checkers.declared_caveat('baz', 'bazval')
                     ]
-                raise common.ThirdPartyCaveatCheckFailed('not matched')
+                raise bakery.ThirdPartyCaveatCheckFailed('not matched')
 
         def get_discharge(cav, payload):
             return bakery.discharge(
@@ -448,7 +448,7 @@ class TestDischarge(unittest.TestCase):
                                             location='as2-loc')]
                 if self._loc == 'as2-loc':
                     return []
-                raise common.ThirdPartyCaveatCheckFailed(
+                raise bakery.ThirdPartyCaveatCheckFailed(
                     'unknown location {}'.format(self._loc))
 
         def get_discharge(cav, payload):

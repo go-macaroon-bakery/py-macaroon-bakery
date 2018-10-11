@@ -33,9 +33,12 @@ def discharge_all(m, get_discharge, local_key=None):
     It returns a list of macaroon with m as the first element, followed by all
     the discharge macaroons.
     All the discharge macaroons will be bound to the primary macaroon.
+
     The get_discharge function is passed a context (AuthContext),
-    the caveat(Caveat) to be discharged and encrypted_caveat (bytes)will be
+    the caveat(pymacaroons.Caveat) to be discharged and encrypted_caveat (bytes) will be
     passed the external caveat payload found in m, if any.
+    It should return a bakery.Macaroon object holding the discharge
+    macaroon for the third party caveat.
     '''
     primary = m.macaroon
     discharges = [primary]
@@ -161,7 +164,7 @@ def discharge(ctx, id, caveat, key, checker, locator):
         raise VerificationError(exc.args[0])
 
     if cond == checkers.COND_NEED_DECLARED:
-        cav_info = cav_info._replace(condition=arg.encode('utf-8'))
+        cav_info = cav_info._replace(condition=arg)
         caveats = _check_need_declared(ctx, cav_info, checker)
     else:
         caveats = checker.check_third_party_caveat(ctx, cav_info)
@@ -185,7 +188,7 @@ def discharge(ctx, id, caveat, key, checker, locator):
 
 
 def _check_need_declared(ctx, cav_info, checker):
-    arg = cav_info.condition.decode('utf-8')
+    arg = cav_info.condition
     i = arg.find(' ')
     if i <= 0:
         raise VerificationError(
@@ -197,7 +200,7 @@ def _check_need_declared(ctx, cav_info, checker):
             raise VerificationError('need-declared caveat with empty required attribute')
     if len(need_declared) == 0:
         raise VerificationError('need-declared caveat with no required attributes')
-    cav_info = cav_info._replace(condition=arg[i + 1:].encode('utf-8'))
+    cav_info = cav_info._replace(condition=arg[i + 1:])
     caveats = checker.check_third_party_caveat(ctx, cav_info)
     declared = {}
     for cav in caveats:
