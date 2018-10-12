@@ -20,7 +20,7 @@ class DischargeError(Exception):
     '''This is thrown by Client when a third party has refused a discharge'''
     def __init__(self, msg):
         super(DischargeError, self).__init__(
-            'third party refused discharge: {}'.format(msg))
+            'third party refused dischargex: {}'.format(msg))
 
 
 class InteractionError(Exception):
@@ -106,11 +106,16 @@ class Error(namedtuple('Error', 'code, message, version, info')):
         '''Create an error from a JSON-deserialized object
         @param serialized the object holding the serialized error {dict}
         '''
-        code = serialized.get('Code')
-        message = serialized.get('Message')
-        info = ErrorInfo.from_dict(serialized.get('Info'))
-        return Error(code=code, message=message, info=info,
-                     version=bakery.LATEST_VERSION)
+        # Some servers return lower case field names for message and code.
+        # The Go client is tolerant of this, so be similarly tolerant here.
+        def field(name):
+            return serialized.get(name) or serialized.get(name.lower())
+        return Error(
+            code=field('Code'),
+            message=field('Message'),
+            info=ErrorInfo.from_dict(field('Info')),
+            version=bakery.LATEST_VERSION,
+        )
 
     def interaction_method(self, kind, x):
         ''' Checks whether the error is an InteractionRequired error
