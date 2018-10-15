@@ -13,8 +13,8 @@ from setuptools import (
 
 PROJECT_NAME = 'macaroonbakery'
 
-# version 1.2.0
-VERSION = (1, 2, 0)
+# version 1.2.1
+VERSION = (1, 2, 1)
 
 
 def get_version():
