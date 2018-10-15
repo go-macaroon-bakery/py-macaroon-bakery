@@ -28,10 +28,6 @@ from macaroonbakery._utils import (
 )
 from ._internal import id_pb2
 from pymacaroons import MACAROON_V2, Verifier
-from pymacaroons.exceptions import (
-    MacaroonInvalidSignatureException,
-    MacaroonUnmetCaveatException,
-)
 
 
 class Oven:
@@ -183,10 +179,20 @@ class Oven:
         v.satisfy_general(validator)
         try:
             v.verify(macaroons[0], root_key, macaroons[1:])
-        except (MacaroonUnmetCaveatException,
-                MacaroonInvalidSignatureException) as exc:
-            raise VerificationError(
-                'verification failed: {}'.format(exc.args[0]))
+        except Exception as exc:
+            # Unfortunately pymacaroons doesn't control
+            # the set of exceptions that can be raised here.
+            # Possible candidates are:
+            # pymacaroons.exceptions.MacaroonUnmetCaveatException
+            # pymacaroons.exceptions.MacaroonInvalidSignatureException
+            # ValueError
+            # nacl.exceptions.CryptoError
+            #
+            # There may be others too, so just catch everything.
+            raise six.raise_from(
+                VerificationError('verification failed: {}'.format(str(exc))),
+                exc,
+            )
 
         if (self.ops_store is not None
             and len(ops) == 1

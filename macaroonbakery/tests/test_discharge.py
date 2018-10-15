@@ -1,5 +1,6 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
+import os
 import unittest
 
 import macaroonbakery.bakery as bakery
@@ -472,3 +473,45 @@ class TestDischarge(unittest.TestCase):
                         len(cav.caveat_id) > 3):
                     self.fail('caveat id on caveat {} of macaroon {} '
                               'is too big ({})'.format(j, i, cav.id))
+
+    def test_third_party_discharge_macaroon_wrong_root_key_and_third_party_caveat(self):
+
+        root_keys = bakery.MemoryKeyStore()
+        ts = bakery.Bakery(
+            key=bakery.generate_key(),
+            checker=common.test_checker(),
+            root_key_store=root_keys,
+            identity_client=common.OneIdentity(),
+        )
+        locator = bakery.ThirdPartyStore()
+        bs = common.new_bakery('bs-loc', locator)
+
+        # ts creates a macaroon with a third party caveat addressed to bs.
+        ts_macaroon = ts.oven.macaroon(bakery.LATEST_VERSION,
+                                       common.ages,
+                                       None, [bakery.LOGIN_OP])
+        ts_macaroon.add_caveat(
+            checkers.Caveat(location='bs-loc', condition='true'),
+            ts.oven.key, locator,
+        )
+
+        def get_discharge(cav, payload):
+            return bakery.discharge(
+                common.test_context,
+                cav.caveat_id_bytes,
+                payload,
+                bs.oven.key,
+                common.ThirdPartyStrcmpChecker('true'),
+                bs.oven.locator,
+            )
+
+        d = bakery.discharge_all(ts_macaroon, get_discharge)
+
+        # The authorization should succeed at first.
+        ts.checker.auth([d]).allow(common.test_context, [bakery.LOGIN_OP])
+        # Corrupt the root key and try again.
+        # We should get a DischargeRequiredError because the verification has failed.
+        root_keys._key = os.urandom(24)
+        with self.assertRaises(bakery.PermissionDenied) as err:
+            ts.checker.auth([d]).allow(common.test_context, [bakery.LOGIN_OP])
+        self.assertEqual(str(err.exception), 'verification failed: Decryption failed. Ciphertext failed verification')
