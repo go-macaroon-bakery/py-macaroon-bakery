@@ -107,7 +107,7 @@ class Client:
                                        discharges)) + ']'
         all_macaroons = base64.urlsafe_b64encode(utils.to_bytes(macaroons))
 
-        full_path = relative_url(url, error.info.macaroon_path)
+        full_path = urljoin(url, error.info.macaroon_path)
         if error.info.cookie_name_suffix is not None:
             name = 'macaroon-' + error.info.cookie_name_suffix
         else:
@@ -164,7 +164,7 @@ class Client:
         if payload is not None:
             req['caveat64'] = base64.urlsafe_b64encode(payload).rstrip(
                 b'=').decode('utf-8')
-        target = relative_url(cav.location, 'discharge')
+        target = urljoin(cav.location, 'discharge')
         headers = {
             BAKERY_PROTOCOL_HEADER: str(bakery.LATEST_VERSION)
         }
@@ -200,8 +200,8 @@ class Client:
         raise InteractionError('no supported interaction method')
 
     def _legacy_interact(self, location, error_info):
-        visit_url = relative_url(location, error_info.info.visit_url)
-        wait_url = relative_url(location, error_info.info.wait_url)
+        visit_url = urljoin(location, error_info.info.visit_url)
+        wait_url = urljoin(location, error_info.info.wait_url)
         method_urls = {
             "interactive": visit_url
         }
@@ -226,7 +226,7 @@ class Client:
             if visit_url is None:
                 continue
 
-            visit_url = relative_url(location, visit_url)
+            visit_url = urljoin(location, visit_url)
             interactor.legacy_interact(self, location, visit_url)
             return _wait_for_macaroon(wait_url)
 
@@ -371,16 +371,6 @@ def _wait_for_macaroon(wait_url):
     return bakery.Macaroon.from_dict(resp.json().get('Macaroon'))
 
 
-def relative_url(base, new):
-    ''' Returns new path relative to an original URL.
-    '''
-    if new == '':
-        return base
-    if not base.endswith('/'):
-        base += '/'
-    return urljoin(base, new)
-
-
 def _legacy_get_interaction_methods(u):
     ''' Queries a URL as found in an ErrInteractionRequired VisitURL field to
     find available interaction methods.
@@ -397,7 +387,7 @@ def _legacy_get_interaction_methods(u):
     if resp.status_code == 200:
         json_resp = resp.json()
         for m in json_resp:
-            method_urls[m] = relative_url(u, json_resp[m])
+            method_urls[m] = urljoin(u, json_resp[m])
 
     if method_urls.get('interactive') is None:
         # There's no "interactive" method returned, but we know

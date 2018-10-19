@@ -486,6 +486,26 @@ class TestClient(TestCase):
         self.assertEquals(macaroons[0][0].identifier, m1.identifier)
         self.assertEquals(macaroons[1][0].identifier, m2.identifier)
 
+    def test_handle_error_cookie_path(self):
+        macaroon = bakery.Macaroon(
+            root_key=b'some key', id=b'xxx',
+            location='some location',
+            version=bakery.VERSION_0)
+        info = {
+            'Macaroon': macaroon.to_dict(),
+            'MacaroonPath': '.',
+            'CookieNameSuffix': 'test'
+        }
+        error = httpbakery.Error(
+            code=407,
+            message='error',
+            version=bakery.LATEST_VERSION,
+            info=httpbakery.ErrorInfo.from_dict(info))
+        client = httpbakery.Client()
+        client.handle_error(error, 'http://example.com/some/path')
+        [cookie] = client.cookies
+        self.assertEqual(cookie.path, "/some/")
+
 
 class GetHandler(BaseHTTPRequestHandler):
     '''A mock HTTP server that serves a GET request'''
