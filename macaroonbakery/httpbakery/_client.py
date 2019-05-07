@@ -295,7 +295,9 @@ def _prepare_discharge_hook(req, client):
         req.headers[BAKERY_PROTOCOL_HEADER] = \
             str(bakery.LATEST_VERSION)
         with requests.Session() as s:
-            return s.send(req)
+            settings = s.merge_environment_settings(
+                req.url, {}, None, None, None)
+            return s.send(req, **settings)
     return hook
 
 
