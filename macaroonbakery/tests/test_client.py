@@ -72,6 +72,7 @@ class TestClient(TestCase):
 
         @urlmatch(path='.*/discharge')
         def discharge(url, request):
+            self.assertEqual(url.path, '/discharge')
             qs = parse_qs(request.body)
             content = {q: qs[q][0] for q in qs}
             m = httpbakery.discharge(checkers.AuthContext(), content, d.key, d,
@@ -85,6 +86,53 @@ class TestClient(TestCase):
 
         def handler(*args):
             GetHandler(b, 'http://1.2.3.4', None, None, None, AGES, *args)
+        try:
+            httpd = HTTPServer(('', 0), handler)
+            server_url = 'http://' + httpd.server_address[0] + ':' + str(httpd.server_address[1])
+            thread = threading.Thread(target=httpd.serve_forever)
+            thread.start()
+            client = httpbakery.Client()
+            with HTTMock(discharge):
+                resp = requests.get(
+                    url=server_url,
+                    cookies=client.cookies,
+                    auth=client.auth())
+            resp.raise_for_status()
+            self.assertEquals(resp.text, 'done')
+        finally:
+            httpd.shutdown()
+
+    def test_single_service_third_party_with_path(self):
+        class _DischargerLocator(bakery.ThirdPartyLocator):
+            def __init__(self):
+                self.key = bakery.generate_key()
+
+            def third_party_info(self, loc):
+                if loc == 'http://1.2.3.4/some/path':
+                    return bakery.ThirdPartyInfo(
+                        public_key=self.key.public_key,
+                        version=bakery.LATEST_VERSION,
+                    )
+
+        d = _DischargerLocator()
+        b = new_bakery('loc', d, None)
+
+        @urlmatch(path='.*/discharge')
+        def discharge(url, request):
+            self.assertEqual(url.path, '/some/path/discharge')
+            qs = parse_qs(request.body)
+            content = {q: qs[q][0] for q in qs}
+            m = httpbakery.discharge(checkers.AuthContext(), content, d.key, d,
+                                     alwaysOK3rd)
+            return {
+                'status_code': 200,
+                'content': {
+                    'Macaroon': m.to_dict()
+                }
+            }
+
+        def handler(*args):
+            GetHandler(b, 'http://1.2.3.4/some/path', None, None, None, AGES, *args)
         try:
             httpd = HTTPServer(('', 0), handler)
             server_url = 'http://' + httpd.server_address[0] + ':' + str(httpd.server_address[1])

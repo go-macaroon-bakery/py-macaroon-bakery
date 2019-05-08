@@ -164,7 +164,10 @@ class Client:
         if payload is not None:
             req['caveat64'] = base64.urlsafe_b64encode(payload).rstrip(
                 b'=').decode('utf-8')
-        target = urljoin(cav.location, 'discharge')
+        loc = cav.location
+        if not loc.endswith('/'):
+            loc += '/'
+        target = urljoin(loc, 'discharge')
         headers = {
             BAKERY_PROTOCOL_HEADER: str(bakery.LATEST_VERSION)
         }
