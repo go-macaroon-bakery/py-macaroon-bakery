@@ -3,7 +3,6 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
 import sys
-import platform
 
 from setuptools import (
     find_packages,
@@ -39,16 +38,14 @@ test_requirements = [
     'httmock==1.2.5',
 ]
 
-distribution = platform.dist()
-if len(distribution) == 3 and distribution[2] == 'trusty':
+if sys.version_info < (2, 7, 9):
     # Injected into urllib3 to fix insecure Python 2.
     requirements.extend([
         'cryptography==1.3.2',
-        'pyOpenSSL==16.0.0',
-        'pyasn1==0.1.9',
         'ndg_httpsclient==0.3.3',
+        'pyasn1==0.1.9',
+        'pyOpenSSL==16.0.0',
     ])
-
 if sys.version_info.major == 2:
     requirements.append('ipaddress')
 
