@@ -145,6 +145,16 @@ def discharge_401(url, request):
     }
 
 
+@urlmatch(path='.*/visit')
+def visit_200(url, request):
+    return {
+        'status_code': 200,
+        'content': {
+            'interactive': '/visit'
+        }
+    }
+
+
 @urlmatch(path='.*/wait')
 def wait_after_401(url, request):
     if request.url != 'http://example.com/wait':
@@ -239,7 +249,8 @@ class TestBakery(TestCase):
             def kind(self):
                 return 'unknown'
         client = httpbakery.Client(interaction_methods=[UnknownInteractor()])
-        with HTTMock(first_407_then_200), HTTMock(discharge_401):
+        with HTTMock(first_407_then_200), HTTMock(discharge_401),\
+                HTTMock(visit_200):
             with self.assertRaises(httpbakery.InteractionError) as exc:
                 requests.get(
                     ID_PATH,
