@@ -1,9 +1,12 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
-import collections
+try:
+    from collections.abc import Mapping
+except ImportError:
+    from collections import Mapping
 
 
-class AuthContext(collections.Mapping):
+class AuthContext(Mapping):
     ''' Holds a set of keys and values relevant to authorization.
 
     It is passed as an argument to authorization checkers, so that the checkers
