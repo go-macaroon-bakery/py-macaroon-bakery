@@ -4,7 +4,6 @@ import base64
 import datetime
 import json
 import threading
-from unittest import TestCase
 
 import macaroonbakery.bakery as bakery
 import macaroonbakery.checkers as checkers
@@ -13,6 +12,10 @@ import pymacaroons
 import requests
 import macaroonbakery._utils as utils
 
+from fixtures import (
+    EnvironmentVariable,
+    TestWithFixtures,
+)
 from httmock import HTTMock, urlmatch
 from six.moves.urllib.parse import parse_qs
 from six.moves.urllib.request import Request
@@ -26,7 +29,14 @@ AGES = datetime.datetime.utcnow() + datetime.timedelta(days=1)
 TEST_OP = bakery.Op(entity='test', action='test')
 
 
-class TestClient(TestCase):
+class TestClient(TestWithFixtures):
+    def setUp(self):
+        super(TestClient, self).setUp()
+        # http_proxy would cause requests to talk to the proxy, which is
+        # unlikely to know how to talk to the test server.
+        self.useFixture(EnvironmentVariable('http_proxy'))
+        self.useFixture(EnvironmentVariable('HTTP_PROXY'))
+
     def test_single_service_first_party(self):
         b = new_bakery('loc', None, None)
 

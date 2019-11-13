@@ -35,6 +35,7 @@ requirements = [
 
 test_requirements = [
     'tox',
+    'fixtures',
     'httmock==1.2.5',
 ]
 
