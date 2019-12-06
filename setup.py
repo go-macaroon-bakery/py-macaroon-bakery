@@ -2,8 +2,6 @@
 
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
-import sys
-
 from setuptools import (
     find_packages,
     setup,
@@ -31,6 +29,11 @@ requirements = [
     'six>=1.11.0,<2.0',
     'protobuf>=3.0.0,<4.0',
     'pyRFC3339>=1.0,<2.0',
+    'ipaddress;python_version<"3"',
+    'cryptography==1.3.2;python_full_version<"2.7.9"',
+    'ndg_httpsclient==0.3.3;python_full_version<"2.7.9"',
+    'pyasn1==0.1.9;python_full_version<"2.7.9"',
+    'pyOpenSSL==16.0.0;python_full_version<"2.7.9"',
 ]
 
 test_requirements = [
@@ -38,18 +41,6 @@ test_requirements = [
     'fixtures',
     'httmock==1.2.5',
 ]
-
-if sys.version_info < (2, 7, 9):
-    # Injected into urllib3 to fix insecure Python 2.
-    requirements.extend([
-        'cryptography==1.3.2',
-        'ndg_httpsclient==0.3.3',
-        'pyasn1==0.1.9',
-        'pyOpenSSL==16.0.0',
-    ])
-if sys.version_info.major == 2:
-    requirements.append('ipaddress')
-
 
 setup(
     name=PROJECT_NAME,
