@@ -115,11 +115,11 @@ class Macaroon(object):
                 'no private key to encrypt third party caveat')
         local_info = _parse_local_location(cav.location)
         if local_info is not None:
-            info = local_info
-            if cav.condition is not '':
+            if cav.condition:
                 raise ValueError(
                     'cannot specify caveat condition in '
                     'local third-party caveat')
+            info = local_info
             cav = checkers.Caveat(location='local', condition='true')
         else:
             if loc is None:
