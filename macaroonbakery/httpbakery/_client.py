@@ -3,6 +3,7 @@
 import base64
 import json
 import logging
+from json.decoder import JSONDecodeError
 
 import macaroonbakery.bakery as bakery
 import macaroonbakery.checkers as checkers
@@ -132,6 +133,13 @@ class Client:
         if resp.status_code == 200:
             return bakery.Macaroon.from_dict(resp.json().get('Macaroon'))
         cause = Error.from_dict(resp.json())
+        # A 5xx error might not return json.
+        try:
+            cause = Error.from_dict(resp.json())
+        except JSONDecodeError:
+            raise DischargeError(
+                'unexpected response: [{}] {!r}'.format(resp.status_code, resp.content)
+            )
         if cause.code != ERR_INTERACTION_REQUIRED:
             raise DischargeError(cause.message)
         if cause.info is None:
