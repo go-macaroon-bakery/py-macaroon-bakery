@@ -132,7 +132,6 @@ class Client:
         # TODO Fabrice what is the other http response possible ??
         if resp.status_code == 200:
             return bakery.Macaroon.from_dict(resp.json().get('Macaroon'))
-        cause = Error.from_dict(resp.json())
         # A 5xx error might not return json.
         try:
             cause = Error.from_dict(resp.json())
