@@ -3,7 +3,6 @@
 import base64
 import datetime
 import json
-from json.decoder import JSONDecodeError
 import threading
 
 import macaroonbakery.bakery as bakery
@@ -556,7 +555,9 @@ class TestClient(TestWithFixtures):
                             httpd.server_address[1]),
                         cookies=client.cookies,
                         auth=client.auth())
-                self.assertEquals(str(discharge_error.exception), "unexpected response: [503] b'bad system'")
+                self.assertEquals(str(discharge_error.exception),
+                                  'third party refused dischargex: unexpected response: '
+                                  "[503] b'bad system'")
 
         finally:
             httpd.shutdown()

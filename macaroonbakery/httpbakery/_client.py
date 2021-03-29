@@ -3,7 +3,6 @@
 import base64
 import json
 import logging
-from json.decoder import JSONDecodeError
 
 import macaroonbakery.bakery as bakery
 import macaroonbakery.checkers as checkers
@@ -135,7 +134,7 @@ class Client:
         # A 5xx error might not return json.
         try:
             cause = Error.from_dict(resp.json())
-        except JSONDecodeError:
+        except ValueError:
             raise DischargeError(
                 'unexpected response: [{}] {!r}'.format(resp.status_code, resp.content)
             )
