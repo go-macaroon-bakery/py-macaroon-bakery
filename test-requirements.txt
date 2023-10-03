@@ -1,7 +1,7 @@
 # Copyright 2017 Canonical Ltd.
 # Licensed under the LGPLv3, see LICENCE file for details.
 
-coverage==3.7.1
+coverage==7.3.2
 extras==1.0.0
 fixtures==3.0.0
 flake8==2.4.0
