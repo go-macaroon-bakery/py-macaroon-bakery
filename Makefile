@@ -10,13 +10,13 @@ PIP_SYSDEPS = tox
 PIP = sudo pip install $(1)
 
 SYSDEPS_INSTALLED = .sysdeps-installed
-DEVENV = devenv
+DEVENV = venv
 DEVENVPIP = $(DEVENV)/bin/pip
 
 .DEFAULT_GOAL := setup
 
 $(DEVENVPIP):
-	@tox -e devenv
+	@tox devenv -e devenv
 
 $(SYSDEPS_INSTALLED): sysdeps.mk
 ifeq ($(shell command -v apt-get > /dev/null; echo $$?),0)
@@ -28,7 +28,7 @@ else
 	@echo 'Debian packages:'
 	@echo '$(APT_SYSDEPS).'
 endif
-	sudo pip2 install $(PIP_SYSDEPS)
+	sudo pip3 install $(PIP_SYSDEPS)
 	touch $(SYSDEPS_INSTALLED)
 
 
@@ -68,7 +68,7 @@ help:
 	@echo -e '\nAfter creating the development environment with "make", it is'
 	@echo 'also possible to do the following:'
 	@echo '- run a specific subset of the test suite, e.g. with'
-	@echo '  "$(DEVENV)/bin/nosetests bakery/tests/...";'
+	@echo '  "$(DEVENV)/bin/nose2 bakery/tests/...";'
 	@echo '- use tox as usual on this project;'
 	@echo '  see https://tox.readthedocs.org/en/latest/'
 
@@ -93,9 +93,8 @@ sysdeps: $(SYSDEPS_INSTALLED)
 
 .PHONY: test
 test: setup
-	@$(DEVENV)/bin/nosetests \
-		--verbosity 2 --with-coverage --cover-erase \
-		--cover-package macaroonbakery
+	@$(DEVENV)/bin/nose2 \
+		--verbosity 2 --with-coverage macaroonbakery
 
 .PHONY: isort
 isort:
