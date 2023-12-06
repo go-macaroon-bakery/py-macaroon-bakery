@@ -63,6 +63,7 @@ help:
 	@echo 'make lint - Run linter and pep8.'
 	@echo 'make check - Run all the tests and lint in all supported scenarios.'
 	@echo 'make source - Create source package.'
+	@echo 'make wheel - Create wheel package.'
 	@echo 'make clean - Get rid of bytecode files, build and dist dirs, venvs.'
 	@echo 'make release - Register and upload a release on PyPI.'
 	@echo -e '\nAfter creating the development environment with "make", it is'
@@ -79,7 +80,7 @@ lint: setup
 
 .PHONY: release
 release: check
-	$(PYTHON) setup.py register sdist upload
+	$(PYTHON) setup.py register sdist bdist_wheel upload
 
 .PHONY: setup
 setup: $(SYSDEPS_INSTALLED) $(DEVENVPIP) setup.py
@@ -87,6 +88,10 @@ setup: $(SYSDEPS_INSTALLED) $(DEVENVPIP) setup.py
 .PHONY: source
 source:
 	$(PYTHON) setup.py sdist
+
+.PHONY: wheel
+wheel:
+	$(PYTHON) setup.py bdist_wheel
 
 .PHONY: sysdeps
 sysdeps: $(SYSDEPS_INSTALLED)
