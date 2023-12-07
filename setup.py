@@ -27,7 +27,7 @@ requirements = [
     'PyNaCl>=1.1.2,<2.0',
     'pymacaroons>=0.12.0,<1.0',
     'six>=1.11.0,<2.0',
-    'protobuf>=3.0.0,<4.0',
+    'protobuf>=3.4.0',
     'pyRFC3339>=1.0,<2.0',
     'ipaddress;python_version<"3"',
     'cryptography==1.3.2;python_full_version<"2.7.9"',
