@@ -26,7 +26,7 @@ class TestCodec(TestCase):
             self.fp_key,
             None)
         res = bakery.decode_caveat(self.tp_key, cid)
-        self.assertEquals(res, bakery.ThirdPartyCaveatInfo(
+        self.assertEqual(res, bakery.ThirdPartyCaveatInfo(
             first_party_public_key=self.fp_key.public_key,
             root_key=b'a random string',
             condition='is-authenticated-user',
@@ -48,7 +48,7 @@ class TestCodec(TestCase):
             self.fp_key,
             None)
         res = bakery.decode_caveat(self.tp_key, cid)
-        self.assertEquals(res, bakery.ThirdPartyCaveatInfo(
+        self.assertEqual(res, bakery.ThirdPartyCaveatInfo(
             first_party_public_key=self.fp_key.public_key,
             root_key=b'a random string',
             condition='is-authenticated-user',
@@ -72,7 +72,7 @@ class TestCodec(TestCase):
             self.fp_key,
             ns)
         res = bakery.decode_caveat(self.tp_key, cid)
-        self.assertEquals(res, bakery.ThirdPartyCaveatInfo(
+        self.assertEqual(res, bakery.ThirdPartyCaveatInfo(
             first_party_public_key=self.fp_key.public_key,
             root_key=b'a random string',
             condition='is-authenticated-user',
@@ -110,7 +110,7 @@ class TestCodec(TestCase):
             '0V2lEOHhRUWdjU3ljOHY4eUt4dEhxejVEczJOYmh1ZDJhUFdt'
             'UTVMcVlNWitmZ2FNaTAxdE9DIn0=')
         cav = bakery.decode_caveat(tp_key, encrypted_cav)
-        self.assertEquals(cav, bakery.ThirdPartyCaveatInfo(
+        self.assertEqual(cav, bakery.ThirdPartyCaveatInfo(
             condition='caveat condition',
             first_party_public_key=fp_key.public_key,
             third_party_key_pair=tp_key,
@@ -164,7 +164,7 @@ class TestCodec(TestCase):
             '1LX4VKxymqG62UGPo78wOv0_fKjr3OI6PPJOYOQgBMclemlRF2',
         )
         cav = bakery.decode_caveat(tp_key, encrypted_cav)
-        self.assertEquals(cav, bakery.ThirdPartyCaveatInfo(
+        self.assertEqual(cav, bakery.ThirdPartyCaveatInfo(
             condition='third party condition',
             first_party_public_key=fp_key.public_key,
             third_party_key_pair=tp_key,
@@ -190,7 +190,7 @@ class TestCodec(TestCase):
             bakery.encode_uvarint(test[0], data)
             for v in test[1]:
                 expected.append(v)
-            self.assertEquals(data, expected)
+            self.assertEqual(data, expected)
             val = codec.decode_uvarint(bytes(data))
-            self.assertEquals(test[0], val[0])
-            self.assertEquals(len(test[1]), val[1])
+            self.assertEqual(test[0], val[0])
+            self.assertEqual(len(test[1]), val[1])

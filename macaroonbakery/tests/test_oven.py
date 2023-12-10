@@ -45,9 +45,9 @@ class TestOven(TestCase):
         for about, ops, expected in canonical_ops_tests:
             new_ops = copy.copy(ops)
             canonical_ops = bakery.canonical_ops(new_ops)
-            self.assertEquals(canonical_ops, expected)
+            self.assertEqual(canonical_ops, expected)
             # Verify that the original array isn't changed.
-            self.assertEquals(new_ops, ops)
+            self.assertEqual(new_ops, ops)
 
     def test_multiple_ops(self):
         test_oven = bakery.Oven(
@@ -58,8 +58,8 @@ class TestOven(TestCase):
         m = test_oven.macaroon(bakery.LATEST_VERSION, AGES,
                                None, ops)
         got_ops, conds = test_oven.macaroon_ops([m.macaroon])
-        self.assertEquals(len(conds), 1)  # time-before caveat.
-        self.assertEquals(bakery.canonical_ops(got_ops), ops)
+        self.assertEqual(len(conds), 1)  # time-before caveat.
+        self.assertEqual(bakery.canonical_ops(got_ops), ops)
 
     def test_multiple_ops_in_id(self):
         test_oven = bakery.Oven()
@@ -69,8 +69,8 @@ class TestOven(TestCase):
         m = test_oven.macaroon(bakery.LATEST_VERSION, AGES,
                                None, ops)
         got_ops, conds = test_oven.macaroon_ops([m.macaroon])
-        self.assertEquals(len(conds), 1)  # time-before caveat.
-        self.assertEquals(bakery.canonical_ops(got_ops), ops)
+        self.assertEqual(len(conds), 1)  # time-before caveat.
+        self.assertEqual(bakery.canonical_ops(got_ops), ops)
 
     def test_multiple_ops_in_id_with_version1(self):
         test_oven = bakery.Oven()
@@ -79,8 +79,8 @@ class TestOven(TestCase):
                bakery.Op('two', 'read')]
         m = test_oven.macaroon(bakery.VERSION_1, AGES, None, ops)
         got_ops, conds = test_oven.macaroon_ops([m.macaroon])
-        self.assertEquals(len(conds), 1)  # time-before caveat.
-        self.assertEquals(bakery.canonical_ops(got_ops), ops)
+        self.assertEqual(len(conds), 1)  # time-before caveat.
+        self.assertEqual(bakery.canonical_ops(got_ops), ops)
 
     def test_huge_number_of_ops_gives_small_macaroon(self):
         test_oven = bakery.Oven(
@@ -93,9 +93,9 @@ class TestOven(TestCase):
         m = test_oven.macaroon(bakery.LATEST_VERSION, AGES,
                                None, ops)
         got_ops, conds = test_oven.macaroon_ops([m.macaroon])
-        self.assertEquals(len(conds), 1)  # time-before caveat.
-        self.assertEquals(bakery.canonical_ops(got_ops),
-                          bakery.canonical_ops(ops))
+        self.assertEqual(len(conds), 1)  # time-before caveat.
+        self.assertEqual(bakery.canonical_ops(got_ops),
+                         bakery.canonical_ops(ops))
 
         data = m.serialize_json()
         self.assertLess(len(data), 300)
@@ -111,8 +111,8 @@ class TestOven(TestCase):
         m = test_oven.macaroon(bakery.LATEST_VERSION, AGES,
                                None, ops)
         got_ops, conds = test_oven.macaroon_ops([m.macaroon])
-        self.assertEquals(bakery.canonical_ops(got_ops),
-                          bakery.canonical_ops(ops))
+        self.assertEqual(bakery.canonical_ops(got_ops),
+                         bakery.canonical_ops(ops))
 
         # Make another macaroon containing the same ops in a different order.
         ops = [bakery.Op('one', 'write'),
@@ -121,4 +121,4 @@ class TestOven(TestCase):
                bakery.Op('two', 'read')]
         test_oven.macaroon(bakery.LATEST_VERSION, AGES, None,
                            ops)
-        self.assertEquals(len(st._store), 1)
+        self.assertEqual(len(st._store), 1)
