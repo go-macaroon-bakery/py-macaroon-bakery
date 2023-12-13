@@ -11,6 +11,7 @@ mock==1.0.1
 nose2==0.13.0
 pbr==3.1.1
 python-mimeparse==1.6.0
-testtools==2.3.0
+testtools==2.3.0; python_version<"3"
+testtools==2.5.0; python_version>="3"
 traceback2==1.4.0
-unittest2==1.1.0
+unittest2==1.1.0; python_version<"3"

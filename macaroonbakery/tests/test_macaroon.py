@@ -19,17 +19,17 @@ class TestMacaroon(TestCase):
             'here',
             bakery.LATEST_VERSION)
         self.assertIsNotNone(m)
-        self.assertEquals(m._macaroon.identifier, b'some id')
-        self.assertEquals(m._macaroon.location, 'here')
-        self.assertEquals(m.version, bakery.LATEST_VERSION)
+        self.assertEqual(m._macaroon.identifier, b'some id')
+        self.assertEqual(m._macaroon.location, 'here')
+        self.assertEqual(m.version, bakery.LATEST_VERSION)
 
     def test_add_first_party_caveat(self):
         m = bakery.Macaroon('rootkey', 'some id', 'here',
                             bakery.LATEST_VERSION)
         m.add_caveat(checkers.Caveat('test_condition'))
         caveats = m.first_party_caveats()
-        self.assertEquals(len(caveats), 1)
-        self.assertEquals(caveats[0].caveat_id, b'test_condition')
+        self.assertEqual(len(caveats), 1)
+        self.assertEqual(caveats[0].caveat_id, b'test_condition')
 
     def test_add_third_party_caveat(self):
         locator = bakery.ThirdPartyStore()

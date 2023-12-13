@@ -24,12 +24,12 @@ class TestNamespace(TestCase):
         for test in tests:
             ns = checkers.Namespace(test[1])
             data = ns.serialize_text()
-            self.assertEquals(data, test[2])
-            self.assertEquals(str(ns), test[2].decode('utf-8'))
+            self.assertEqual(data, test[2])
+            self.assertEqual(str(ns), test[2].decode('utf-8'))
 
         # Check that it can be deserialize to the same thing:
         ns1 = checkers.deserialize_namespace(data)
-        self.assertEquals(ns1, ns)
+        self.assertEqual(ns1, ns)
 
     # TODO(rogpeppe) add resolve tests
 
@@ -37,16 +37,16 @@ class TestNamespace(TestCase):
         ns = checkers.Namespace(None)
         ns.register('testns', 't')
         prefix = ns.resolve('testns')
-        self.assertEquals(prefix, 't')
+        self.assertEqual(prefix, 't')
 
         ns.register('other', 'o')
         prefix = ns.resolve('other')
-        self.assertEquals(prefix, 'o')
+        self.assertEqual(prefix, 'o')
 
         # If we re-register the same URL, it does nothing.
         ns.register('other', 'p')
         prefix = ns.resolve('other')
-        self.assertEquals(prefix, 'o')
+        self.assertEqual(prefix, 'o')
 
     def test_register_bad_uri(self):
         ns = checkers.Namespace(None)

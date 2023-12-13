@@ -51,7 +51,7 @@ class TestClient(TestWithFixtures):
             srv_macaroon = b.oven.macaroon(
                 version=bakery.LATEST_VERSION, expiry=AGES,
                 caveats=None, ops=[TEST_OP])
-            self.assertEquals(srv_macaroon.macaroon.location, 'loc')
+            self.assertEqual(srv_macaroon.macaroon.location, 'loc')
             client = httpbakery.Client()
             client.cookies.set_cookie(requests.cookies.create_cookie(
                 'macaroon-test', base64.b64encode(json.dumps([
@@ -63,7 +63,7 @@ class TestClient(TestWithFixtures):
                     str(httpd.server_address[1]),
                 cookies=client.cookies, auth=client.auth())
             resp.raise_for_status()
-            self.assertEquals(resp.text, 'done')
+            self.assertEqual(resp.text, 'done')
         finally:
             httpd.shutdown()
 
@@ -110,7 +110,7 @@ class TestClient(TestWithFixtures):
                     cookies=client.cookies,
                     auth=client.auth())
             resp.raise_for_status()
-            self.assertEquals(resp.text, 'done')
+            self.assertEqual(resp.text, 'done')
         finally:
             httpd.shutdown()
 
@@ -157,7 +157,7 @@ class TestClient(TestWithFixtures):
                     cookies=client.cookies,
                     auth=client.auth())
             resp.raise_for_status()
-            self.assertEquals(resp.text, 'done')
+            self.assertEqual(resp.text, 'done')
         finally:
             httpd.shutdown()
 
@@ -203,7 +203,7 @@ class TestClient(TestWithFixtures):
                     cookies=client.cookies,
                     auth=client.auth())
             resp.raise_for_status()
-            self.assertEquals(resp.text, 'done')
+            self.assertEqual(resp.text, 'done')
         finally:
             httpd.shutdown()
 
@@ -222,7 +222,7 @@ class TestClient(TestWithFixtures):
             srv_macaroon = b.oven.macaroon(
                 version=bakery.LATEST_VERSION, expiry=AGES,
                 caveats=None, ops=[TEST_OP])
-            self.assertEquals(srv_macaroon.macaroon.location, 'loc')
+            self.assertEqual(srv_macaroon.macaroon.location, 'loc')
             client = httpbakery.Client()
             # Note: by using "localhost" instead of the presumably numeric address held
             # in httpd.server_address, we're triggering the no-FQDN logic in the cookie
@@ -231,7 +231,7 @@ class TestClient(TestWithFixtures):
                 url='http://localhost:' + str(httpd.server_address[1]),
                 cookies=client.cookies, auth=client.auth())
             resp.raise_for_status()
-            self.assertEquals(resp.text, 'done')
+            self.assertEqual(resp.text, 'done')
         except httpbakery.BakeryException:
             pass  # interacion required exception is expected
         finally:
@@ -254,7 +254,7 @@ class TestClient(TestWithFixtures):
             srv_macaroon = b.oven.macaroon(
                 version=bakery.LATEST_VERSION,
                 expiry=AGES, caveats=None, ops=[TEST_OP])
-            self.assertEquals(srv_macaroon.macaroon.location, 'loc')
+            self.assertEqual(srv_macaroon.macaroon.location, 'loc')
             headers = {
                 'Macaroons': base64.b64encode(json.dumps([
                     srv_macaroon.to_dict().get('m')
@@ -265,7 +265,7 @@ class TestClient(TestWithFixtures):
                     str(httpd.server_address[1]),
                 headers=headers)
             resp.raise_for_status()
-            self.assertEquals(resp.text, 'done')
+            self.assertEqual(resp.text, 'done')
         finally:
             httpd.shutdown()
 
@@ -317,8 +317,8 @@ class TestClient(TestWithFixtures):
                 base64.b64decode(client.cookies.get('macaroon-test')).decode('utf-8'))[0])
             t = checkers.macaroons_expiry_time(
                 checkers.Namespace(), [m.macaroon])
-            self.assertEquals(ages, t)
-            self.assertEquals(resp.text, 'done')
+            self.assertEqual(ages, t)
+            self.assertEqual(resp.text, 'done')
         finally:
             httpd.shutdown()
 
@@ -557,13 +557,13 @@ class TestClient(TestWithFixtures):
                         cookies=client.cookies,
                         auth=client.auth())
                 if platform.python_version_tuple()[0] == '2':
-                    self.assertEquals(str(discharge_error.exception),
-                                      'third party refused dischargex: unexpected response: '
-                                      "[503] 'bad system'")
+                    self.assertEqual(str(discharge_error.exception),
+                                     'third party refused dischargex: unexpected response: '
+                                     "[503] 'bad system'")
                 else:
-                    self.assertEquals(str(discharge_error.exception),
-                                      'third party refused dischargex: unexpected response: '
-                                      "[503] b'bad system'")
+                    self.assertEqual(str(discharge_error.exception),
+                                     'third party refused dischargex: unexpected response: '
+                                     "[503] b'bad system'")
 
         finally:
             httpd.shutdown()
@@ -591,10 +591,10 @@ class TestClient(TestWithFixtures):
         jar.add_cookie_header(req)
 
         macaroons = httpbakery.extract_macaroons(req)
-        self.assertEquals(len(macaroons), 2)
+        self.assertEqual(len(macaroons), 2)
         macaroons.sort(key=lambda ms: ms[0].identifier)
-        self.assertEquals(macaroons[0][0].identifier, m1.identifier)
-        self.assertEquals(macaroons[1][0].identifier, m2.identifier)
+        self.assertEqual(macaroons[0][0].identifier, m1.identifier)
+        self.assertEqual(macaroons[1][0].identifier, m2.identifier)
 
     def test_handle_error_cookie_path(self):
         macaroon = bakery.Macaroon(
